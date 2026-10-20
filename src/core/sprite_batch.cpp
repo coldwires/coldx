@@ -115,7 +115,7 @@ bool SpriteBatch::Impl::CreatePipeline(SDL_GPUDevice* device) {
     SDL_ReleaseGPUShader(device, vertexShader);
     SDL_ReleaseGPUShader(device, fragmentShader);
     if (!pipeline) {
-        SDL_Log("coldx: SpriteBatch: SDL_CreateGPUGraphicsPipeline failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SpriteBatch: SDL_CreateGPUGraphicsPipeline failed: %s", SDL_GetError());
         return false;
     }
 
@@ -128,7 +128,7 @@ bool SpriteBatch::Impl::CreatePipeline(SDL_GPUDevice* device) {
     samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampler = SDL_CreateGPUSampler(device, &samplerInfo);
     if (!sampler) {
-        SDL_Log("coldx: SpriteBatch: SDL_CreateGPUSampler failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SpriteBatch: SDL_CreateGPUSampler failed: %s", SDL_GetError());
         return false;
     }
     return true;
@@ -165,13 +165,13 @@ bool SpriteBatch::Impl::EnsureCapacity(SDL_GPUDevice* device, Uint32 spriteCount
     transferInfo.size = vertexBytes > indexBytes ? vertexBytes : indexBytes;
     transfer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
     if (!vertexBuffer || !indexBuffer || !transfer) {
-        SDL_Log("coldx: SpriteBatch: could not create buffers for %u sprites: %s", newCapacity, SDL_GetError());
+        SDL_Log("coldx.core: SpriteBatch: could not create buffers for %u sprites: %s", newCapacity, SDL_GetError());
         return false;
     }
 
     auto* indices = static_cast<Uint32*>(SDL_MapGPUTransferBuffer(device, transfer, false));
     if (!indices) {
-        SDL_Log("coldx: SpriteBatch: SDL_MapGPUTransferBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SpriteBatch: SDL_MapGPUTransferBuffer failed: %s", SDL_GetError());
         return false;
     }
     // Vertices per sprite: 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right.
@@ -185,7 +185,7 @@ bool SpriteBatch::Impl::EnsureCapacity(SDL_GPUDevice* device, Uint32 spriteCount
 
     SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device);
     if (!commands) {
-        SDL_Log("coldx: SpriteBatch: SDL_AcquireGPUCommandBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SpriteBatch: SDL_AcquireGPUCommandBuffer failed: %s", SDL_GetError());
         return false;
     }
     SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(commands);
@@ -194,7 +194,7 @@ bool SpriteBatch::Impl::EnsureCapacity(SDL_GPUDevice* device, Uint32 spriteCount
     SDL_UploadToGPUBuffer(copy, &source, &destination, false);
     SDL_EndGPUCopyPass(copy);
     if (!SDL_SubmitGPUCommandBuffer(commands)) {
-        SDL_Log("coldx: SpriteBatch: index upload failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SpriteBatch: index upload failed: %s", SDL_GetError());
         return false;
     }
     capacity = newCapacity;
@@ -204,7 +204,7 @@ bool SpriteBatch::Impl::EnsureCapacity(SDL_GPUDevice* device, Uint32 spriteCount
 void SpriteBatch::Impl::Add(const Texture2D& texture, float x, float y, float w, float h,
                             std::optional<Rectangle> source, Color color) {
     if (!begun) {
-        SDL_Log("coldx: SpriteBatch::Draw called without Begin");
+        SDL_Log("coldx.core: SpriteBatch::Draw called without Begin");
         return;
     }
     SDL_GPUTexture* handle = detail::TextureAccess::Handle(texture);
@@ -231,7 +231,7 @@ SpriteBatch::SpriteBatch(GraphicsDevice& graphics) : impl_(std::make_unique<Impl
 SpriteBatch::~SpriteBatch() = default;
 
 void SpriteBatch::Begin() {
-    if (impl_->begun) SDL_Log("coldx: SpriteBatch::Begin called twice without End");
+    if (impl_->begun) SDL_Log("coldx.core: SpriteBatch::Begin called twice without End");
     impl_->begun = true;
     impl_->sprites.clear();
 }
@@ -258,7 +258,7 @@ void SpriteBatch::Draw(const Texture2D& texture, Rectangle destination, std::opt
 void SpriteBatch::End() {
     Impl& b = *impl_;
     if (!b.begun) {
-        SDL_Log("coldx: SpriteBatch::End called without Begin");
+        SDL_Log("coldx.core: SpriteBatch::End called without Begin");
         return;
     }
     b.begun = false;
@@ -267,7 +267,7 @@ void SpriteBatch::End() {
     SDL_GPUCommandBuffer* commands = detail::GraphicsAccess::Commands(b.graphics);
     SDL_GPUTexture* target = detail::GraphicsAccess::BackBuffer(b.graphics);
     if (!commands || !target) {
-        SDL_Log("coldx: SpriteBatch::End called outside Draw; nothing drawn");
+        SDL_Log("coldx.core: SpriteBatch::End called outside Draw; nothing drawn");
         b.sprites.clear();
         return;
     }
@@ -294,7 +294,7 @@ void SpriteBatch::End() {
     // out a fresh one instead of overwriting it.
     auto* vertices = static_cast<Vertex*>(SDL_MapGPUTransferBuffer(device, b.transfer, true));
     if (!vertices) {
-        SDL_Log("coldx: SpriteBatch: SDL_MapGPUTransferBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SpriteBatch: SDL_MapGPUTransferBuffer failed: %s", SDL_GetError());
         b.sprites.clear();
         return;
     }
