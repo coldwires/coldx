@@ -29,3 +29,16 @@ target_link_libraries(coldx_core_input_test PRIVATE coldx::core SDL3::SDL3-stati
 target_include_directories(coldx_core_input_test PRIVATE ${PROJECT_SOURCE_DIR}/tests)
 coldx_set_warnings(coldx_core_input_test)
 add_test(NAME core.input COMMAND coldx_core_input_test)
+
+# Audio does not depend on the GPU backend either. Headless runs use SDL's dummy audio
+# driver, so the test is silent.
+add_executable(coldx_core_audio_test audio_test.cpp)
+target_link_libraries(coldx_core_audio_test PRIVATE coldx::core SDL3::SDL3-static)
+target_include_directories(coldx_core_audio_test PRIVATE ${PROJECT_SOURCE_DIR}/tests ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_definitions(coldx_core_audio_test PRIVATE COLDX_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+coldx_set_warnings(coldx_core_audio_test)
+add_test(NAME core.audio COMMAND coldx_core_audio_test)
+
+# A hang (a mixer that never finishes, a loop that never exits) fails instead of blocking.
+get_property(core_tests DIRECTORY PROPERTY TESTS)
+set_tests_properties(${core_tests} PROPERTIES TIMEOUT 120)
