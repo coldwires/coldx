@@ -16,7 +16,8 @@ behaviour; `not started` has no code.
 | 7 | `Texture2D`: PNG, raw pixels, `SetData` | done |
 | 8 | `SpriteBatch`: position, destination, source, tint | done |
 | 9 | `SpriteBatch`: sort modes, blend and sampler states, transform, rotation, origin, scale, flip, depth | done |
-| 10 | `SpriteFont` | not started |
+| 10 | `SpriteFont` from a TTF at runtime; `DrawString`, `MeasureString` | done |
+| 25 | `SpriteFont` from baked content | not started (needs the content pipeline) |
 | 11 | Keyboard | done |
 | 12 | Mouse, gamepad | not started |
 | 13 | Audio | not started |

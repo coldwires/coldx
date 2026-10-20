@@ -13,5 +13,6 @@
 #include <coldx/core/rectangle.h>
 #include <coldx/core/render_target2d.h>
 #include <coldx/core/sprite_batch.h>
+#include <coldx/core/sprite_font.h>
 #include <coldx/core/texture2d.h>
 #include <coldx/core/vector2.h>

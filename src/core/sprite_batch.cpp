@@ -6,6 +6,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "font_access.h"
 #include "sprite_renderer.h"
 #include "texture_access.h"
 
@@ -168,6 +169,38 @@ void SpriteBatch::Draw(const Texture2D& texture, Rectangle destination, std::opt
     impl_->Add(texture, static_cast<float>(destination.x), static_cast<float>(destination.y),
                static_cast<float>(destination.width), static_cast<float>(destination.height), origin.x * sx,
                origin.y * sy, src, color, rotation, effects, layerDepth);
+}
+
+void SpriteBatch::DrawString(const SpriteFont& font, std::string_view text, Vector2 position, Color color) {
+    DrawString(font, text, position, color, 0.0f, Vector2(), Vector2::One(), SpriteEffects::None, 0.0f);
+}
+
+void SpriteBatch::DrawString(const SpriteFont& font, std::string_view text, Vector2 position, Color color,
+                             float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth) {
+    DrawString(font, text, position, color, rotation, origin, Vector2(scale, scale), effects, layerDepth);
+}
+
+// Each glyph is a sprite whose origin is the string's origin, moved by where the glyph sits
+// in the string. Rotation and scale about that shared origin then turn the string as one.
+void SpriteBatch::DrawString(const SpriteFont& font, std::string_view text, Vector2 position, Color color,
+                             float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth) {
+    if (font.IsEmpty()) return;
+    const Texture2D& atlas = font.Texture();
+    const bool flipX = HasFlag(effects, SpriteEffects::FlipHorizontally);
+    const bool flipY = HasFlag(effects, SpriteEffects::FlipVertically);
+    Vector2 size;
+    if (flipX || flipY) {
+        size = font.MeasureString(text);
+        size = Vector2(std::round(size.x), std::round(size.y));
+    }
+    detail::FontAccess::ForEachGlyph(font, text, [&](const Rectangle& source, float x, float y) {
+        // A flipped string is mirrored as a whole, across its measured size rounded so glyphs
+        // stay on whole pixels: each glyph moves to its mirror position and is drawn flipped.
+        if (flipX) x = size.x - x - source.width;
+        if (flipY) y = size.y - y - source.height;
+        impl_->Add(atlas, position.x, position.y, source.width * scale.x, source.height * scale.y,
+                   (origin.x - x) * scale.x, (origin.y - y) * scale.y, source, color, rotation, effects, layerDepth);
+    });
 }
 
 } // namespace coldx

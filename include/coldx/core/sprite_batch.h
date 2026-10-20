@@ -2,11 +2,13 @@
 
 #include <memory>
 #include <optional>
+#include <string_view>
 
 #include <coldx/core/color.h>
 #include <coldx/core/graphics_states.h>
 #include <coldx/core/matrix.h>
 #include <coldx/core/rectangle.h>
+#include <coldx/core/sprite_font.h>
 #include <coldx/core/texture2d.h>
 #include <coldx/core/vector2.h>
 
@@ -72,6 +74,14 @@ public:
     void Draw(const Texture2D& texture, Rectangle destination, std::optional<Rectangle> source, Color color);
     void Draw(const Texture2D& texture, Rectangle destination, std::optional<Rectangle> source, Color color,
               float rotation, Vector2 origin, SpriteEffects effects, float layerDepth);
+
+    // UTF-8 text with its top-left at position. origin, rotation, scale and depth work as for
+    // Draw, applied to the whole string; flipping mirrors the whole string.
+    void DrawString(const SpriteFont& font, std::string_view text, Vector2 position, Color color);
+    void DrawString(const SpriteFont& font, std::string_view text, Vector2 position, Color color, float rotation,
+                    Vector2 origin, float scale, SpriteEffects effects, float layerDepth);
+    void DrawString(const SpriteFont& font, std::string_view text, Vector2 position, Color color, float rotation,
+                    Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth);
 
 private:
     struct Impl;

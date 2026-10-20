@@ -89,6 +89,24 @@ batch.Draw(target, Vector2(0, 0), Color::White);
 batch.End();
 ```
 
+## Text
+
+```cpp
+font = SpriteFont::FromFile(Graphics(), "content/LiberationSans-Regular.ttf", 18.0f);
+// ...
+batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
+batch.DrawString(font, "Hello", Vector2(40, 40), Color::White);
+batch.End();
+```
+
+A `SpriteFont` is a TrueType font baked at one pixel height into an atlas: printable ASCII
+and Latin-1. Text is UTF-8. Glyphs land on whole pixels, so at a whole-pixel position with
+`PointClamp` the text is exactly the rasterized font. For another size, bake another font;
+scaling a bake blurs it. Characters the font lacks draw as `DefaultCharacter`, `?` by
+default. `MeasureString` gives the size `DrawString` will cover.
+
+`samples/hello_text` shows it at 18 px; Up and Down change the size.
+
 `Log` writes a printf-style line to the same log as coldx's own messages.
 
 ## Textures and colors

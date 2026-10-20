@@ -23,6 +23,20 @@ How data moves through coldx for the main cases. Each step is a file and what it
 
 Covered by `core.render.*` and `core.sprite.*` for steps 3 to 6.
 
+## Drawing text
+
+1. `src/core/sprite_font.cpp` `SpriteFont::FromFile` - loads the TTF, packs printable ASCII
+   and Latin-1 into one atlas at the requested pixel height with stb_truetype, and keeps
+   the font data for kerning.
+2. `sprite_batch.cpp` `SpriteBatch::DrawString` - walks the text through
+   `FontAccess::ForEachGlyph`, which decodes UTF-8 and lays it out (pen rounded per glyph,
+   kerning, newlines, default character). Each glyph becomes one sprite from the atlas,
+   with the string's origin offset by the glyph's place, so rotation and scale apply to
+   the whole string.
+3. From there it is a frame like any other sprite batch.
+
+Covered by `core.font.*`.
+
 ## Loading a texture
 
 1. `src/core/texture2d.cpp` `Texture2D::FromFile` - prefixes a relative path with the
