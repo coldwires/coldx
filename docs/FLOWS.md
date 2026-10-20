@@ -10,14 +10,18 @@ How data moves through coldx for the main cases. Each step is a file and what it
 3. `graphics_device.cpp` `GraphicsAccess::BeginFrame` - acquires a command buffer and the
    swapchain texture; resizes the internal back buffer to match. No swapchain texture
    (minimized) means no `Draw` this frame.
-4. The game's `Draw` - `GraphicsDevice::Clear` records a clearing render pass on the back
-   buffer. `SpriteBatch::Draw` only appends quads to a list.
-5. `sprite_batch.cpp` `SpriteBatch::End` - copies the quads' vertices to the GPU, pushes the
-   pixel-to-clip transform, opens a render pass that keeps the back buffer's contents, and
-   issues one indexed draw per run of sprites sharing a texture.
+4. The game's `Draw` - `GraphicsDevice::Clear` records a clearing render pass on the
+   current target, which is the back buffer until `SetRenderTarget` changes it.
+   `SpriteBatch::Draw` turns each sprite into four corners (origin, scale, rotation, flip)
+   and appends them to a queue; in Immediate mode it flushes at once.
+5. `sprite_batch.cpp` `SpriteBatch::End` - sorts the queue by the sort mode and hands it to
+   `sprite_renderer.cpp` `SpriteRenderer::Draw`, which copies the vertices to the GPU,
+   pushes the game's transform times the target's pixel-to-clip matrix, opens a render pass
+   that keeps the target's contents, and issues one indexed draw per run of sprites sharing
+   a texture. The pipeline is picked by blend state, the sampler by sampler state.
 6. `GraphicsAccess::EndFrame` - blits the back buffer to the swapchain texture and submits.
 
-Covered by `core.render.*` for steps 3 to 6.
+Covered by `core.render.*` and `core.sprite.*` for steps 3 to 6.
 
 ## Loading a texture
 

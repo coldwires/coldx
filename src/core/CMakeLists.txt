@@ -3,8 +3,11 @@ add_library(coldx_core STATIC
     game.cpp
     graphics_device.cpp
     keyboard.cpp
+    log.cpp
+    matrix.cpp
     shader_blob.cpp
     sprite_batch.cpp
+    sprite_renderer.cpp
     texture2d.cpp
 )
 add_library(coldx::core ALIAS coldx_core)

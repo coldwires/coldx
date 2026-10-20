@@ -42,9 +42,12 @@ struct GraphicsAccess {
     // Null before Open and after Close.
     static SDL_GPUDevice* Device(GraphicsDevice& graphics);
     static std::shared_ptr<DeviceToken> Token(GraphicsDevice& graphics);
-    // Both null outside a frame.
+    // All null or zero outside a frame. The current target is the back buffer unless the
+    // game set a render target.
     static SDL_GPUCommandBuffer* Commands(GraphicsDevice& graphics);
-    static SDL_GPUTexture* BackBuffer(GraphicsDevice& graphics);
+    static SDL_GPUTexture* CurrentTarget(GraphicsDevice& graphics);
+    static int CurrentTargetWidth(GraphicsDevice& graphics);
+    static int CurrentTargetHeight(GraphicsDevice& graphics);
 
 private:
     static bool ResizeBackBuffer(GraphicsDevice& graphics, unsigned width, unsigned height);

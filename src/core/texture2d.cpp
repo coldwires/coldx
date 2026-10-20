@@ -1,3 +1,4 @@
+#include <coldx/core/render_target2d.h>
 #include <coldx/core/texture2d.h>
 
 #include <SDL3/SDL.h>
@@ -73,22 +74,21 @@ Texture2D::~Texture2D() = default;
 Texture2D::Texture2D(Texture2D&& other) noexcept = default;
 Texture2D& Texture2D::operator=(Texture2D&& other) noexcept = default;
 
-Texture2D Texture2D::FromPixels(GraphicsDevice& graphics, int width, int height, const Color* pixels) {
-    Texture2D result;
+std::unique_ptr<Texture2D::Impl> Texture2D::Make(GraphicsDevice& graphics, int width, int height, bool renderTarget) {
     SDL_GPUDevice* device = detail::GraphicsAccess::Device(graphics);
     if (!device) {
-        SDL_Log("coldx.core: Texture2D created before the graphics device exists; create it in LoadContent");
-        return result;
+        SDL_Log("coldx.core: texture created before the graphics device exists; create it in LoadContent");
+        return nullptr;
     }
-    if (width <= 0 || height <= 0 || !pixels) {
-        SDL_Log("coldx.core: Texture2D::FromPixels: invalid size %dx%d or no pixels", width, height);
-        return result;
+    if (width <= 0 || height <= 0) {
+        SDL_Log("coldx.core: invalid texture size %dx%d", width, height);
+        return nullptr;
     }
 
     SDL_GPUTextureCreateInfo info{};
     info.type = SDL_GPU_TEXTURETYPE_2D;
     info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-    info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+    info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | (renderTarget ? SDL_GPU_TEXTUREUSAGE_COLOR_TARGET : 0);
     info.width = static_cast<Uint32>(width);
     info.height = static_cast<Uint32>(height);
     info.layer_count_or_depth = 1;
@@ -96,15 +96,52 @@ Texture2D Texture2D::FromPixels(GraphicsDevice& graphics, int width, int height,
     SDL_GPUTexture* texture = SDL_CreateGPUTexture(device, &info);
     if (!texture) {
         SDL_Log("coldx.core: could not create a %dx%d texture: %s", width, height, SDL_GetError());
-        return result;
+        return nullptr;
     }
 
-    result.impl_ = std::make_unique<Impl>();
-    result.impl_->token = detail::GraphicsAccess::Token(graphics);
-    result.impl_->texture = texture;
-    result.impl_->width = width;
-    result.impl_->height = height;
-    if (!Upload(device, texture, width, height, pixels)) result.impl_.reset();
+    auto impl = std::make_unique<Impl>();
+    impl->token = detail::GraphicsAccess::Token(graphics);
+    impl->texture = texture;
+    impl->width = width;
+    impl->height = height;
+    return impl;
+}
+
+Texture2D Texture2D::FromPixels(GraphicsDevice& graphics, int width, int height, const Color* pixels) {
+    Texture2D result;
+    if (!pixels) {
+        SDL_Log("coldx.core: Texture2D::FromPixels: no pixels");
+        return result;
+    }
+    result.impl_ = Make(graphics, width, height, false);
+    if (result.impl_ && !Upload(result.impl_->token->device, result.impl_->texture, width, height, pixels))
+        result.impl_.reset();
+    return result;
+}
+
+RenderTarget2D RenderTarget2D::Create(GraphicsDevice& graphics, int width, int height) {
+    RenderTarget2D result;
+    result.impl_ = Make(graphics, width, height, true);
+    if (!result.impl_) return result;
+
+    // GPU memory starts undefined; clear once so an unused target draws as nothing.
+    SDL_GPUDevice* device = result.impl_->token->device;
+    SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device);
+    if (!commands) {
+        SDL_Log("coldx.core: RenderTarget2D: SDL_AcquireGPUCommandBuffer failed: %s", SDL_GetError());
+        result.impl_.reset();
+        return result;
+    }
+    SDL_GPUColorTargetInfo target{};
+    target.texture = result.impl_->texture;
+    target.clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
+    target.load_op = SDL_GPU_LOADOP_CLEAR;
+    target.store_op = SDL_GPU_STOREOP_STORE;
+    SDL_EndGPURenderPass(SDL_BeginGPURenderPass(commands, &target, 1, nullptr));
+    if (!SDL_SubmitGPUCommandBuffer(commands)) {
+        SDL_Log("coldx.core: RenderTarget2D: clear failed: %s", SDL_GetError());
+        result.impl_.reset();
+    }
     return result;
 }
 

@@ -14,7 +14,13 @@
 - `Vector2`, `Rectangle`, `Color * float`.
 - HLSL shader pipeline: `coldx.hlsli` and `coldx_compile_shaders`, compiling to SPIR-V, DXIL
   and MSL with resource counts, into committed headers.
-- `hello_sprite` sample.
+- `SpriteBatch`: sort modes, blend and sampler states, transform matrix, rotation, origin,
+  scale, flips and layer depth.
+- `RenderTarget2D` and `GraphicsDevice::SetRenderTarget`.
+- `Matrix`, `Point`, `MathHelper`.
+- `Log` for games.
+- `COLDX_LOG` files can be read while the game runs.
+- `hello_sprite` and `stress` samples.
 - CTest suite: math, headless render tests per GPU backend, and `tools/check.py` for
   module boundaries, file size and ASCII.
 - Log lines name their module: `coldx.core:`.

@@ -12,10 +12,10 @@ behaviour; `not started` has no code.
 | 3 | Fullscreen toggle and resize while running | not started |
 | 4 | Console window on Windows, `COLDX_*` debug options | done |
 | 5 | `GraphicsDevice`: clear, internal back buffer, capture | done |
-| 6 | `RenderTarget2D` | not started |
+| 6 | `RenderTarget2D`, `GraphicsDevice::SetRenderTarget` | done |
 | 7 | `Texture2D`: PNG, raw pixels, `SetData` | done |
-| 8 | `SpriteBatch`: position, destination, source, tint; deferred, alpha blend, linear clamp | done |
-| 9 | `SpriteBatch`: sort modes, blend and sampler states, transform, rotation, origin, scale, flip, depth | not started |
+| 8 | `SpriteBatch`: position, destination, source, tint | done |
+| 9 | `SpriteBatch`: sort modes, blend and sampler states, transform, rotation, origin, scale, flip, depth | done |
 | 10 | `SpriteFont` | not started |
 | 11 | Keyboard | done |
 | 12 | Mouse, gamepad | not started |
@@ -23,8 +23,9 @@ behaviour; `not started` has no code.
 | 14 | `GameComponent`, `DrawableGameComponent` | not started |
 | 15 | `ContentManager` | not started |
 | 16 | Math: `Vector2`, `Rectangle`, `Color` | done |
-| 17 | Math: `Point`, `Matrix`, `MathHelper` | not started |
-| 18 | Custom shaders when drawing (`Effect`) | not started |
+| 17 | Math: `Point`, `Matrix`, `MathHelper` | done |
+| 18 | Custom shaders when drawing (`Effect`); `SpriteBatch::Begin` will take one | not started |
+| 24 | `Log` for games | done |
 
 ## Shaders
 
@@ -45,6 +46,6 @@ behaviour; `not started` has no code.
 
 | Platform | State |
 |---|---|
-| Windows, MSVC, Direct3D 12 and Vulkan | built and tested |
+| Windows, MSVC, Direct3D 12 and Vulkan | built and tested; 10,000 sprites at over 1,000 fps in Release on the test machine |
 | Linux | not built |
 | macOS, Metal | not built; the MSL output has never run |
