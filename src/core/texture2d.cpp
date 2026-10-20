@@ -3,6 +3,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "content_path.h"
 #include "graphics_access.h"
 #include "texture_access.h"
 
@@ -146,12 +147,7 @@ RenderTarget2D RenderTarget2D::Create(GraphicsDevice& graphics, int width, int h
 }
 
 Texture2D Texture2D::FromFile(GraphicsDevice& graphics, const std::string& path) {
-    std::string full = path;
-    const bool absolute = !path.empty() && (path[0] == '/' || path[0] == '\\' || (path.size() > 1 && path[1] == ':'));
-    if (!absolute) {
-        const char* base = SDL_GetBasePath();
-        if (base) full = std::string(base) + path;
-    }
+    const std::string full = detail::ResolveContentPath(path);
 
     SDL_Surface* loaded = SDL_LoadPNG(full.c_str());
     if (!loaded) {

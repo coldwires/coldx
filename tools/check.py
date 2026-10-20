@@ -40,7 +40,7 @@ def source_files(base):
 # Module -> (layer, the coldx modules it depends on, the third-party include prefixes it
 # may use). Every directory under src/ is a module and has a row here.
 MODULES = {
-    "core": (0, [], ["SDL3"]),
+    "core": (0, [], ["SDL3", "stb"]),
 }
 
 

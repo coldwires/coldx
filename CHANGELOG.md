@@ -20,7 +20,9 @@
 - `Matrix`, `Point`, `MathHelper`.
 - `Log` for games.
 - `COLDX_LOG` files can be read while the game runs.
-- `hello_sprite` and `stress` samples.
+- `SpriteFont` baked from a TTF, `SpriteBatch::DrawString`, `MeasureString`: UTF-8,
+  kerning, newlines, Latin-1, a default character.
+- `hello_sprite`, `hello_text` and `stress` samples.
 - CTest suite: math, headless render tests per GPU backend, and `tools/check.py` for
   module boundaries, file size and ASCII.
 - Log lines name their module: `coldx.core:`.

@@ -67,5 +67,6 @@ endif()
 
 if(COLDX_BUILD_SAMPLES)
     add_subdirectory(samples/hello_sprite)
+    add_subdirectory(samples/hello_text)
     add_subdirectory(samples/stress)
 endif()
