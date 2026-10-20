@@ -94,7 +94,9 @@ All in namespace `coldx`, all from `#include <coldx/coldx.h>`.
 `Exit()` to quit. `Graphics()` is the `GraphicsDevice`. `Settings()` is read when `Run`
 starts: `title`, `width`, `height`, `resizable`, `fullscreen`, `vsync`, `fixedTimeStep`
 (default true), `targetElapsedSeconds` (1/60), `maxUpdatesPerFrame` (5), `console`
-(`ConsoleMode::DebugBuilds`/`Always`/`Never`), `company`, `name`.
+(`ConsoleMode::DebugBuilds`/`Always`/`Never`), `company`, `name`. While running:
+`SetFullscreen(bool)`, `ToggleFullscreen()`, `IsFullscreen()` (borderless, desktop
+resolution), `SetWindowSize(w, h)`, `SetWindowTitle`, `SetVSync`.
 
 **Components.** `class Hud : public DrawableGameComponent` with `Initialize`,
 `LoadContent`, `UnloadContent`, `Update`, `Draw`; construct with the game. Add with

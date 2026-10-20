@@ -27,6 +27,8 @@
 - `Storage` for settings and saves, and `GameSettings::company`/`name`.
 - `COLDX_INPUT` scripted input.
 - `GameComponent`, `DrawableGameComponent` and `Game::Components()`.
+- Window control while running: fullscreen toggle, size, title, vsync. `OnResize`
+  fires only on a real change.
 - `ContentManager` (`Game::Content()`): loose files by name, a cache, `LoadFont`,
   `RegisterLoader` for game types.
 - `Texture2D`, `RenderTarget2D` and `SpriteFont` are copyable handles: copies share.

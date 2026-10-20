@@ -59,3 +59,10 @@ target_compile_definitions(coldx_core_content_test PRIVATE
 coldx_set_warnings(coldx_core_content_test)
 add_test(NAME core.content COMMAND coldx_core_content_test)
 set_tests_properties(core.content PROPERTIES TIMEOUT 120)
+
+add_executable(coldx_core_window_test window_test.cpp)
+target_link_libraries(coldx_core_window_test PRIVATE coldx::core SDL3::SDL3-static)
+target_include_directories(coldx_core_window_test PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+coldx_set_warnings(coldx_core_window_test)
+add_test(NAME core.window COMMAND coldx_core_window_test)
+set_tests_properties(core.window PROPERTIES TIMEOUT 120)
