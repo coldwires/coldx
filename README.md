@@ -145,23 +145,33 @@ Together they run a game unattended and leave a log and a picture of its last fr
 On exit the log records the frame count, update count, frames that needed catch-up updates,
 and total game time.
 
+## Tests
+
+    cmake --build build --config Debug
+    cd build && ctest -C Debug --output-on-failure
+
+`check` runs `tools/check.py`, which enforces the module boundaries in
+`docs/ARCHITECTURE.md`; it needs Python 3 and is skipped without it. `core.math` covers the
+value types. `core.render.<backend>` draws a scene headless and compares every pixel that
+matters to a value computed from the same inputs, once per GPU backend
+(`COLDX_TEST_GPU_DRIVERS`: Direct3D 12 and Vulkan on Windows by default).
+
 ## Layout
 
     include/coldx/       public headers
-    src/                 implementation
+    src/<module>/        implementation, MODULE.md, tests/
     shaders/             HLSL sources, the shared include, compiled headers
     cmake/               shader compilation
     samples/             each sample is a separate game target
+    tests/               shared test helpers
+    tools/               check.py
+    docs/                architecture, status, flows, decisions
     third_party/         vendored dependencies, versions in VERSIONS.md
 
 ## Status
 
-Early. The window, game loop, clear color, keyboard state, the debug options, textures and
-a basic `SpriteBatch` work. Sort modes, blend and sampler choices, rotation and scale,
-render targets, fonts, audio, the other input devices and content loading are not written yet.
-
-Tested on Windows 11 with MSVC, on the Direct3D 12 and Vulkan backends. Linux and macOS have
-not been built, so the MSL output has never run.
+Early. `docs/STATUS.md` lists what is done and what is not started. Tested on Windows 11
+with MSVC, on the Direct3D 12 and Vulkan backends; Linux and macOS have not been built.
 
 ## License
 

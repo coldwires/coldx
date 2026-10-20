@@ -69,7 +69,7 @@ bool StartLogFile(const std::string& path) {
     logFile = std::fopen(path.c_str(), "w");
 #endif
     if (!logFile) {
-        SDL_Log("coldx: could not open log file %s", path.c_str());
+        SDL_Log("coldx.core: could not open log file %s", path.c_str());
         return false;
     }
     SDL_GetLogOutputFunction(&previousOutput, &previousUserdata);

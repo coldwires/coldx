@@ -23,7 +23,7 @@ SDL_GPUShader* CreateShader(SDL_GPUDevice* device, const ShaderBlob& blob, Shade
         info.code_size = blob.mslSize;
         info.entrypoint = "main0";
     } else {
-        SDL_Log("coldx: shader %s: the GPU device takes none of SPIR-V, DXIL or MSL", name);
+        SDL_Log("coldx.core: shader %s: the GPU device takes none of SPIR-V, DXIL or MSL", name);
         return nullptr;
     }
     info.stage = stage == ShaderStage::Vertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
@@ -33,7 +33,7 @@ SDL_GPUShader* CreateShader(SDL_GPUDevice* device, const ShaderBlob& blob, Shade
     info.num_uniform_buffers = blob.uniformBuffers;
 
     SDL_GPUShader* shader = SDL_CreateGPUShader(device, &info);
-    if (!shader) SDL_Log("coldx: shader %s: SDL_CreateGPUShader failed: %s", name, SDL_GetError());
+    if (!shader) SDL_Log("coldx.core: shader %s: SDL_CreateGPUShader failed: %s", name, SDL_GetError());
     return shader;
 }
 

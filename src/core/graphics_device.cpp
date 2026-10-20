@@ -69,7 +69,7 @@ bool GraphicsAccess::ResizeBackBuffer(GraphicsDevice& graphics, unsigned width, 
     info.num_levels = 1;
     g.backBuffer = SDL_CreateGPUTexture(g.device, &info);
     if (!g.backBuffer) {
-        SDL_Log("coldx: could not create a %ux%u back buffer: %s", width, height, SDL_GetError());
+        SDL_Log("coldx.core: could not create a %ux%u back buffer: %s", width, height, SDL_GetError());
         g.width = g.height = 0;
         return false;
     }
@@ -97,11 +97,11 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
     if (!g.device) {
         g.device = SDL_CreateGPUDevice(formats, debugMode, nullptr);
         if (!g.device) {
-            SDL_Log("coldx: SDL_CreateGPUDevice failed: %s", SDL_GetError());
+            SDL_Log("coldx.core: SDL_CreateGPUDevice failed: %s", SDL_GetError());
             return false;
         }
         g.token = std::make_shared<DeviceToken>(DeviceToken{g.device});
-        SDL_Log("coldx: GPU driver %s", SDL_GetGPUDeviceDriver(g.device));
+        SDL_Log("coldx.core: GPU driver %s", SDL_GetGPUDeviceDriver(g.device));
     }
 
     if (!window) {
@@ -113,7 +113,7 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
     }
 
     if (!SDL_ClaimWindowForGPUDevice(g.device, window)) {
-        SDL_Log("coldx: SDL_ClaimWindowForGPUDevice failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SDL_ClaimWindowForGPUDevice failed: %s", SDL_GetError());
         Close(graphics);
         return false;
     }
@@ -127,7 +127,7 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
             mode = SDL_GPU_PRESENTMODE_MAILBOX;
     }
     if (!SDL_SetGPUSwapchainParameters(g.device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, mode))
-        SDL_Log("coldx: SDL_SetGPUSwapchainParameters failed, keeping defaults: %s", SDL_GetError());
+        SDL_Log("coldx.core: SDL_SetGPUSwapchainParameters failed, keeping defaults: %s", SDL_GetError());
 
     int pixelWidth = 0;
     int pixelHeight = 0;
@@ -162,7 +162,7 @@ bool GraphicsAccess::BeginFrame(GraphicsDevice& graphics) {
     GraphicsDevice::Impl& g = *graphics.impl_;
     g.commands = SDL_AcquireGPUCommandBuffer(g.device);
     if (!g.commands) {
-        SDL_Log("coldx: SDL_AcquireGPUCommandBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SDL_AcquireGPUCommandBuffer failed: %s", SDL_GetError());
         return false;
     }
 
@@ -170,7 +170,7 @@ bool GraphicsAccess::BeginFrame(GraphicsDevice& graphics) {
         Uint32 w = 0;
         Uint32 h = 0;
         if (!SDL_WaitAndAcquireGPUSwapchainTexture(g.commands, g.window, &g.swapchain, &w, &h)) {
-            SDL_Log("coldx: SDL_WaitAndAcquireGPUSwapchainTexture failed: %s", SDL_GetError());
+            SDL_Log("coldx.core: SDL_WaitAndAcquireGPUSwapchainTexture failed: %s", SDL_GetError());
             g.swapchain = nullptr;
         }
         // No swapchain texture means nothing would be shown, so skip drawing.
@@ -197,7 +197,7 @@ void GraphicsAccess::EndFrame(GraphicsDevice& graphics) {
         SDL_BlitGPUTexture(g.commands, &blit);
     }
     if (g.commands && !SDL_SubmitGPUCommandBuffer(g.commands))
-        SDL_Log("coldx: SDL_SubmitGPUCommandBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: SDL_SubmitGPUCommandBuffer failed: %s", SDL_GetError());
     g.commands = nullptr;
     g.swapchain = nullptr;
     g.inFrame = false;
@@ -213,7 +213,7 @@ bool GraphicsAccess::SaveBackBuffer(GraphicsDevice& graphics, const std::string&
     bufferInfo.size = size;
     SDL_GPUTransferBuffer* buffer = SDL_CreateGPUTransferBuffer(g.device, &bufferInfo);
     if (!buffer) {
-        SDL_Log("coldx: capture: SDL_CreateGPUTransferBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: capture: SDL_CreateGPUTransferBuffer failed: %s", SDL_GetError());
         return false;
     }
 
@@ -241,11 +241,11 @@ bool GraphicsAccess::SaveBackBuffer(GraphicsDevice& graphics, const std::string&
         SDL_Surface* surface = SDL_CreateSurfaceFrom(static_cast<int>(g.width), static_cast<int>(g.height),
                                                      SDL_PIXELFORMAT_RGBA32, pixels, static_cast<int>(g.width * 4));
         saved = surface && SDL_SavePNG(surface, path.c_str());
-        if (!saved) SDL_Log("coldx: capture: could not write %s: %s", path.c_str(), SDL_GetError());
+        if (!saved) SDL_Log("coldx.core: capture: could not write %s: %s", path.c_str(), SDL_GetError());
         SDL_DestroySurface(surface);
         SDL_UnmapGPUTransferBuffer(g.device, buffer);
     } else {
-        SDL_Log("coldx: capture: submit failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: capture: submit failed: %s", SDL_GetError());
     }
     SDL_ReleaseGPUTransferBuffer(g.device, buffer);
     return saved;

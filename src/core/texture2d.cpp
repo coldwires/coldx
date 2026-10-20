@@ -31,12 +31,12 @@ static bool Upload(SDL_GPUDevice* device, SDL_GPUTexture* texture, int width, in
     bufferInfo.size = size;
     SDL_GPUTransferBuffer* buffer = SDL_CreateGPUTransferBuffer(device, &bufferInfo);
     if (!buffer) {
-        SDL_Log("coldx: texture upload: SDL_CreateGPUTransferBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: texture upload: SDL_CreateGPUTransferBuffer failed: %s", SDL_GetError());
         return false;
     }
     void* mapped = SDL_MapGPUTransferBuffer(device, buffer, false);
     if (!mapped) {
-        SDL_Log("coldx: texture upload: SDL_MapGPUTransferBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: texture upload: SDL_MapGPUTransferBuffer failed: %s", SDL_GetError());
         SDL_ReleaseGPUTransferBuffer(device, buffer);
         return false;
     }
@@ -45,7 +45,7 @@ static bool Upload(SDL_GPUDevice* device, SDL_GPUTexture* texture, int width, in
 
     SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device);
     if (!commands) {
-        SDL_Log("coldx: texture upload: SDL_AcquireGPUCommandBuffer failed: %s", SDL_GetError());
+        SDL_Log("coldx.core: texture upload: SDL_AcquireGPUCommandBuffer failed: %s", SDL_GetError());
         SDL_ReleaseGPUTransferBuffer(device, buffer);
         return false;
     }
@@ -62,7 +62,7 @@ static bool Upload(SDL_GPUDevice* device, SDL_GPUTexture* texture, int width, in
     SDL_UploadToGPUTexture(copy, &source, &destination, false);
     SDL_EndGPUCopyPass(copy);
     const bool submitted = SDL_SubmitGPUCommandBuffer(commands);
-    if (!submitted) SDL_Log("coldx: texture upload: submit failed: %s", SDL_GetError());
+    if (!submitted) SDL_Log("coldx.core: texture upload: submit failed: %s", SDL_GetError());
     // Released now, freed by SDL once the copy has run.
     SDL_ReleaseGPUTransferBuffer(device, buffer);
     return submitted;
@@ -77,11 +77,11 @@ Texture2D Texture2D::FromPixels(GraphicsDevice& graphics, int width, int height,
     Texture2D result;
     SDL_GPUDevice* device = detail::GraphicsAccess::Device(graphics);
     if (!device) {
-        SDL_Log("coldx: Texture2D created before the graphics device exists; create it in LoadContent");
+        SDL_Log("coldx.core: Texture2D created before the graphics device exists; create it in LoadContent");
         return result;
     }
     if (width <= 0 || height <= 0 || !pixels) {
-        SDL_Log("coldx: Texture2D::FromPixels: invalid size %dx%d or no pixels", width, height);
+        SDL_Log("coldx.core: Texture2D::FromPixels: invalid size %dx%d or no pixels", width, height);
         return result;
     }
 
@@ -95,7 +95,7 @@ Texture2D Texture2D::FromPixels(GraphicsDevice& graphics, int width, int height,
     info.num_levels = 1;
     SDL_GPUTexture* texture = SDL_CreateGPUTexture(device, &info);
     if (!texture) {
-        SDL_Log("coldx: could not create a %dx%d texture: %s", width, height, SDL_GetError());
+        SDL_Log("coldx.core: could not create a %dx%d texture: %s", width, height, SDL_GetError());
         return result;
     }
 
@@ -118,17 +118,17 @@ Texture2D Texture2D::FromFile(GraphicsDevice& graphics, const std::string& path)
 
     SDL_Surface* loaded = SDL_LoadPNG(full.c_str());
     if (!loaded) {
-        SDL_Log("coldx: could not load %s: %s", full.c_str(), SDL_GetError());
+        SDL_Log("coldx.core: could not load %s: %s", full.c_str(), SDL_GetError());
         return {};
     }
     SDL_Surface* rgba = SDL_ConvertSurface(loaded, SDL_PIXELFORMAT_RGBA32);
     SDL_DestroySurface(loaded);
     if (!rgba) {
-        SDL_Log("coldx: could not convert %s to RGBA: %s", full.c_str(), SDL_GetError());
+        SDL_Log("coldx.core: could not convert %s to RGBA: %s", full.c_str(), SDL_GetError());
         return {};
     }
     if (!SDL_PremultiplySurfaceAlpha(rgba, false)) {
-        SDL_Log("coldx: could not premultiply %s: %s", full.c_str(), SDL_GetError());
+        SDL_Log("coldx.core: could not premultiply %s: %s", full.c_str(), SDL_GetError());
         SDL_DestroySurface(rgba);
         return {};
     }

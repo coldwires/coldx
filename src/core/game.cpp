@@ -39,7 +39,7 @@ void Game::Exit() {
 }
 
 static void ReportFatal(const char* what, bool showDialog) {
-    SDL_Log("coldx: %s: %s", what, SDL_GetError());
+    SDL_Log("coldx.core: %s: %s", what, SDL_GetError());
     if (showDialog) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "coldx", what, nullptr);
 }
 
@@ -68,7 +68,7 @@ int Game::Run() {
 
     if (WantConsole(cfg.console, debug)) detail::ShowConsole();
     if (!debug.logPath.empty()) detail::StartLogFile(debug.logPath);
-    if (debug.headless) SDL_Log("coldx: headless, %dx%d", cfg.width, cfg.height);
+    if (debug.headless) SDL_Log("coldx.core: headless, %dx%d", cfg.width, cfg.height);
 
     // A modal dialog would hang a headless run with nobody to dismiss it.
     const bool dialogs = !debug.headless;
@@ -175,11 +175,11 @@ int Game::Run() {
         if (debug.frames > 0 && frames >= debug.frames) s.exitRequested = true;
     }
 
-    SDL_Log("coldx: exit after %lld frames, %lld updates, %lld slow frames, %.3fs game time",
+    SDL_Log("coldx.core: exit after %lld frames, %lld updates, %lld slow frames, %.3fs game time",
             frames, updates, slowFrames, total);
     if (!debug.capturePath.empty()) {
         if (detail::GraphicsAccess::SaveBackBuffer(*s.graphics, debug.capturePath))
-            SDL_Log("coldx: captured %dx%d to %s", s.graphics->BackBufferWidth(),
+            SDL_Log("coldx.core: captured %dx%d to %s", s.graphics->BackBufferWidth(),
                     s.graphics->BackBufferHeight(), debug.capturePath.c_str());
     }
 
