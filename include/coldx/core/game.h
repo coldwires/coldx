@@ -56,6 +56,19 @@ public:
     void Exit();
 
     GameSettings& Settings();
+
+    // The window while the game runs. Before Run they set Settings(); during Run they
+    // change the window at once. Headless, there is no window to change: a size change
+    // resizes the back buffer and calls OnResize, and fullscreen is only remembered.
+    // Fullscreen is borderless at the desktop's resolution.
+    void SetFullscreen(bool fullscreen);
+    void ToggleFullscreen();
+    bool IsFullscreen() const;
+    // In window coordinates; the back buffer follows in pixels, which differ on high-DPI
+    // displays.
+    void SetWindowSize(int width, int height);
+    void SetWindowTitle(const std::string& title);
+    void SetVSync(bool vsync);
     // Exists from construction, so members can hold a reference to it. It is usable from
     // Initialize on.
     GraphicsDevice& Graphics();
@@ -74,7 +87,7 @@ protected:
     virtual void Update(const GameTime&) {}
     virtual void Draw(const GameTime&) {}
 
-    // New back buffer size in pixels.
+    // The back buffer's new size in pixels. Only on a real change, not at startup.
     virtual void OnResize(int /*width*/, int /*height*/) {}
     virtual void OnFocusChanged(bool /*focused*/) {}
     // Called once when the loop ends, before UnloadContent.

@@ -142,15 +142,7 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
     }
     g.window = window;
 
-    SDL_GPUPresentMode mode = SDL_GPU_PRESENTMODE_VSYNC;
-    if (!vsync) {
-        if (SDL_WindowSupportsGPUPresentMode(g.device, window, SDL_GPU_PRESENTMODE_IMMEDIATE))
-            mode = SDL_GPU_PRESENTMODE_IMMEDIATE;
-        else if (SDL_WindowSupportsGPUPresentMode(g.device, window, SDL_GPU_PRESENTMODE_MAILBOX))
-            mode = SDL_GPU_PRESENTMODE_MAILBOX;
-    }
-    if (!SDL_SetGPUSwapchainParameters(g.device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, mode))
-        SDL_Log("coldx.core: SDL_SetGPUSwapchainParameters failed, keeping defaults: %s", SDL_GetError());
+    SetVSync(graphics, vsync);
 
     int pixelWidth = 0;
     int pixelHeight = 0;
@@ -160,6 +152,26 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
         return false;
     }
     return true;
+}
+
+void GraphicsAccess::SetVSync(GraphicsDevice& graphics, bool vsync) {
+    GraphicsDevice::Impl& g = *graphics.impl_;
+    if (!g.device || !g.window) return;
+    SDL_GPUPresentMode mode = SDL_GPU_PRESENTMODE_VSYNC;
+    if (!vsync) {
+        if (SDL_WindowSupportsGPUPresentMode(g.device, g.window, SDL_GPU_PRESENTMODE_IMMEDIATE))
+            mode = SDL_GPU_PRESENTMODE_IMMEDIATE;
+        else if (SDL_WindowSupportsGPUPresentMode(g.device, g.window, SDL_GPU_PRESENTMODE_MAILBOX))
+            mode = SDL_GPU_PRESENTMODE_MAILBOX;
+    }
+    if (!SDL_SetGPUSwapchainParameters(g.device, g.window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, mode))
+        SDL_Log("coldx.core: SDL_SetGPUSwapchainParameters failed, keeping the old mode: %s", SDL_GetError());
+}
+
+void GraphicsAccess::ResizeHeadless(GraphicsDevice& graphics, int width, int height) {
+    GraphicsDevice::Impl& g = *graphics.impl_;
+    if (g.device && !g.window && width > 0 && height > 0)
+        ResizeBackBuffer(graphics, static_cast<unsigned>(width), static_cast<unsigned>(height));
 }
 
 void GraphicsAccess::ReleaseWindow(GraphicsDevice& graphics) {

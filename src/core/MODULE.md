@@ -14,7 +14,8 @@ the debug options.
 
 - `Game`: subclass it and override `Initialize`, `LoadContent`, `UnloadContent`, `Update`,
   `Draw`, `OnResize`, `OnFocusChanged`, `OnExiting`. `Run` opens the window and loops.
-  `Settings()` (`GameSettings`) is read when `Run` starts.
+  `Settings()` (`GameSettings`) is read when `Run` starts. While running: `SetFullscreen`,
+  `ToggleFullscreen`, `IsFullscreen`, `SetWindowSize`, `SetWindowTitle`, `SetVSync`.
 - `GameTime`: `Delta`, `Total`, `IsRunningSlowly`.
 - `GameComponent`, `DrawableGameComponent`, `GameComponentCollection` (`Game::Components()`:
   `Add`, `Emplace`, `Remove`, `Count`). Update and draw order, `Enabled`, `Visible`.
@@ -97,6 +98,7 @@ the debug options.
   components unload before the game's UnloadContent and are destroyed before the device.
 - Every Update sees one input snapshot; edges compare it with the previous Update's.
 - Storage never writes outside its folder: names with separators or dots-only are refused.
+- `OnResize` fires only when the back buffer size really changes.
 - Log lines start with `coldx.core:`.
 
 ## Gotchas

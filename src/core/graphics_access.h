@@ -29,6 +29,10 @@ struct GraphicsAccess {
     // Lets go of the window. The device stays until Close, so GPU resources the game still
     // holds stay valid until the game object is destroyed.
     static void ReleaseWindow(GraphicsDevice& graphics);
+    // Present with or without waiting for the display. No effect headless.
+    static void SetVSync(GraphicsDevice& graphics, bool vsync);
+    // Headless only: the back buffer size, which with a window follows the window.
+    static void ResizeHeadless(GraphicsDevice& graphics, int width, int height);
     static void Close(GraphicsDevice& graphics);
 
     // False when there is nothing to draw into this frame, e.g. the window is minimized.

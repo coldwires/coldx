@@ -19,11 +19,25 @@ struct Game::Impl {
     std::unique_ptr<GameComponentCollection> components = std::make_unique<GameComponentCollection>();
     std::unique_ptr<ContentManager> content = std::make_unique<ContentManager>(*graphics);
     SDL_Window* window = nullptr;
+    bool headless = false;
     bool exitRequested = false;
+    // The size OnResize last reported, so it fires on changes only: SDL also sends a size
+    // event when the window is created.
+    int reportedWidth = 0;
+    int reportedHeight = 0;
+
+    void ReportSize(Game& game, int width, int height);
     bool sdlStarted = false;
 };
 
 Game::Game() : impl_(std::make_unique<Impl>()) {}
+
+void Game::Impl::ReportSize(Game& game, int width, int height) {
+    if (width == reportedWidth && height == reportedHeight) return;
+    reportedWidth = width;
+    reportedHeight = height;
+    game.OnResize(width, height);
+}
 
 // The device outlives Run and goes here, after the derived game's members (its textures and
 // batches) have been destroyed, so they release against a live device.
@@ -49,6 +63,44 @@ GameComponentCollection& Game::Components() {
 
 ContentManager& Game::Content() {
     return *impl_->content;
+}
+
+void Game::SetFullscreen(bool fullscreen) {
+    impl_->settings.fullscreen = fullscreen;
+    if (impl_->window && !impl_->headless && !SDL_SetWindowFullscreen(impl_->window, fullscreen))
+        SDL_Log("coldx.core: could not change fullscreen: %s", SDL_GetError());
+}
+
+void Game::ToggleFullscreen() {
+    SetFullscreen(!IsFullscreen());
+}
+
+bool Game::IsFullscreen() const {
+    if (impl_->window && !impl_->headless) return (SDL_GetWindowFlags(impl_->window) & SDL_WINDOW_FULLSCREEN) != 0;
+    return impl_->settings.fullscreen;
+}
+
+void Game::SetWindowSize(int width, int height) {
+    if (width <= 0 || height <= 0) return;
+    impl_->settings.width = width;
+    impl_->settings.height = height;
+    if (!impl_->window) return;
+    if (impl_->headless) {
+        detail::GraphicsAccess::ResizeHeadless(*impl_->graphics, width, height);
+        impl_->ReportSize(*this, width, height);
+    } else if (!SDL_SetWindowSize(impl_->window, width, height)) {
+        SDL_Log("coldx.core: could not resize the window: %s", SDL_GetError());
+    }
+}
+
+void Game::SetWindowTitle(const std::string& title) {
+    impl_->settings.title = title;
+    if (impl_->window) SDL_SetWindowTitle(impl_->window, title.c_str());
+}
+
+void Game::SetVSync(bool vsync) {
+    impl_->settings.vsync = vsync;
+    detail::GraphicsAccess::SetVSync(*impl_->graphics, vsync);
 }
 
 void Game::Exit() {
@@ -108,6 +160,7 @@ int Game::Run() {
         detail::StopLogFile();
         return 1;
     }
+    s.headless = debug.headless;
     SDL_Window* presentTo = debug.headless ? nullptr : s.window;
     if (!detail::GraphicsAccess::Open(*s.graphics, presentTo, cfg.vsync, cfg.width, cfg.height)) {
         ReportFatal("Could not create the graphics device", dialogs);
@@ -123,6 +176,9 @@ int Game::Run() {
     audio.Start(debug.headless);
     detail::InputScript script;
     script.Load(debug.inputPath);
+
+    s.reportedWidth = s.graphics->BackBufferWidth();
+    s.reportedHeight = s.graphics->BackBufferHeight();
 
     Initialize();
     s.components->InitializeAll();
@@ -161,7 +217,8 @@ int Game::Run() {
                 s.exitRequested = true;
                 break;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-                OnResize(event.window.data1, event.window.data2);
+                // Headless, the back buffer does not follow the hidden window.
+                if (!s.headless) s.ReportSize(*this, event.window.data1, event.window.data2);
                 break;
             case SDL_EVENT_WINDOW_FOCUS_GAINED:
                 OnFocusChanged(true);

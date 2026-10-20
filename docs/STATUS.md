@@ -9,7 +9,7 @@ behaviour; `not started` has no code.
 |---|---|---|
 | 1 | Game loop: fixed and variable timestep, catch-up cap, lifecycle hooks | done |
 | 2 | Window settings: title, size, resizable, fullscreen at start, vsync | done |
-| 3 | Fullscreen toggle and resize while running | not started |
+| 3 | Fullscreen toggle, resize, title and vsync while running | done |
 | 4 | Console window on Windows, `COLDX_*` debug options | done |
 | 5 | `GraphicsDevice`: clear, internal back buffer, capture | done |
 | 6 | `RenderTarget2D`, `GraphicsDevice::SetRenderTarget` | done |
