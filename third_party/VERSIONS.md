@@ -32,6 +32,11 @@ Made for coldx with ffmpeg (libvorbis), so they are covered by coldx's own licen
   semitones) every quarter second, each decaying as `exp(-14 t)`, over 110 Hz and
   164.81 Hz sines; libvorbis `-q:a 3`.
 
+Also made for coldx: `samples/demo/content/sheet.png` (drawn with Pillow; a grid of
+32 px tiles, each outlined in magenta with its name under it, for editing by hand),
+`pickup.wav` (a 0.15 s rising chirp) and `hit.wav` (0.3 s of filtered brown noise), both
+from ffmpeg `aevalsrc`/`anoisesrc`.
+
 ## Tools
 
 Not vendored and not needed to build. These generated the committed headers in

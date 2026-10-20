@@ -35,6 +35,8 @@
 - Audio: `SoundEffect` (WAV, OGG), `SoundEffectInstance`, streaming `Music` and
   `MediaPlayer`, on a lock-free software mixer. Headless runs use a silent driver.
 - `hello_audio` sample. Every test has a CTest timeout.
+- `demo` sample: a small game using components, ContentManager, input, sound, music,
+  text, a named-tile sprite sheet and Storage.
 - `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its
   text size.
 - `docs/QUICKSTART.md`: a complete game, the API on one page, differences from XNA. Its

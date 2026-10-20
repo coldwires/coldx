@@ -67,6 +67,7 @@ if(COLDX_BUILD_TESTS)
 endif()
 
 if(COLDX_BUILD_SAMPLES)
+    add_subdirectory(samples/demo)
     add_subdirectory(samples/hello_audio)
     add_subdirectory(samples/hello_sprite)
     add_subdirectory(samples/hello_text)

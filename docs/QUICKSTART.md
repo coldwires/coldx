@@ -72,6 +72,9 @@ int main() {
 }
 ```
 
+`samples/demo` goes further: components, content by name, sound, music, a sprite
+sheet drawn by tile name, screen shake through the batch transform, and a saved best score.
+
 Its CMake file:
 
 ```cmake
