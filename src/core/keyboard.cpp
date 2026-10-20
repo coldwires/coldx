@@ -2,6 +2,8 @@
 
 #include <SDL3/SDL.h>
 
+#include "input.h"
+
 namespace coldx {
 
 // Key values are cast straight to SDL scancodes. These pin the two numbering schemes together.
@@ -20,13 +22,17 @@ static_assert(static_cast<int>(Key::RightSuper) == SDL_SCANCODE_RGUI);
 static_assert(KeyboardState::KeyCount >= SDL_SCANCODE_COUNT);
 
 KeyboardState Keyboard::GetState() {
-    KeyboardState state;
-    int count = 0;
-    const bool* keys = SDL_GetKeyboardState(&count);
-    for (int i = 0; i < count; ++i) {
-        if (keys[i]) state.SetKey(static_cast<Key>(i), true);
-    }
-    return state;
+    return detail::Input::Get().currentKeys;
+}
+
+bool Keyboard::WasPressed(Key key) {
+    const detail::Input& in = detail::Input::Get();
+    return in.currentKeys.IsKeyDown(key) && in.previousKeys.IsKeyUp(key);
+}
+
+bool Keyboard::WasReleased(Key key) {
+    const detail::Input& in = detail::Input::Get();
+    return in.currentKeys.IsKeyUp(key) && in.previousKeys.IsKeyDown(key);
 }
 
 } // namespace coldx

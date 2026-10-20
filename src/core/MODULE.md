@@ -1,13 +1,14 @@
 # core
 
 **Owns:** the game loop, window, GPU device, textures, render targets, sprite and text
-drawing, keyboard input, math types, logging and the debug options.
+drawing, keyboard, mouse and gamepad input, per-user storage, math types, logging and
+the debug options.
 **Layer:** 0
 **Depends on:** none
 **Third-party:** SDL3, stb
 **Public headers:** `include/coldx/core/`, all included by `include/coldx/coldx.h`
 **Library target:** `coldx::core`
-**Size:** ~3.9k lines
+**Size:** ~4.8k lines
 
 ## Public surface
 
@@ -25,7 +26,11 @@ drawing, keyboard input, math types, logging and the debug options.
 - `SpriteFont`: `FromFile`, `FromMemory` (TTF, baked at one pixel height), `MeasureString`,
   `LineSpacing`, `Spacing`, `DefaultCharacter`, `HasCharacter`.
 - `SpriteSortMode`, `SpriteEffects`, `BlendState`, `SamplerState`.
-- `Keyboard`, `KeyboardState`, `Key`.
+- `Keyboard`, `KeyboardState`, `Key`; `Mouse`, `MouseState`, `MouseButton`; `GamePad`,
+  `GamePadState`, `Buttons`, `GamePadDeadZone`. Each has `GetState` (as of the start of the
+  current Update) and `WasPressed`/`WasReleased` (since the previous Update).
+- `Storage`: per-user folder named by `GameSettings::company`/`name`; whole-file
+  `ReadFile`, atomic `WriteFile`, `Exists`, `Remove`.
 - `Color`, `Vector2`, `Point`, `Rectangle`, `Matrix`, `MathHelper`.
 - `Log`: printf-style, to the same log as coldx's own lines.
 
@@ -46,7 +51,12 @@ drawing, keyboard input, math types, logging and the debug options.
   atlas), UTF-8 decoding, and the one layout routine both measuring and drawing use.
   `stb_truetype_impl.cpp` compiles stb's implementation, warnings silenced there only.
 - `content_path.*`: relative content paths resolve against the executable's folder.
-- `matrix.cpp`, `log.cpp`, `keyboard.cpp`.
+- `input.*`: the input hub. Live state follows SDL events; `BeginUpdate` copies it to
+  current and previous before each Update, and polls the pads. `keyboard.cpp`,
+  `mouse.cpp`, `gamepad.cpp` are the public classes over it.
+- `input_script.*`: `COLDX_INPUT`, scripted input applied before numbered Updates.
+- `storage.cpp` + `storage_names.h`: the Storage folder and file access.
+- `matrix.cpp`, `log.cpp`.
 
 ## Invariants
 
@@ -59,6 +69,10 @@ drawing, keyboard input, math types, logging and the debug options.
 - Glyphs land on whole pixels at scale 1: the pen is rounded per glyph, and a flipped
   string mirrors across its rounded width.
 - `MeasureString` and `DrawString` share one layout; they cannot disagree.
+- Input is event-driven, never polled from SDL's key array: injected and scripted input
+  behave exactly like real input. Losing focus releases every key and mouse button.
+- Every Update sees one input snapshot; edges compare it with the previous Update's.
+- Storage never writes outside its folder: names with separators or dots-only are refused.
 - Log lines start with `coldx.core:`.
 
 ## Gotchas
@@ -75,6 +89,12 @@ drawing, keyboard input, math types, logging and the debug options.
 - Source stays ASCII. Write code points as numbers (`char32_t{0xE9}`) and UTF-8 text as
   hex byte escapes in string literals; editors and tools that turn escapes into literal
   characters break the build on MSVC and fail `check.py`.
+- SDL ignores pad button presses while the window has no focus. A headless window never
+  has focus, so tests that press virtual pad buttons set
+  `SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS`.
+- SDL ends a rumble after 65 seconds at most; the hub re-sends a held vibration every 30.
+- Tests write to the real per-user folder; `core.input` uses company `coldx-test` and
+  deletes it afterwards.
 - Headless frame rates mean nothing: no present paces the loop, so it measures submission.
   Measure performance in a visible window with vsync off (the `stress` sample).
 
@@ -85,7 +105,9 @@ drawing, keyboard input, math types, logging and the debug options.
 compare pixels to computed values: tint, fade, rectangles, all sort modes, blend and
 sampler states, transform, rotation, flips, origin and scale, render targets.
 `core.font.<backend>` checks metrics, kerning, Latin-1, the default character and drawn
-glyphs against glyphs rasterized directly with stb_truetype. Helpers:
+glyphs against glyphs rasterized directly with stb_truetype. `core.input` drives the
+keyboard and mouse with SDL events and pads with SDL virtual gamepads, and covers edges,
+focus loss, wheel direction, dead zones, hot-plug order, rumble, `COLDX_INPUT` and Storage. Helpers:
 `src/core/tests/headless.h` (run a scene, capture, compare) and `tests/check.h`.
 
 ## Open work

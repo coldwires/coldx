@@ -109,6 +109,35 @@ default. `MeasureString` gives the size `DrawString` will cover.
 
 `Log` writes a printf-style line to the same log as coldx's own messages.
 
+## Input
+
+```cpp
+if (Keyboard::WasPressed(Key::Space)) Jump();
+const MouseState mouse = Mouse::GetState();
+const GamePadState pad = GamePad::GetState(0);
+position += pad.leftStick * speed * time.Delta();
+```
+
+`Keyboard`, `Mouse` and `GamePad` return the state as of the start of the current
+`Update`, so it does not change halfway through one. `WasPressed` and `WasReleased` compare
+it with the previous `Update`. Keys are physical positions: `Key::W` is the same key on
+QWERTY and AZERTY. Mouse positions are back buffer pixels; the wheel counts notches, up
+positive. Up to four pads, by player index, connect and disconnect while the game runs;
+sticks are -1 to 1 with up positive, after a dead zone (`GamePadDeadZone`).
+
+## Saving settings and games
+
+```cpp
+Settings().company = "my studio";       // in the game's constructor
+Storage::WriteFile("settings.txt", text);
+if (auto saved = Storage::ReadFile("settings.txt")) Apply(*saved);
+```
+
+`Storage` keeps files in a per-user folder the game can always write to, named by
+`GameSettings::company` and `name` (the title by default): on Windows
+`%APPDATA%\<company>\<name>`. A write replaces the whole file through a temporary, so a
+crash never leaves half a file.
+
 ## Textures and colors
 
 Textures hold premultiplied alpha. `Texture2D::FromFile` loads a PNG and premultiplies it;
@@ -183,6 +212,7 @@ Environment variables, read when `Run` starts. They work on any game without cha
 | `COLDX_HEADLESS=1` | Keep the window hidden and present nothing. Drawing still happens, into a back buffer of `GameSettings` width x height. Error dialogs are skipped. |
 | `COLDX_FRAMES=<n>` | Exit after drawing n frames |
 | `COLDX_CAPTURE=<path.png>` | On exit, save the last drawn frame as a PNG |
+| `COLDX_INPUT=<path>` | Scripted input: lines like `10 key down Up`, `20 mouse move 100 200`, `21 mouse down left`, `30 wheel 1`, `40 exit`, applied before the numbered Update |
 
 SDL's own `SDL_GPU_DRIVER=vulkan` (or `direct3d12`, `metal`) picks the GPU backend.
 

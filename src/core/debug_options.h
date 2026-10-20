@@ -13,6 +13,7 @@ struct DebugOptions {
     bool headless = false;
     int frames = 0;
     std::string capturePath;
+    std::string inputPath;
 
     static DebugOptions FromEnvironment();
 };

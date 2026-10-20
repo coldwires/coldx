@@ -23,6 +23,17 @@ How data moves through coldx for the main cases. Each step is a file and what it
 
 Covered by `core.render.*` and `core.sprite.*` for steps 3 to 6.
 
+## Input
+
+1. `src/core/game.cpp` - every SDL event goes to `input.cpp` `Input::HandleEvent`, which
+   updates the live keyboard and mouse state and opens or closes pads as they connect.
+2. Before each Update, `input_script.cpp` applies any `COLDX_INPUT` commands for that
+   Update to the live state, then `Input::BeginUpdate` copies live to current (and current
+   to previous) and reads the pads.
+3. `Keyboard`, `Mouse`, `GamePad` read current and previous: `GetState` and the edges.
+
+Covered by `core.input`.
+
 ## Drawing text
 
 1. `src/core/sprite_font.cpp` `SpriteFont::FromFile` - loads the TTF, packs printable ASCII

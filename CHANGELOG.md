@@ -22,7 +22,11 @@
 - `COLDX_LOG` files can be read while the game runs.
 - `SpriteFont` baked from a TTF, `SpriteBatch::DrawString`, `MeasureString`: UTF-8,
   kerning, newlines, Latin-1, a default character.
-- `hello_sprite`, `hello_text` and `stress` samples.
+- `Mouse` and `GamePad`; `WasPressed`/`WasReleased` on all three input devices. Input is
+  event-driven and snapshotted per Update.
+- `Storage` for settings and saves, and `GameSettings::company`/`name`.
+- `COLDX_INPUT` scripted input.
+- `hello_sprite`, `hello_text` and `stress` samples. `hello_text` saves its text size.
 - CTest suite: math, headless render tests per GPU backend, and `tools/check.py` for
   module boundaries, file size and ASCII.
 - Log lines name their module: `coldx.core:`.

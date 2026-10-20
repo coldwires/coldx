@@ -18,8 +18,8 @@ behaviour; `not started` has no code.
 | 9 | `SpriteBatch`: sort modes, blend and sampler states, transform, rotation, origin, scale, flip, depth | done |
 | 10 | `SpriteFont` from a TTF at runtime; `DrawString`, `MeasureString` | done |
 | 25 | `SpriteFont` from baked content | not started (needs the content pipeline) |
-| 11 | Keyboard | done |
-| 12 | Mouse, gamepad | not started |
+| 11 | Keyboard, with `WasPressed`/`WasReleased` | done |
+| 12 | Mouse, gamepad (4 players, hot-plug, dead zones, rumble) | done |
 | 13 | Audio | not started |
 | 14 | `GameComponent`, `DrawableGameComponent` | not started |
 | 15 | `ContentManager` | not started |
@@ -27,6 +27,8 @@ behaviour; `not started` has no code.
 | 17 | Math: `Point`, `Matrix`, `MathHelper` | done |
 | 18 | Custom shaders when drawing (`Effect`); `SpriteBatch::Begin` will take one | not started |
 | 24 | `Log` for games | done |
+| 26 | `Storage`: per-user folder, atomic writes | done |
+| 27 | Typed text input (layout-aware characters) | not started |
 
 ## Shaders
 
