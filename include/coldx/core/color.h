@@ -16,6 +16,16 @@ struct Color {
 
     friend constexpr bool operator==(Color, Color) = default;
 
+    // Scales all four channels, which for a premultiplied color fades it: White * 0.5f is
+    // white at half opacity.
+    friend constexpr Color operator*(Color c, float s) {
+        auto scale = [s](std::uint8_t v) {
+            const float f = v * s + 0.5f;
+            return static_cast<std::uint8_t>(f < 0.0f ? 0.0f : (f > 255.0f ? 255.0f : f));
+        };
+        return {scale(c.r), scale(c.g), scale(c.b), scale(c.a)};
+    }
+
     static const Color Transparent;
     static const Color Black;
     static const Color White;

@@ -14,11 +14,17 @@ struct Game::Impl {
     std::unique_ptr<GraphicsDevice> graphics = detail::GraphicsAccess::Create();
     SDL_Window* window = nullptr;
     bool exitRequested = false;
+    bool sdlStarted = false;
 };
 
 Game::Game() : impl_(std::make_unique<Impl>()) {}
 
-Game::~Game() = default;
+// The device outlives Run and goes here, after the derived game's members (its textures and
+// batches) have been destroyed, so they release against a live device.
+Game::~Game() {
+    impl_->graphics.reset();
+    if (impl_->sdlStarted) SDL_Quit();
+}
 
 GameSettings& Game::Settings() {
     return impl_->settings;
@@ -72,6 +78,7 @@ int Game::Run() {
         detail::StopLogFile();
         return 1;
     }
+    s.sdlStarted = true;
 
     SDL_WindowFlags flags = 0;
     if (cfg.resizable) flags |= SDL_WINDOW_RESIZABLE;
@@ -80,7 +87,6 @@ int Game::Run() {
     s.window = SDL_CreateWindow(cfg.title.c_str(), cfg.width, cfg.height, flags);
     if (!s.window) {
         ReportFatal("Could not create the window", dialogs);
-        SDL_Quit();
         detail::StopLogFile();
         return 1;
     }
@@ -89,7 +95,6 @@ int Game::Run() {
         ReportFatal("Could not create the graphics device", dialogs);
         SDL_DestroyWindow(s.window);
         s.window = nullptr;
-        SDL_Quit();
         detail::StopLogFile();
         return 1;
     }
@@ -181,10 +186,9 @@ int Game::Run() {
     OnExiting();
     UnloadContent();
 
-    detail::GraphicsAccess::Close(*s.graphics);
+    detail::GraphicsAccess::ReleaseWindow(*s.graphics);
     SDL_DestroyWindow(s.window);
     s.window = nullptr;
-    SDL_Quit();
     detail::StopLogFile();
     return 0;
 }

@@ -18,6 +18,7 @@ struct GraphicsDevice::Impl {
     Uint32 width = 0;
     Uint32 height = 0;
     bool inFrame = false;
+    std::shared_ptr<detail::DeviceToken> token;
 };
 
 static constexpr SDL_GPUTextureFormat BackBufferFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -93,12 +94,15 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
     const SDL_GPUShaderFormat formats =
         SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL;
 
-    g.device = SDL_CreateGPUDevice(formats, debugMode, nullptr);
     if (!g.device) {
-        SDL_Log("coldx: SDL_CreateGPUDevice failed: %s", SDL_GetError());
-        return false;
+        g.device = SDL_CreateGPUDevice(formats, debugMode, nullptr);
+        if (!g.device) {
+            SDL_Log("coldx: SDL_CreateGPUDevice failed: %s", SDL_GetError());
+            return false;
+        }
+        g.token = std::make_shared<DeviceToken>(DeviceToken{g.device});
+        SDL_Log("coldx: GPU driver %s", SDL_GetGPUDeviceDriver(g.device));
     }
-    SDL_Log("coldx: GPU driver %s", SDL_GetGPUDeviceDriver(g.device));
 
     if (!window) {
         if (!ResizeBackBuffer(graphics, static_cast<unsigned>(width), static_cast<unsigned>(height))) {
@@ -135,12 +139,21 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
     return true;
 }
 
+void GraphicsAccess::ReleaseWindow(GraphicsDevice& graphics) {
+    GraphicsDevice::Impl& g = *graphics.impl_;
+    if (!g.device || !g.window) return;
+    SDL_WaitForGPUIdle(g.device);
+    SDL_ReleaseWindowFromGPUDevice(g.device, g.window);
+    g.window = nullptr;
+}
+
 void GraphicsAccess::Close(GraphicsDevice& graphics) {
     GraphicsDevice::Impl& g = *graphics.impl_;
     if (!g.device) return;
+    ReleaseWindow(graphics);
     SDL_WaitForGPUIdle(g.device);
     if (g.backBuffer) SDL_ReleaseGPUTexture(g.device, g.backBuffer);
-    if (g.window) SDL_ReleaseWindowFromGPUDevice(g.device, g.window);
+    g.token->device = nullptr;
     SDL_DestroyGPUDevice(g.device);
     g = {};
 }
@@ -236,6 +249,22 @@ bool GraphicsAccess::SaveBackBuffer(GraphicsDevice& graphics, const std::string&
     }
     SDL_ReleaseGPUTransferBuffer(g.device, buffer);
     return saved;
+}
+
+SDL_GPUDevice* GraphicsAccess::Device(GraphicsDevice& graphics) {
+    return graphics.impl_->device;
+}
+
+std::shared_ptr<DeviceToken> GraphicsAccess::Token(GraphicsDevice& graphics) {
+    return graphics.impl_->token;
+}
+
+SDL_GPUCommandBuffer* GraphicsAccess::Commands(GraphicsDevice& graphics) {
+    return graphics.impl_->inFrame ? graphics.impl_->commands : nullptr;
+}
+
+SDL_GPUTexture* GraphicsAccess::BackBuffer(GraphicsDevice& graphics) {
+    return graphics.impl_->inFrame ? graphics.impl_->backBuffer : nullptr;
 }
 
 } // namespace detail

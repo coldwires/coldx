@@ -6,16 +6,29 @@
 #include <coldx/core/graphics_device.h>
 
 struct SDL_Window;
+struct SDL_GPUDevice;
+struct SDL_GPUCommandBuffer;
+struct SDL_GPUTexture;
 
 namespace coldx::detail {
 
-// The parts of GraphicsDevice that only Game drives.
+// Shared by the device and every GPU resource made from it. The device clears it when it
+// is destroyed, so a resource that outlives the device skips releasing instead of using a
+// dead pointer.
+struct DeviceToken {
+    SDL_GPUDevice* device = nullptr;
+};
+
+// The parts of GraphicsDevice that only coldx itself drives.
 struct GraphicsAccess {
     static std::unique_ptr<GraphicsDevice> Create();
 
-    // window is null in headless mode. The back buffer is then width x height and nothing
-    // is presented.
+    // Creates the GPU device on first call; later calls reuse it. window is null in headless
+    // mode, and the back buffer is then width x height with nothing presented.
     static bool Open(GraphicsDevice& graphics, SDL_Window* window, bool vsync, int width, int height);
+    // Lets go of the window. The device stays until Close, so GPU resources the game still
+    // holds stay valid until the game object is destroyed.
+    static void ReleaseWindow(GraphicsDevice& graphics);
     static void Close(GraphicsDevice& graphics);
 
     // False when there is nothing to draw into this frame, e.g. the window is minimized.
@@ -25,6 +38,13 @@ struct GraphicsAccess {
 
     // Writes the back buffer as it was after the last frame to a PNG. Waits for the GPU.
     static bool SaveBackBuffer(GraphicsDevice& graphics, const std::string& path);
+
+    // Null before Open and after Close.
+    static SDL_GPUDevice* Device(GraphicsDevice& graphics);
+    static std::shared_ptr<DeviceToken> Token(GraphicsDevice& graphics);
+    // Both null outside a frame.
+    static SDL_GPUCommandBuffer* Commands(GraphicsDevice& graphics);
+    static SDL_GPUTexture* BackBuffer(GraphicsDevice& graphics);
 
 private:
     static bool ResizeBackBuffer(GraphicsDevice& graphics, unsigned width, unsigned height);

@@ -32,6 +32,17 @@ function(coldx_game target)
     endif()
 endfunction()
 
+include(cmake/coldx_shaders.cmake)
+
+# Regenerates the committed headers in shaders/compiled after a built-in shader changes:
+#   cmake --build build --target coldx_builtin_shaders
+coldx_compile_shaders(coldx_builtin_shaders
+    OUTPUT_DIR ${PROJECT_SOURCE_DIR}/shaders/compiled
+    SOURCES
+        shaders/src/sprite.vert.hlsl
+        shaders/src/sprite.frag.hlsl
+)
+
 add_subdirectory(src/core)
 
 if(COLDX_BUILD_SAMPLES)
