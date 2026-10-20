@@ -26,7 +26,10 @@
   event-driven and snapshotted per Update.
 - `Storage` for settings and saves, and `GameSettings::company`/`name`.
 - `COLDX_INPUT` scripted input.
-- `hello_sprite`, `hello_text` and `stress` samples. `hello_text` saves its text size.
+- `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its
+  text size.
+- `docs/QUICKSTART.md`: a complete game, the API on one page, differences from XNA. Its
+  example is `samples/quickstart`, kept identical by `tools/check.py`.
 - CTest suite: math, headless render tests per GPU backend, and `tools/check.py` for
   module boundaries, file size and ASCII.
 - Log lines name their module: `coldx.core:`.

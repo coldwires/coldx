@@ -46,10 +46,12 @@ The compiler enforces linking: a module's CMake target links only what it may de
 - public headers include no third-party header and only coldx modules their owner depends on;
 - source reaches another module only through its public headers, never `../` into its `src/`;
 - samples include public headers only;
-- the line cap, and ASCII.
+- the line cap, and ASCII;
+- a doc that embeds a sample (`<!-- sample: path -->`) matches that file exactly.
 
 ## Where to read next
 
+- `docs/QUICKSTART.md`: writing a game, the API on a page.
 - `docs/STATUS.md`: what exists, what is stubbed, what is not started.
 - `docs/FLOWS.md`: how data moves through a frame, a texture load, a shader build.
 - `docs/DECISIONS/`: why things are the way they are. Read the relevant one before
