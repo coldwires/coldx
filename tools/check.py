@@ -126,11 +126,28 @@ def check_files():
             problem(path, "non-ASCII bytes")
 
 
+SAMPLE_MARKER_RE = re.compile(r"<!-- sample: (\S+) -->\s*```\w*\n(.*?)```", re.S)
+
+
+def check_embedded_samples():
+    """A doc that embeds a sample under <!-- sample: path --> must match the file exactly,
+    so the code a reader copies is the code that builds."""
+    for doc in source_files(ROOT / "docs") + [ROOT / "README.md"]:
+        text = doc.read_text(encoding="utf-8").replace("\r\n", "\n")
+        for path, block in SAMPLE_MARKER_RE.findall(text):
+            sample = ROOT / path
+            if not sample.exists():
+                problem(doc, f"embeds {path}, which does not exist")
+            elif sample.read_text(encoding="utf-8").replace("\r\n", "\n") != block:
+                problem(doc, f"the code block after its {path} marker differs from that file")
+
+
 def main():
     modules = read_modules()
     check_layers(modules)
     check_boundaries(modules)
     check_files()
+    check_embedded_samples()
     if problems:
         print("\n".join(problems))
         print(f"{len(problems)} problem(s)")
