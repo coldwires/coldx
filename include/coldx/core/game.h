@@ -17,6 +17,10 @@ enum class ConsoleMode {
 // Read once, when Run starts. Set them in the game's constructor.
 struct GameSettings {
     std::string title = "coldx";
+    // Name the Storage folder: <per-user app data>/<company>/<name>. name defaults to the
+    // title. Pick them once; changing them later moves the player's saves out of reach.
+    std::string company;
+    std::string name;
     int width = 1280;
     int height = 720;
     bool resizable = false;

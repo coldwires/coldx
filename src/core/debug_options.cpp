@@ -28,6 +28,7 @@ DebugOptions DebugOptions::FromEnvironment() {
     o.headless = Env("COLDX_HEADLESS") == "1";
     o.frames = std::atoi(Env("COLDX_FRAMES").c_str());
     o.capturePath = Env("COLDX_CAPTURE");
+    o.inputPath = Env("COLDX_INPUT");
     return o;
 }
 

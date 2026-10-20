@@ -2,15 +2,20 @@ add_library(coldx_core STATIC
     content_path.cpp
     debug_options.cpp
     game.cpp
+    gamepad.cpp
     graphics_device.cpp
+    input.cpp
+    input_script.cpp
     keyboard.cpp
     log.cpp
     matrix.cpp
+    mouse.cpp
     shader_blob.cpp
     sprite_batch.cpp
     sprite_font.cpp
     sprite_renderer.cpp
     stb_truetype_impl.cpp
+    storage.cpp
     texture2d.cpp
 )
 add_library(coldx::core ALIAS coldx_core)

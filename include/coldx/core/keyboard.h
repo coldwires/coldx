@@ -82,8 +82,14 @@ private:
 
 class Keyboard {
 public:
-    // A copy of the key state as of the last event pump, which the game loop runs once per frame.
+    // The state as of the start of the current Update. Keys are released when the window
+    // loses focus.
     static KeyboardState GetState();
+
+    // Down now, up at the start of the previous Update; and the reverse. With a fixed
+    // timestep running several updates in one frame, only the first of them sees the press.
+    static bool WasPressed(Key key);
+    static bool WasReleased(Key key);
 };
 
 } // namespace coldx

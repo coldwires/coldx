@@ -6,6 +6,9 @@
 
 #include "debug_options.h"
 #include "graphics_access.h"
+#include "input.h"
+#include "input_script.h"
+#include "storage_names.h"
 
 namespace coldx {
 
@@ -69,12 +72,13 @@ int Game::Run() {
     if (WantConsole(cfg.console, debug)) detail::ShowConsole();
     if (!debug.logPath.empty()) detail::StartLogFile(debug.logPath);
     if (debug.headless) SDL_Log("coldx.core: headless, %dx%d", cfg.width, cfg.height);
+    detail::SetStorageNames(cfg.company, cfg.name.empty() ? cfg.title : cfg.name);
 
     // A modal dialog would hang a headless run with nobody to dismiss it.
     const bool dialogs = !debug.headless;
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        ReportFatal("Could not initialize SDL video", dialogs);
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
+        ReportFatal("Could not initialize SDL", dialogs);
         detail::StopLogFile();
         return 1;
     }
@@ -99,6 +103,11 @@ int Game::Run() {
         return 1;
     }
 
+    detail::Input& input = detail::Input::Get();
+    input.Start(s.window);
+    detail::InputScript script;
+    script.Load(debug.inputPath);
+
     Initialize();
     LoadContent();
 
@@ -113,9 +122,22 @@ int Game::Run() {
     long long slowFrames = 0;
     Uint64 previous = SDL_GetTicksNS();
 
+    // Every Update goes through here: scripted input, then the per-Update input copies. A
+    // scripted exit stops before the Update it is numbered for.
+    auto runUpdate = [&](const GameTime& time) {
+        if (script.Apply(static_cast<int>(updates + 1), input)) {
+            s.exitRequested = true;
+            return;
+        }
+        ++updates;
+        input.BeginUpdate();
+        Update(time);
+    };
+
     while (!s.exitRequested) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
+            input.HandleEvent(event);
             switch (event.type) {
             case SDL_EVENT_QUIT:
                 s.exitRequested = true;
@@ -151,15 +173,13 @@ int Game::Run() {
             while (accumulator >= step && !s.exitRequested) {
                 accumulator -= step;
                 total += step;
-                ++updates;
-                Update(GameTime(static_cast<float>(step), total, slow));
+                runUpdate(GameTime(static_cast<float>(step), total, slow));
             }
             drawTime = GameTime(static_cast<float>(step), total, slow);
         } else {
             total += elapsed;
             drawTime = GameTime(static_cast<float>(elapsed), total, false);
-            ++updates;
-            Update(drawTime);
+            runUpdate(drawTime);
         }
         if (s.exitRequested) break;
 
@@ -185,6 +205,7 @@ int Game::Run() {
 
     OnExiting();
     UnloadContent();
+    input.Stop();
 
     detail::GraphicsAccess::ReleaseWindow(*s.graphics);
     SDL_DestroyWindow(s.window);
