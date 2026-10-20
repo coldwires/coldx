@@ -26,6 +26,9 @@
   event-driven and snapshotted per Update.
 - `Storage` for settings and saves, and `GameSettings::company`/`name`.
 - `COLDX_INPUT` scripted input.
+- Audio: `SoundEffect` (WAV, OGG), `SoundEffectInstance`, streaming `Music` and
+  `MediaPlayer`, on a lock-free software mixer. Headless runs use a silent driver.
+- `hello_audio` sample. Every test has a CTest timeout.
 - `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its
   text size.
 - `docs/QUICKSTART.md`: a complete game, the API on one page, differences from XNA. Its

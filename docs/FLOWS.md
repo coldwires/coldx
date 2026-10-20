@@ -34,6 +34,19 @@ Covered by `core.render.*` and `core.sprite.*` for steps 3 to 6.
 
 Covered by `core.input`.
 
+## Sound
+
+1. `src/core/sound_effect.cpp` `SoundEffect::Play` or `SoundEffectInstance::Play` - takes
+   a free voice slot from `audio.cpp` (a new generation number), and queues a Play
+   command carrying a pointer to the decoded samples.
+2. SDL's audio thread calls `Audio::Feed`, which runs `mixer.cpp` `Mixer::Mix`: apply
+   queued commands, add every voice and the music into the output, clamp.
+3. A voice that ends stores its generation in its slot's atomic. `Audio::Pump`, once per
+   frame on the game thread, frees slots whose voice ended, and music streams the mixer
+   handed back.
+
+Covered by `core.audio`.
+
 ## Drawing text
 
 1. `src/core/sprite_font.cpp` `SpriteFont::FromFile` - loads the TTF, packs printable ASCII

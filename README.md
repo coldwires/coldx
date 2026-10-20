@@ -128,6 +128,24 @@ QWERTY and AZERTY. Mouse positions are back buffer pixels; the wheel counts notc
 positive. Up to four pads, by player index, connect and disconnect while the game runs;
 sticks are -1 to 1 with up positive, after a dead zone (`GamePadDeadZone`).
 
+## Sound and music
+
+```cpp
+jump = SoundEffect::FromFile("content/jump.wav");   // WAV or OGG, decoded into memory
+jump.Play();                                       // fire and forget
+engine = jump.CreateInstance();                    // one playback you control
+engine.SetLooped(true);
+engine.Play();
+engine.SetPitch(0.5f);                             // octaves: half an octave up
+
+theme = Music::FromFile("content/theme.ogg");     // OGG, decoded as it plays
+MediaPlayer::Play(theme);                          // loops by default
+```
+
+Up to 64 sounds play at once, plus one music track. Sounds load any time; playing needs
+`Run` started. Headless runs use SDL's silent dummy audio driver. `samples/hello_audio`
+shows all of it.
+
 ## Saving settings and games
 
 ```cpp

@@ -11,9 +11,11 @@
 #include <coldx/core/math_helper.h>
 #include <coldx/core/matrix.h>
 #include <coldx/core/mouse.h>
+#include <coldx/core/music.h>
 #include <coldx/core/point.h>
 #include <coldx/core/rectangle.h>
 #include <coldx/core/render_target2d.h>
+#include <coldx/core/sound_effect.h>
 #include <coldx/core/sprite_batch.h>
 #include <coldx/core/sprite_font.h>
 #include <coldx/core/storage.h>

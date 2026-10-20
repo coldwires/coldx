@@ -147,6 +147,19 @@ work inside `Draw`.
 `Buttons`: `A`, `B`, `X`, `Y`, `Back`, `Start`, `Guide`, `LeftShoulder`, `RightShoulder`,
 `LeftStick`, `RightStick`, `DPadUp`, `DPadDown`, `DPadLeft`, `DPadRight`. Players 0 to 3.
 
+**SoundEffect.** `SoundEffect::FromFile("content/x.wav")` (WAV or OGG),
+`FromSamples(const float*, frames, channels, rate)`, `Play(volume = 1, pitch = 0, pan = 0)`
+(pitch in octaves, -1..1; pan -1..1), `CreateInstance()`, `Duration()`,
+`SoundEffect::SetMasterVolume`. Up to `SoundEffect::MaxVoices` (64) at once.
+
+**SoundEffectInstance.** `Play()`, `Pause()`, `Resume()`, `Stop()`, `State()`
+(`SoundState::Stopped`/`Playing`/`Paused`), `SetVolume`, `SetPitch`, `SetPan`,
+`SetLooped`. Move-only; destroying it stops it.
+
+**Music and MediaPlayer.** `Music::FromFile("content/x.ogg")`;
+`MediaPlayer::Play(music, looped = true)`, `Stop()`, `Pause()`, `Resume()`, `IsPlaying()`,
+`SetVolume`. One track at a time.
+
 **Storage.** `Storage::WriteFile("name.txt", contents)`, `ReadFile("name.txt")` returns
 `std::optional<std::string>`, `Exists`, `Remove`, `Folder()`. Plain file names only.
 
@@ -174,6 +187,8 @@ work inside `Draw`.
 - `Keyboard::WasPressed` and friends are built in: no need to keep last frame's state.
 - `GetState` returns the state as of the start of the current `Update`, not live.
 - Content loads by path relative to the executable, not through a ContentManager (yet).
+- Music is `Music` plus `MediaPlayer`, like XNA's `Song`; `SoundEffect.Play` takes pitch in
+  octaves as XNA does.
 - Textures and fonts need the graphics device: create them in `LoadContent`, not the
   constructor. `SpriteBatch` is the exception.
 - No exceptions: a failed load returns an empty object and logs why.

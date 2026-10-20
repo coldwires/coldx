@@ -4,6 +4,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "audio.h"
 #include "debug_options.h"
 #include "graphics_access.h"
 #include "input.h"
@@ -105,6 +106,8 @@ int Game::Run() {
 
     detail::Input& input = detail::Input::Get();
     input.Start(s.window);
+    detail::Audio& audio = detail::Audio::Get();
+    audio.Start(debug.headless);
     detail::InputScript script;
     script.Load(debug.inputPath);
 
@@ -191,6 +194,7 @@ int Game::Run() {
             SDL_Delay(16);
         }
         detail::GraphicsAccess::EndFrame(*s.graphics);
+        audio.Pump();
 
         if (debug.frames > 0 && frames >= debug.frames) s.exitRequested = true;
     }
@@ -205,6 +209,7 @@ int Game::Run() {
 
     OnExiting();
     UnloadContent();
+    audio.Stop();
     input.Stop();
 
     detail::GraphicsAccess::ReleaseWindow(*s.graphics);

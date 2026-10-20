@@ -1,14 +1,14 @@
 # core
 
 **Owns:** the game loop, window, GPU device, textures, render targets, sprite and text
-drawing, keyboard, mouse and gamepad input, per-user storage, math types, logging and
+drawing, keyboard, mouse and gamepad input, audio, per-user storage, math types, logging and
 the debug options.
 **Layer:** 0
 **Depends on:** none
-**Third-party:** SDL3, stb
+**Third-party:** SDL3, stb, dr_libs
 **Public headers:** `include/coldx/core/`, all included by `include/coldx/coldx.h`
 **Library target:** `coldx::core`
-**Size:** ~4.8k lines
+**Size:** ~6.4k lines
 
 ## Public surface
 
@@ -29,6 +29,10 @@ the debug options.
 - `Keyboard`, `KeyboardState`, `Key`; `Mouse`, `MouseState`, `MouseButton`; `GamePad`,
   `GamePadState`, `Buttons`, `GamePadDeadZone`. Each has `GetState` (as of the start of the
   current Update) and `WasPressed`/`WasReleased` (since the previous Update).
+- `SoundEffect` (`FromFile` WAV/OGG, `FromSamples`, `Play`, `CreateInstance`,
+  `MasterVolume`), `SoundEffectInstance` (play, pause, resume, stop, volume, pitch, pan,
+  loop, `State`), `Music` (`FromFile` OGG), `MediaPlayer` (one track: play, stop, pause,
+  resume, volume, `IsPlaying`).
 - `Storage`: per-user folder named by `GameSettings::company`/`name`; whole-file
   `ReadFile`, atomic `WriteFile`, `Exists`, `Remove`.
 - `Color`, `Vector2`, `Point`, `Rectangle`, `Matrix`, `MathHelper`.
@@ -55,6 +59,12 @@ the debug options.
   current and previous before each Update, and polls the pads. `keyboard.cpp`,
   `mouse.cpp`, `gamepad.cpp` are the public classes over it.
 - `input_script.*`: `COLDX_INPUT`, scripted input applied before numbered Updates.
+- Audio: `mixer.*` mixes up to 64 voices and one music stream into stereo float at
+  48 kHz (linear resampling, pitch, balance pan, clamp); it is pure arithmetic, tested
+  without a device. `spsc_queue.h` carries commands to it. `audio.*` is the game-thread
+  side: the SDL device stream whose callback runs the mixer, the voice slots, and freeing
+  what the mixer hands back. `sound_effect.cpp`, `music.cpp` are the public classes;
+  `audio_codecs.cpp` decodes; `audio_codecs_impl.cpp` compiles dr_wav and stb_vorbis.
 - `storage.cpp` + `storage_names.h`: the Storage folder and file access.
 - `matrix.cpp`, `log.cpp`.
 
@@ -71,6 +81,10 @@ the debug options.
 - `MeasureString` and `DrawString` share one layout; they cannot disagree.
 - Input is event-driven, never polled from SDL's key array: injected and scripted input
   behave exactly like real input. Losing focus releases every key and mouse button.
+- The audio thread never locks, allocates or frees. Commands reach it through a
+  lock-free queue; voice ends come back as per-slot generation numbers; music streams
+  come back through a second queue for the game thread to free. Sound data stays alive
+  until its slot's generation is reported ended.
 - Every Update sees one input snapshot; edges compare it with the previous Update's.
 - Storage never writes outside its folder: names with separators or dots-only are refused.
 - Log lines start with `coldx.core:`.
@@ -92,6 +106,12 @@ the debug options.
 - SDL ignores pad button presses while the window has no focus. A headless window never
   has focus, so tests that press virtual pad buttons set
   `SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS`.
+- Headless runs use SDL's dummy audio driver: real-time and silent. Tests that play
+  sound need nothing set.
+- A slot frees itself once its voice ends, even if an instance still holds it. Ended()
+  compares with >= so that instance still reads Stopped after the slot is reused.
+- Mixer bugs tend to hang rather than crash (a refill that never advances). Every test
+  has a CTest timeout for that reason.
 - SDL ends a rumble after 65 seconds at most; the hub re-sends a held vibration every 30.
 - Tests write to the real per-user folder; `core.input` uses company `coldx-test` and
   deletes it afterwards.
@@ -107,7 +127,10 @@ sampler states, transform, rotation, flips, origin and scale, render targets.
 `core.font.<backend>` checks metrics, kerning, Latin-1, the default character and drawn
 glyphs against glyphs rasterized directly with stb_truetype. `core.input` drives the
 keyboard and mouse with SDL events and pads with SDL virtual gamepads, and covers edges,
-focus loss, wheel direction, dead zones, hot-plug order, rumble, `COLDX_INPUT` and Storage. Helpers:
+focus loss, wheel direction, dead zones, hot-plug order, rumble, `COLDX_INPUT` and Storage.
+`core.audio` checks the mixer sample by sample (rate, pitch, pan, loop seam, pause, stale
+commands, clamp, music across chunk boundaries), decoding, and the public classes end to
+end on the dummy driver, including the 64-voice limit. Helpers:
 `src/core/tests/headless.h` (run a scene, capture, compare) and `tests/check.h`.
 
 ## Open work
