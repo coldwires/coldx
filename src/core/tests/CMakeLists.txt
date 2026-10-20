@@ -49,3 +49,13 @@ target_include_directories(coldx_core_components_test PRIVATE ${PROJECT_SOURCE_D
 coldx_set_warnings(coldx_core_components_test)
 add_test(NAME core.components COMMAND coldx_core_components_test)
 set_tests_properties(core.components PROPERTIES TIMEOUT 120)
+
+add_executable(coldx_core_content_test content_test.cpp)
+target_link_libraries(coldx_core_content_test PRIVATE coldx::core SDL3::SDL3-static)
+target_include_directories(coldx_core_content_test PRIVATE ${PROJECT_SOURCE_DIR}/tests ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_definitions(coldx_core_content_test PRIVATE
+    COLDX_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+    COLDX_TEST_FONT="${PROJECT_SOURCE_DIR}/third_party/fonts/liberation/LiberationSans-Regular.ttf")
+coldx_set_warnings(coldx_core_content_test)
+add_test(NAME core.content COMMAND coldx_core_content_test)
+set_tests_properties(core.content PROPERTIES TIMEOUT 120)

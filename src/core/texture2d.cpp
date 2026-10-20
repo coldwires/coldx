@@ -72,10 +72,12 @@ static bool Upload(SDL_GPUDevice* device, SDL_GPUTexture* texture, int width, in
 
 Texture2D::Texture2D() = default;
 Texture2D::~Texture2D() = default;
-Texture2D::Texture2D(Texture2D&& other) noexcept = default;
-Texture2D& Texture2D::operator=(Texture2D&& other) noexcept = default;
+Texture2D::Texture2D(const Texture2D&) = default;
+Texture2D& Texture2D::operator=(const Texture2D&) = default;
+Texture2D::Texture2D(Texture2D&&) noexcept = default;
+Texture2D& Texture2D::operator=(Texture2D&&) noexcept = default;
 
-std::unique_ptr<Texture2D::Impl> Texture2D::Make(GraphicsDevice& graphics, int width, int height, bool renderTarget) {
+std::shared_ptr<Texture2D::Impl> Texture2D::Make(GraphicsDevice& graphics, int width, int height, bool renderTarget) {
     SDL_GPUDevice* device = detail::GraphicsAccess::Device(graphics);
     if (!device) {
         SDL_Log("coldx.core: texture created before the graphics device exists; create it in LoadContent");
@@ -100,7 +102,7 @@ std::unique_ptr<Texture2D::Impl> Texture2D::Make(GraphicsDevice& graphics, int w
         return nullptr;
     }
 
-    auto impl = std::make_unique<Impl>();
+    auto impl = std::make_shared<Impl>();
     impl->token = detail::GraphicsAccess::Token(graphics);
     impl->texture = texture;
     impl->width = width;

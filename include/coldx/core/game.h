@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include <coldx/core/content_manager.h>
 #include <coldx/core/game_component.h>
 #include <coldx/core/game_time.h>
 #include <coldx/core/graphics_device.h>
@@ -62,6 +63,9 @@ public:
     // Components update after this game's Update and draw after its Draw. They initialize
     // after its Initialize and before its LoadContent.
     GameComponentCollection& Components();
+
+    // Content loaded by name from RootDirectory ("content" beside the executable).
+    ContentManager& Content();
 
 protected:
     virtual void Initialize() {}

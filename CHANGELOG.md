@@ -27,6 +27,9 @@
 - `Storage` for settings and saves, and `GameSettings::company`/`name`.
 - `COLDX_INPUT` scripted input.
 - `GameComponent`, `DrawableGameComponent` and `Game::Components()`.
+- `ContentManager` (`Game::Content()`): loose files by name, a cache, `LoadFont`,
+  `RegisterLoader` for game types.
+- `Texture2D`, `RenderTarget2D` and `SpriteFont` are copyable handles: copies share.
 - Audio: `SoundEffect` (WAV, OGG), `SoundEffectInstance`, streaming `Music` and
   `MediaPlayer`, on a lock-free software mixer. Headless runs use a silent driver.
 - `hello_audio` sample. Every test has a CTest timeout.

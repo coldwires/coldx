@@ -176,6 +176,19 @@ if (auto saved = Storage::ReadFile("settings.txt")) Apply(*saved);
 `%APPDATA%\<company>\<name>`. A write replaces the whole file through a temporary, so a
 crash never leaves half a file.
 
+## Content
+
+```cpp
+player = Content().Load<Texture2D>("sprites/player");     // content/sprites/player.png
+jump = Content().Load<SoundEffect>("sounds/jump");        // .wav or .ogg
+font = Content().LoadFont("fonts/main", 18.0f);           // .ttf, baked at 18 px
+```
+
+The `ContentManager` loads files from `content/` beside the executable, finds the
+extension itself, and caches by name. Games teach it their own types with
+`RegisterLoader`. `Texture2D`, `SpriteFont` and the audio types are handles: a copy shares
+the loaded data, which is freed when the last copy and the cache let go.
+
 ## Textures and colors
 
 Textures hold premultiplied alpha. `Texture2D::FromFile` loads a PNG and premultiplies it;

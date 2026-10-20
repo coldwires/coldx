@@ -22,10 +22,12 @@ public:
 
 protected:
     void LoadContent() override {
-        // Textures are premultiplied. FromFile loads a PNG beside the executable.
+        // Content loads by name from the content folder beside the executable:
+        // Content().Load<Texture2D>("player") reads content/player.png. Fonts load per size.
+        font = Content().LoadFont("LiberationSans-Regular", 18.0f);
+        // Textures can also be made in code. Colors are premultiplied.
         const Color white = Color::White;
         square = Texture2D::FromPixels(Graphics(), 1, 1, &white);
-        font = SpriteFont::FromFile(Graphics(), "content/LiberationSans-Regular.ttf", 18.0f);
     }
 
     void Update(const GameTime& time) override {
@@ -79,8 +81,8 @@ target_link_libraries(my_game PRIVATE coldx::core)
 coldx_game(my_game)                      # windowed program on Windows, main() kept
 ```
 
-Content is loaded relative to the executable's folder; copy it there in a `POST_BUILD`
-step, as `samples/quickstart/CMakeLists.txt` does for its font.
+Content is loaded from a `content` folder beside the executable; copy it there in a
+`POST_BUILD` step, as `samples/quickstart/CMakeLists.txt` does for its font.
 
 ## The API
 
@@ -107,9 +109,16 @@ starts: `title`, `width`, `height`, `resizable`, `fullscreen`, `vsync`, `fixedTi
 back buffer), `BackBufferWidth()`, `BackBufferHeight()`. Clear and render targets only
 work inside `Draw`.
 
+**ContentManager.** `Content().Load<Texture2D>("sprites/player")` reads
+`content/sprites/player.png`; also `Load<SoundEffect>` (.wav, .ogg), `Load<Music>` (.ogg),
+`LoadFont("name", pixelHeight)` (.ttf). Cached by name; `Unload()` drops the cache.
+`SetRootDirectory`. Your own types: `Content().RegisterLoader<Level>({".lvl"}, [](const std::string& path) { ... return Level{...}; });`
+then `Content().Load<Level>("levels/one")`.
+
 **Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,
 `Texture2D::FromPixels(Graphics(), w, h, const Color*)`, `SetData(const Color*)`,
-`Width()`, `Height()`, `IsEmpty()`. Move-only. Create in `LoadContent` or later.
+`Width()`, `Height()`, `IsEmpty()`. A handle: copies share one texture. Create in
+`LoadContent` or later.
 
 **RenderTarget2D.** A `Texture2D` you can draw into: `RenderTarget2D::Create(Graphics(), w, h)`.
 
@@ -193,7 +202,10 @@ work inside `Draw`.
   bake another font; scaling one blurs it.
 - `Keyboard::WasPressed` and friends are built in: no need to keep last frame's state.
 - `GetState` returns the state as of the start of the current `Update`, not live.
-- Content loads by path relative to the executable, not through a ContentManager (yet).
+- Content loads loose files by name (`Content().Load<Texture2D>("player")`); packed
+  content files are not written yet. Fonts load with `LoadFont(name, size)`.
+- `Texture2D`, `SpriteFont` and the audio types are handles, like XNA's reference types:
+  a copy shares the resource.
 - Music is `Music` plus `MediaPlayer`, like XNA's `Song`; `SoundEffect.Play` takes pitch in
   octaves as XNA does.
 - Textures and fonts need the graphics device: create them in `LoadContent`, not the

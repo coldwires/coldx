@@ -11,10 +11,12 @@ public:
 
 protected:
     void LoadContent() override {
-        // Textures are premultiplied. FromFile loads a PNG beside the executable.
+        // Content loads by name from the content folder beside the executable:
+        // Content().Load<Texture2D>("player") reads content/player.png. Fonts load per size.
+        font = Content().LoadFont("LiberationSans-Regular", 18.0f);
+        // Textures can also be made in code. Colors are premultiplied.
         const Color white = Color::White;
         square = Texture2D::FromPixels(Graphics(), 1, 1, &white);
-        font = SpriteFont::FromFile(Graphics(), "content/LiberationSans-Regular.ttf", 18.0f);
     }
 
     void Update(const GameTime& time) override {
