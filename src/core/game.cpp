@@ -17,6 +17,7 @@ struct Game::Impl {
     GameSettings settings;
     std::unique_ptr<GraphicsDevice> graphics = detail::GraphicsAccess::Create();
     std::unique_ptr<GameComponentCollection> components = std::make_unique<GameComponentCollection>();
+    std::unique_ptr<ContentManager> content = std::make_unique<ContentManager>(*graphics);
     SDL_Window* window = nullptr;
     bool exitRequested = false;
     bool sdlStarted = false;
@@ -29,6 +30,7 @@ Game::Game() : impl_(std::make_unique<Impl>()) {}
 Game::~Game() {
     // Components may hold GPU resources: they go before the device.
     impl_->components.reset();
+    impl_->content.reset();
     impl_->graphics.reset();
     if (impl_->sdlStarted) SDL_Quit();
 }
@@ -43,6 +45,10 @@ GraphicsDevice& Game::Graphics() {
 
 GameComponentCollection& Game::Components() {
     return *impl_->components;
+}
+
+ContentManager& Game::Content() {
+    return *impl_->content;
 }
 
 void Game::Exit() {

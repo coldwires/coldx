@@ -63,6 +63,17 @@ Covered by `core.audio`.
 
 Covered by `core.font.*`.
 
+## Loading content by name
+
+1. `include/coldx/core/content_manager.h` `ContentManager::Load<T>` - returns the cached
+   copy if there is one; otherwise looks up the loader registered for `T`.
+2. `content_manager.cpp` - the loader finds the file: the name under the root directory,
+   as given if it has an extension, else with each of the loader's extensions in turn.
+   It calls the type's own loading function (for textures, the flow below) and caches
+   the result, which `Load` returns a copy of. Copies are handles: they share the data.
+
+Covered by `core.content`.
+
 ## Loading a texture
 
 1. `src/core/texture2d.cpp` `Texture2D::FromFile` - prefixes a relative path with the

@@ -116,6 +116,8 @@ struct SpriteFont::Impl {
 
 SpriteFont::SpriteFont() = default;
 SpriteFont::~SpriteFont() = default;
+SpriteFont::SpriteFont(const SpriteFont&) = default;
+SpriteFont& SpriteFont::operator=(const SpriteFont&) = default;
 SpriteFont::SpriteFont(SpriteFont&&) noexcept = default;
 SpriteFont& SpriteFont::operator=(SpriteFont&&) noexcept = default;
 
@@ -138,7 +140,7 @@ SpriteFont SpriteFont::FromMemory(GraphicsDevice& graphics, const void* data, st
         SDL_Log("coldx.core: SpriteFont: no data, or pixel height %.1f", pixelHeight);
         return {};
     }
-    auto impl = std::make_unique<Impl>();
+    auto impl = std::make_shared<Impl>();
     const auto* bytes = static_cast<const unsigned char*>(data);
     impl->fontData.assign(bytes, bytes + size);
     const unsigned char* fontData = impl->fontData.data();

@@ -8,7 +8,7 @@ the debug options.
 **Third-party:** SDL3, stb, dr_libs
 **Public headers:** `include/coldx/core/`, all included by `include/coldx/coldx.h`
 **Library target:** `coldx::core`
-**Size:** ~6.4k lines
+**Size:** ~7.2k lines
 
 ## Public surface
 
@@ -20,7 +20,7 @@ the debug options.
   `Add`, `Emplace`, `Remove`, `Count`). Update and draw order, `Enabled`, `Visible`.
 - `GraphicsDevice`: `Clear`, `SetRenderTarget`, back buffer size. Exists from `Game`
   construction; usable from `Initialize`.
-- `Texture2D`: `FromFile` (PNG), `FromPixels`, `SetData`. Move-only, premultiplied alpha.
+- `Texture2D`: `FromFile` (PNG), `FromPixels`, `SetData`. A shared handle; premultiplied.
 - `RenderTarget2D`: a `Texture2D` that can be drawn into. `Create`.
 - `SpriteBatch`: `Begin(sortMode, blend, sampler, transform)`, `Draw` (position or
   destination, source, tint, rotation, origin, scale, flip, depth), `End`.
@@ -35,6 +35,8 @@ the debug options.
   `MasterVolume`), `SoundEffectInstance` (play, pause, resume, stop, volume, pitch, pan,
   loop, `State`), `Music` (`FromFile` OGG), `MediaPlayer` (one track: play, stop, pause,
   resume, volume, `IsPlaying`).
+- `ContentManager` (`Game::Content()`): `Load<T>(name)` with a cache, `LoadFont(name, size)`,
+  `RegisterLoader<T>`, `Unload`, `SetRootDirectory`.
 - `Storage`: per-user folder named by `GameSettings::company`/`name`; whole-file
   `ReadFile`, atomic `WriteFile`, `Exists`, `Remove`.
 - `Color`, `Vector2`, `Point`, `Rectangle`, `Matrix`, `MathHelper`.
@@ -57,6 +59,8 @@ the debug options.
 - `sprite_font.cpp` + `font_access.h`: baking (stb_truetype packs ASCII and Latin-1 into one
   atlas), UTF-8 decoding, and the one layout routine both measuring and drawing use.
   `stb_truetype_impl.cpp` compiles stb's implementation, warnings silenced there only.
+- `content_manager.cpp`: finding files by name and extension, built-in loaders, the cache.
+  `Load<T>` and `RegisterLoader<T>` are templates in the header, type-erased into it.
 - `content_path.*`: relative content paths resolve against the executable's folder.
 - `input.*`: the input hub. Live state follows SDL events; `BeginUpdate` copies it to
   current and previous before each Update, and polls the pads. `keyboard.cpp`,
@@ -76,7 +80,8 @@ the debug options.
 - No SDL type appears in a public header.
 - Drawing goes into the internal back buffer or a render target, never the swapchain.
 - Every frame starts with the back buffer as the current target.
-- The GPU device lives until `~Game`; `Run` only lets go of the window.
+- The GPU device lives until `~Game`; `Run` only lets go of the window. Components, then
+  cached content, are destroyed before it.
 - GPU resources release only if their `DeviceToken` still holds a device.
 - Unrotated sprites skip the trig, so their corners stay on whole pixels.
 - Glyphs land on whole pixels at scale 1: the pen is rounded per glyph, and a flipped

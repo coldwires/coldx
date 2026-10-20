@@ -19,7 +19,7 @@ struct FontAccess;
 
 // A font baked from a TrueType file into a texture atlas at one pixel size: printable ASCII
 // (32-126) and Latin-1 (160-255). Draw it with SpriteBatch::DrawString. Text is UTF-8.
-// Move-only; empty on a failed load.
+// A handle: copies share one bake. Empty on a failed load.
 //
 // Glyphs land on whole pixels at scale 1, so text drawn at a whole-pixel position with
 // SamplerState::PointClamp is exactly the rasterized font. A different size is a new bake,
@@ -28,10 +28,10 @@ class SpriteFont {
 public:
     SpriteFont();
     ~SpriteFont();
+    SpriteFont(const SpriteFont&);
+    SpriteFont& operator=(const SpriteFont&);
     SpriteFont(SpriteFont&&) noexcept;
     SpriteFont& operator=(SpriteFont&&) noexcept;
-    SpriteFont(const SpriteFont&) = delete;
-    SpriteFont& operator=(const SpriteFont&) = delete;
 
     // pixelHeight is ascender to descender. A relative path is taken from the executable's
     // folder. Create from Initialize or LoadContent on.
@@ -45,6 +45,8 @@ public:
     float LineSpacing() const;
     void SetLineSpacing(float spacing);
 
+    // Spacing, line spacing and the default character belong to the bake, so a change
+    // shows in every copy.
     // Extra space after every character. 0 by default.
     float Spacing() const;
     void SetSpacing(float spacing);
@@ -63,7 +65,7 @@ public:
 private:
     friend struct detail::FontAccess;
     struct Impl;
-    std::unique_ptr<Impl> impl_;
+    std::shared_ptr<Impl> impl_;
 };
 
 } // namespace coldx

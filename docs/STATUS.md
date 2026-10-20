@@ -22,7 +22,8 @@ behaviour; `not started` has no code.
 | 12 | Mouse, gamepad (4 players, hot-plug, dead zones, rumble) | done |
 | 13 | Audio: `SoundEffect`, `SoundEffectInstance`, streaming `Music`, `MediaPlayer` | done |
 | 14 | `GameComponent`, `DrawableGameComponent` | done |
-| 15 | `ContentManager` | not started |
+| 15 | `ContentManager`: loose files, cache, `RegisterLoader` | done |
+| 28 | `ContentManager` reading packed `.rime` content | not started |
 | 16 | Math: `Vector2`, `Rectangle`, `Color` | done |
 | 17 | Math: `Point`, `Matrix`, `MathHelper` | done |
 | 18 | Custom shaders when drawing (`Effect`); `SpriteBatch::Begin` will take one | not started |

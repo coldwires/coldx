@@ -1,6 +1,7 @@
 #pragma once
 
 #include <coldx/core/color.h>
+#include <coldx/core/content_manager.h>
 #include <coldx/core/game.h>
 #include <coldx/core/game_component.h>
 #include <coldx/core/game_time.h>
