@@ -6,14 +6,16 @@ How data moves through coldx for the main cases. Each step is a file and what it
 
 1. `src/core/game.cpp` `Game::Run` - polls SDL events: quit, resize (`OnResize`), focus.
 2. `game.cpp` - adds elapsed time to the accumulator, capped at `maxUpdatesPerFrame` steps;
-   calls `Update` once per step (or once, with the real delta, for variable timestep).
+   calls `Update` once per step (or once, with the real delta, for variable timestep), then
+   each enabled component's `Update` in `UpdateOrder` (`game_component.cpp`).
 3. `graphics_device.cpp` `GraphicsAccess::BeginFrame` - acquires a command buffer and the
    swapchain texture; resizes the internal back buffer to match. No swapchain texture
    (minimized) means no `Draw` this frame.
 4. The game's `Draw` - `GraphicsDevice::Clear` records a clearing render pass on the
    current target, which is the back buffer until `SetRenderTarget` changes it.
    `SpriteBatch::Draw` turns each sprite into four corners (origin, scale, rotation, flip)
-   and appends them to a queue; in Immediate mode it flushes at once.
+   and appends them to a queue; in Immediate mode it flushes at once. After the game's
+   `Draw`, each visible drawable component draws, in `DrawOrder`.
 5. `sprite_batch.cpp` `SpriteBatch::End` - sorts the queue by the sort mode and hands it to
    `sprite_renderer.cpp` `SpriteRenderer::Draw`, which copies the vertices to the GPU,
    pushes the game's transform times the target's pixel-to-clip matrix, opens a render pass

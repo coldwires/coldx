@@ -26,6 +26,7 @@
   event-driven and snapshotted per Update.
 - `Storage` for settings and saves, and `GameSettings::company`/`name`.
 - `COLDX_INPUT` scripted input.
+- `GameComponent`, `DrawableGameComponent` and `Game::Components()`.
 - Audio: `SoundEffect` (WAV, OGG), `SoundEffectInstance`, streaming `Music` and
   `MediaPlayer`, on a lock-free software mixer. Headless runs use a silent driver.
 - `hello_audio` sample. Every test has a CTest timeout.

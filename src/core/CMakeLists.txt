@@ -5,6 +5,7 @@ add_library(coldx_core STATIC
     content_path.cpp
     debug_options.cpp
     game.cpp
+    game_component.cpp
     gamepad.cpp
     graphics_device.cpp
     input.cpp

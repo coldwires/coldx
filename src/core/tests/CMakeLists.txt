@@ -42,3 +42,10 @@ add_test(NAME core.audio COMMAND coldx_core_audio_test)
 # A hang (a mixer that never finishes, a loop that never exits) fails instead of blocking.
 get_property(core_tests DIRECTORY PROPERTY TESTS)
 set_tests_properties(${core_tests} PROPERTIES TIMEOUT 120)
+
+add_executable(coldx_core_components_test components_test.cpp)
+target_link_libraries(coldx_core_components_test PRIVATE coldx::core SDL3::SDL3-static)
+target_include_directories(coldx_core_components_test PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+coldx_set_warnings(coldx_core_components_test)
+add_test(NAME core.components COMMAND coldx_core_components_test)
+set_tests_properties(core.components PROPERTIES TIMEOUT 120)

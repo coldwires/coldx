@@ -16,6 +16,8 @@ the debug options.
   `Draw`, `OnResize`, `OnFocusChanged`, `OnExiting`. `Run` opens the window and loops.
   `Settings()` (`GameSettings`) is read when `Run` starts.
 - `GameTime`: `Delta`, `Total`, `IsRunningSlowly`.
+- `GameComponent`, `DrawableGameComponent`, `GameComponentCollection` (`Game::Components()`:
+  `Add`, `Emplace`, `Remove`, `Count`). Update and draw order, `Enabled`, `Visible`.
 - `GraphicsDevice`: `Clear`, `SetRenderTarget`, back buffer size. Exists from `Game`
   construction; usable from `Initialize`.
 - `Texture2D`: `FromFile` (PNG), `FromPixels`, `SetData`. Move-only, premultiplied alpha.
@@ -40,6 +42,7 @@ the debug options.
 
 ## Inside
 
+- `game_component.cpp`: the collection. Changes during a pass wait for the pass to end.
 - `game.cpp`: `Run` and the loop. `debug_options.*`: `COLDX_*` variables, console, log file.
 - `graphics_device.cpp` + `graphics_access.h`: the device, the internal back buffer, the
   current target, frame begin and end, capture. `GraphicsAccess` is how the rest of core
@@ -85,6 +88,8 @@ the debug options.
   lock-free queue; voice ends come back as per-slot generation numbers; music streams
   come back through a second queue for the game thread to free. Sound data stays alive
   until its slot's generation is reported ended.
+- Components: game first, then components, for Initialize, Update and Draw; drawable
+  components unload before the game's UnloadContent and are destroyed before the device.
 - Every Update sees one input snapshot; edges compare it with the previous Update's.
 - Storage never writes outside its folder: names with separators or dots-only are refused.
 - Log lines start with `coldx.core:`.

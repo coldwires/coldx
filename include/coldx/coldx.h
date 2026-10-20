@@ -2,6 +2,7 @@
 
 #include <coldx/core/color.h>
 #include <coldx/core/game.h>
+#include <coldx/core/game_component.h>
 #include <coldx/core/game_time.h>
 #include <coldx/core/gamepad.h>
 #include <coldx/core/graphics_device.h>

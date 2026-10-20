@@ -21,7 +21,7 @@ behaviour; `not started` has no code.
 | 11 | Keyboard, with `WasPressed`/`WasReleased` | done |
 | 12 | Mouse, gamepad (4 players, hot-plug, dead zones, rumble) | done |
 | 13 | Audio: `SoundEffect`, `SoundEffectInstance`, streaming `Music`, `MediaPlayer` | done |
-| 14 | `GameComponent`, `DrawableGameComponent` | not started |
+| 14 | `GameComponent`, `DrawableGameComponent` | done |
 | 15 | `ContentManager` | not started |
 | 16 | Math: `Vector2`, `Rectangle`, `Color` | done |
 | 17 | Math: `Point`, `Matrix`, `MathHelper` | done |

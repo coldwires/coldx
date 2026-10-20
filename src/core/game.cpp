@@ -16,6 +16,7 @@ namespace coldx {
 struct Game::Impl {
     GameSettings settings;
     std::unique_ptr<GraphicsDevice> graphics = detail::GraphicsAccess::Create();
+    std::unique_ptr<GameComponentCollection> components = std::make_unique<GameComponentCollection>();
     SDL_Window* window = nullptr;
     bool exitRequested = false;
     bool sdlStarted = false;
@@ -26,6 +27,8 @@ Game::Game() : impl_(std::make_unique<Impl>()) {}
 // The device outlives Run and goes here, after the derived game's members (its textures and
 // batches) have been destroyed, so they release against a live device.
 Game::~Game() {
+    // Components may hold GPU resources: they go before the device.
+    impl_->components.reset();
     impl_->graphics.reset();
     if (impl_->sdlStarted) SDL_Quit();
 }
@@ -36,6 +39,10 @@ GameSettings& Game::Settings() {
 
 GraphicsDevice& Game::Graphics() {
     return *impl_->graphics;
+}
+
+GameComponentCollection& Game::Components() {
+    return *impl_->components;
 }
 
 void Game::Exit() {
@@ -112,6 +119,7 @@ int Game::Run() {
     script.Load(debug.inputPath);
 
     Initialize();
+    s.components->InitializeAll();
     LoadContent();
 
     const double step = cfg.targetElapsedSeconds > 0.0 ? cfg.targetElapsedSeconds : 1.0 / 60.0;
@@ -135,6 +143,7 @@ int Game::Run() {
         ++updates;
         input.BeginUpdate();
         Update(time);
+        s.components->UpdateAll(time);
     };
 
     while (!s.exitRequested) {
@@ -188,6 +197,7 @@ int Game::Run() {
 
         if (detail::GraphicsAccess::BeginFrame(*s.graphics)) {
             Draw(drawTime);
+            s.components->DrawAll(drawTime);
             ++frames;
         } else if (SDL_GetWindowFlags(s.window) & SDL_WINDOW_MINIMIZED) {
             // Nothing is presented while minimized, so nothing else paces the loop.
@@ -208,6 +218,7 @@ int Game::Run() {
     }
 
     OnExiting();
+    s.components->UnloadAll();
     UnloadContent();
     audio.Stop();
     input.Stop();
