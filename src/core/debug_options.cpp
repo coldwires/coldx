@@ -8,6 +8,7 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#include <share.h>
 #include <windows.h>
 #endif
 
@@ -64,7 +65,8 @@ void SDLCALL LogToFile(void* userdata, int category, SDL_LogPriority priority, c
 bool StartLogFile(const std::string& path) {
     if (logFile) return true;
 #ifdef _WIN32
-    if (fopen_s(&logFile, path.c_str(), "w") != 0) logFile = nullptr;
+    // fopen_s denies other readers; this lets the log be read while the game runs.
+    logFile = _fsopen(path.c_str(), "w", _SH_DENYWR);
 #else
     logFile = std::fopen(path.c_str(), "w");
 #endif

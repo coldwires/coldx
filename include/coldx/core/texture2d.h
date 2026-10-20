@@ -45,7 +45,10 @@ public:
 
 private:
     friend struct detail::TextureAccess;
+    friend class RenderTarget2D;
     struct Impl;
+    // Null on failure, with the reason logged.
+    static std::unique_ptr<Impl> Make(GraphicsDevice& graphics, int width, int height, bool renderTarget);
     std::unique_ptr<Impl> impl_;
 };
 

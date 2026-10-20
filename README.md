@@ -61,6 +61,36 @@ opens with it, while keeping `main` as the entry point.
 
 Games include headers from `include/coldx/` only. Everything under `src/` is private.
 
+## Drawing sprites
+
+`SpriteBatch::Begin` takes a sort mode, a blend state, a sampler state and a transform, all
+optional:
+
+```cpp
+batch.Begin(SpriteSortMode::BackToFront, BlendState::AlphaBlend, SamplerState::PointClamp,
+            Matrix::CreateTranslation(-cameraX, -cameraY));
+batch.Draw(texture, position, source, Color::White, rotation, origin, scale,
+           SpriteEffects::FlipHorizontally, layerDepth);
+batch.End();
+```
+
+`SamplerState::PointClamp` keeps pixel art sharp when scaled; the default, `LinearClamp`,
+smooths it. Rotation is in radians, clockwise on screen. Deferred sprites are drawn at
+`End`, into whatever render target is current then; `Immediate` draws at each call.
+
+`RenderTarget2D` is a texture that can be drawn into:
+
+```cpp
+Graphics().SetRenderTarget(&target);
+// draw
+Graphics().SetRenderTarget(nullptr);
+batch.Begin();
+batch.Draw(target, Vector2(0, 0), Color::White);
+batch.End();
+```
+
+`Log` writes a printf-style line to the same log as coldx's own messages.
+
 ## Textures and colors
 
 Textures hold premultiplied alpha. `Texture2D::FromFile` loads a PNG and premultiplies it;
@@ -150,10 +180,15 @@ and total game time.
     cmake --build build --config Debug
     cd build && ctest -C Debug --output-on-failure
 
+`samples/stress` draws 10,000 moving sprites with vsync off and logs frames per second; pass
+a count as its first argument for more.
+
 `check` runs `tools/check.py`, which enforces the module boundaries
 between its folders; it needs Python 3 and is skipped without it. `core.math` covers the
-value types. `core.render.<backend>` draws a scene headless and compares every pixel that
-matters to a value computed from the same inputs, once per GPU backend
+value types and `Matrix`. `core.render.<backend>` and `core.sprite.<backend>` draw scenes
+headless and compare every pixel that matters to a value computed from the same inputs:
+every sort mode, blend and sampler state, transforms, rotation, flips and render targets.
+They run once per GPU backend
 (`COLDX_TEST_GPU_DRIVERS`: Direct3D 12 and Vulkan on Windows by default).
 
 ## Layout

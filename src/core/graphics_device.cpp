@@ -1,8 +1,10 @@
 #include <coldx/core/graphics_device.h>
+#include <coldx/core/render_target2d.h>
 
 #include <SDL3/SDL.h>
 
 #include "graphics_access.h"
+#include "texture_access.h"
 
 namespace coldx {
 
@@ -18,6 +20,9 @@ struct GraphicsDevice::Impl {
     Uint32 width = 0;
     Uint32 height = 0;
     bool inFrame = false;
+    SDL_GPUTexture* target = nullptr;
+    Uint32 targetWidth = 0;
+    Uint32 targetHeight = 0;
     std::shared_ptr<detail::DeviceToken> token;
 };
 
@@ -34,13 +39,31 @@ void GraphicsDevice::Clear(Color color) {
     if (!g.inFrame) return;
 
     SDL_GPUColorTargetInfo target{};
-    target.texture = g.backBuffer;
+    target.texture = g.target;
     target.clear_color = {color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f};
     target.load_op = SDL_GPU_LOADOP_CLEAR;
     target.store_op = SDL_GPU_STOREOP_STORE;
 
     SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(g.commands, &target, 1, nullptr);
     SDL_EndGPURenderPass(pass);
+}
+
+void GraphicsDevice::SetRenderTarget(const RenderTarget2D* target) {
+    Impl& g = *impl_;
+    if (!g.inFrame) {
+        SDL_Log("coldx.core: SetRenderTarget called outside Draw; ignored");
+        return;
+    }
+    SDL_GPUTexture* handle = target ? detail::TextureAccess::Handle(*target) : nullptr;
+    if (handle) {
+        g.target = handle;
+        g.targetWidth = static_cast<Uint32>(target->Width());
+        g.targetHeight = static_cast<Uint32>(target->Height());
+    } else {
+        g.target = g.backBuffer;
+        g.targetWidth = g.width;
+        g.targetHeight = g.height;
+    }
 }
 
 int GraphicsDevice::BackBufferWidth() const {
@@ -179,6 +202,9 @@ bool GraphicsAccess::BeginFrame(GraphicsDevice& graphics) {
     }
 
     g.inFrame = true;
+    g.target = g.backBuffer;
+    g.targetWidth = g.width;
+    g.targetHeight = g.height;
     return true;
 }
 
@@ -201,6 +227,8 @@ void GraphicsAccess::EndFrame(GraphicsDevice& graphics) {
     g.commands = nullptr;
     g.swapchain = nullptr;
     g.inFrame = false;
+    g.target = nullptr;
+    g.targetWidth = g.targetHeight = 0;
 }
 
 bool GraphicsAccess::SaveBackBuffer(GraphicsDevice& graphics, const std::string& path) {
@@ -263,8 +291,16 @@ SDL_GPUCommandBuffer* GraphicsAccess::Commands(GraphicsDevice& graphics) {
     return graphics.impl_->inFrame ? graphics.impl_->commands : nullptr;
 }
 
-SDL_GPUTexture* GraphicsAccess::BackBuffer(GraphicsDevice& graphics) {
-    return graphics.impl_->inFrame ? graphics.impl_->backBuffer : nullptr;
+SDL_GPUTexture* GraphicsAccess::CurrentTarget(GraphicsDevice& graphics) {
+    return graphics.impl_->inFrame ? graphics.impl_->target : nullptr;
+}
+
+int GraphicsAccess::CurrentTargetWidth(GraphicsDevice& graphics) {
+    return static_cast<int>(graphics.impl_->targetWidth);
+}
+
+int GraphicsAccess::CurrentTargetHeight(GraphicsDevice& graphics) {
+    return static_cast<int>(graphics.impl_->targetHeight);
 }
 
 } // namespace detail
