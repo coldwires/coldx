@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include <coldx/core/game_component.h>
 #include <coldx/core/game_time.h>
 #include <coldx/core/graphics_device.h>
 
@@ -57,6 +58,10 @@ public:
     // Exists from construction, so members can hold a reference to it. It is usable from
     // Initialize on.
     GraphicsDevice& Graphics();
+
+    // Components update after this game's Update and draw after its Draw. They initialize
+    // after its Initialize and before its LoadContent.
+    GameComponentCollection& Components();
 
 protected:
     virtual void Initialize() {}

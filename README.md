@@ -112,6 +112,23 @@ default. `MeasureString` gives the size `DrawString` will cover.
 
 `Log` writes a printf-style line to the same log as coldx's own messages.
 
+## Components
+
+```cpp
+class Hud : public DrawableGameComponent {
+public:
+    using DrawableGameComponent::DrawableGameComponent;
+    void Draw(const GameTime&) override { /* ... */ }
+};
+// in the game's constructor:
+Components().Emplace<Hud>(*this).SetDrawOrder(10);
+```
+
+A `GameComponent` has its own `Initialize` and `Update`; a `DrawableGameComponent` adds
+`LoadContent`, `UnloadContent` and `Draw`. The game owns them. They run after the game's
+own methods, in `UpdateOrder` and `DrawOrder`. Adding, removing or reordering in the middle
+of an update or draw takes effect after it.
+
 ## Input
 
 ```cpp

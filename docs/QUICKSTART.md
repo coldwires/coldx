@@ -94,6 +94,13 @@ starts: `title`, `width`, `height`, `resizable`, `fullscreen`, `vsync`, `fixedTi
 (default true), `targetElapsedSeconds` (1/60), `maxUpdatesPerFrame` (5), `console`
 (`ConsoleMode::DebugBuilds`/`Always`/`Never`), `company`, `name`.
 
+**Components.** `class Hud : public DrawableGameComponent` with `Initialize`,
+`LoadContent`, `UnloadContent`, `Update`, `Draw`; construct with the game. Add with
+`Components().Emplace<Hud>(*this)` (returns `Hud&`) or `Components().Add(std::make_unique<Hud>(*this))`;
+`Components().Remove(hud)`. `SetUpdateOrder`, `SetDrawOrder` (higher draws on top),
+`SetEnabled`, `SetVisible`, `GetGame()`, `Graphics()`. They run after the game's own
+`Update` and `Draw`.
+
 **GameTime.** `Delta()` seconds (float), `Total()` seconds (double), `IsRunningSlowly()`.
 
 **GraphicsDevice.** `Clear(Color)`, `SetRenderTarget(const RenderTarget2D*)` (`nullptr` =
