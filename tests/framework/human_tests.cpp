@@ -65,6 +65,11 @@ void GamepadScene(HumanScene& s) {
                 lines.push_back(Format("player %d: not connected", p));
                 continue;
             }
+            const GamePadCapabilities caps = GamePad::GetCapabilities(p);
+            const char* labels[] = {"?", "A", "B", "X", "Y", "Cross", "Circle", "Square", "Triangle"};
+            lines.push_back(Format("player %d: \"%s\" type %d, rumble %s, bottom button labelled %s", p, caps.name.c_str(),
+                                   static_cast<int>(caps.type), caps.hasRumble ? "yes" : "no",
+                                   labels[static_cast<int>(GamePad::FaceButtonLabel(p, Buttons::A))]));
             std::string held;
             for (int b = 0; b < 15; ++b)
                 if (st.buttons & (1u << b)) held += std::string(names[b]) + " ";
@@ -239,7 +244,8 @@ void RegisterHuman() {
         });
     add("INP-01", "P0", "Real controllers",
         {"Connect an Xbox, a PlayStation, a Switch Pro and a generic controller in turn.",
-         "Press every button and move every stick and trigger. Pass: each shows as the matching XNA button."},
+         "Press every button and move every stick and trigger. Pass: each shows as the matching XNA button;",
+         "the name and type match the pad, and the bottom button's label matches what is printed on it."},
         GamepadScene);
     add("INP-03", "P1", "Real sticks at rest, triggers",
         {"Leave the sticks alone, then press the triggers slowly.",

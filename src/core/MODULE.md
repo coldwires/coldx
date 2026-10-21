@@ -36,7 +36,8 @@ the debug options.
 - `Keyboard`, `KeyboardState`, `Key`; `Mouse`, `MouseState`, `MouseButton`; `GamePad`,
   `GamePadState`, `Buttons`, `GamePadDeadZone`. Each has `GetState` (as of the start of the
   current Update) and `WasPressed`/`WasReleased` (since the previous Update).
-  `Keyboard::KeyName`, `KeyForCharacter` for the current layout.
+  `Keyboard::KeyName`, `KeyForCharacter` for the current layout. `GamePad::GetCapabilities`
+  (name, `GamePadType`, rumble, IDs) and `FaceButtonLabel` (`ButtonLabel`), for prompts.
 - `TextInput` (typed UTF-8 per Update, IME composition, caret area), `Clipboard`.
 - `SoundEffect` (`FromFile` WAV/OGG, `FromSamples`, `Play`, `CreateInstance`,
   `MasterVolume`), `SoundEffectInstance` (play, pause, resume, stop, volume, pitch, pan,

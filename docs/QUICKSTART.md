@@ -191,6 +191,11 @@ from `Keyboard`. With an IME: `Composition()`, `CompositionCursor()`, and
 `ScrollWheelDelta()`, `HorizontalScrollWheelDelta()`, `SetPosition(x, y)`,
 `SetCursorVisible(bool)`.
 
+**GamePad info.** `GamePad::GetCapabilities(player)`: `isConnected`, `name`, `type`
+(`GamePadType::XboxOne`, `PS5`, `SwitchPro`, ...), `hasRumble`, `vendorId`, `productId`.
+`GamePad::FaceButtonLabel(player, Buttons::A)` is what the pad prints there
+(`ButtonLabel::A`, `Cross`, or `B` on Nintendo pads), for button prompts.
+
 **GamePad.** `GamePad::GetState(player, GamePadDeadZone = IndependentAxes)` returns
 `GamePadState` with `isConnected`, `leftStick`, `rightStick` (Vector2), `leftTrigger`,
 `rightTrigger` (0..1), `IsButtonDown(Buttons)`, `IsButtonUp`.

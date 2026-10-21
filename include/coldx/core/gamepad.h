@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include <coldx/core/vector2.h>
 
@@ -31,6 +32,46 @@ enum class GamePadDeadZone {
     None,
     IndependentAxes,  // each axis on its own; good for menus and 4-way movement. The default.
     Circular,         // the stick's distance from center; good for free 2D aiming
+};
+
+// The kind of pad, for showing matching button prompts.
+enum class GamePadType {
+    Unknown,
+    Standard,  // a pad SDL knows the layout of but not the family
+    Xbox360,
+    XboxOne,  // also Xbox Series
+    PS3,
+    PS4,
+    PS5,
+    SwitchPro,
+    JoyConLeft,
+    JoyConRight,
+    JoyConPair,
+    GameCube,
+    Steam,
+};
+
+// What a face button is printed with on the pad in hand. Buttons::A is the bottom face
+// button on every pad, which is "B" on a Nintendo pad and a cross on a PlayStation one.
+enum class ButtonLabel {
+    Unknown,
+    A,
+    B,
+    X,
+    Y,
+    Cross,
+    Circle,
+    Square,
+    Triangle,
+};
+
+struct GamePadCapabilities {
+    bool isConnected = false;
+    std::string name;  // as the pad reports it, e.g. "DualSense Wireless Controller"
+    GamePadType type = GamePadType::Unknown;
+    bool hasRumble = false;
+    std::uint16_t vendorId = 0;
+    std::uint16_t productId = 0;
 };
 
 struct GamePadState {
@@ -65,6 +106,11 @@ public:
     // Motor strength 0 to 1, low and high frequency; holds until changed. False when the
     // player has no pad or the pad cannot rumble.
     static bool SetVibration(int player, float lowFrequency, float highFrequency);
+
+    // The pad on player now, live rather than per Update. Not connected for an unused player.
+    static GamePadCapabilities GetCapabilities(int player);
+    // How the pad labels a face button (A, B, X, Y); Unknown for other buttons or no pad.
+    static ButtonLabel FaceButtonLabel(int player, Buttons button);
 };
 
 } // namespace coldx

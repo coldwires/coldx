@@ -205,9 +205,11 @@ struct VirtualPad {
         return true;
     }
 
-    void Attach(const char* name) {
+    void Attach(const char* name, Uint16 vendor = 0, Uint16 product = 0) {
         SDL_VirtualJoystickDesc desc;
         SDL_INIT_INTERFACE(&desc);
+        desc.vendor_id = vendor;
+        desc.product_id = product;
         desc.type = SDL_JOYSTICK_TYPE_GAMEPAD;
         desc.naxes = SDL_GAMEPAD_AXIS_COUNT;
         desc.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
@@ -308,6 +310,47 @@ void GamePads() {
     CHECK(game.updates == 6);
 }
 
+// Name, type and face labels from the vendor and product IDs a pad reports.
+void PadKinds() {
+    Headless();
+    Driver game;
+    VirtualPad sony, microsoft, nintendo;
+    game.initialize = [&] {
+        sony.Attach("DualSense Wireless Controller", 0x054C, 0x0CE6);
+        microsoft.Attach("Xbox Series X Controller", 0x045E, 0x0B12);
+        nintendo.Attach("Pro Controller", 0x057E, 0x2009);
+    };
+    game.step = [&](int n) {
+        if (n == 1) {
+            const GamePadCapabilities ps = GamePad::GetCapabilities(0);
+            const GamePadCapabilities xb = GamePad::GetCapabilities(1);
+            const GamePadCapabilities sw = GamePad::GetCapabilities(2);
+            std::printf("pads: \"%s\" type %d, \"%s\" type %d, \"%s\" type %d\n", ps.name.c_str(), static_cast<int>(ps.type),
+                        xb.name.c_str(), static_cast<int>(xb.type), sw.name.c_str(), static_cast<int>(sw.type));
+            CHECK(ps.isConnected && ps.type == GamePadType::PS5 && ps.vendorId == 0x054C && ps.productId == 0x0CE6);
+            CHECK(xb.isConnected && xb.type == GamePadType::XboxOne);
+            CHECK(sw.isConnected && sw.type == GamePadType::SwitchPro);
+            CHECK(ps.hasRumble);  // the virtual pads have a rumble callback
+            CHECK(!ps.name.empty());
+            CHECK(!GamePad::GetCapabilities(3).isConnected && GamePad::GetCapabilities(3).name.empty());
+            // The bottom face button, Buttons::A, as each pad prints it.
+            CHECK(GamePad::FaceButtonLabel(0, Buttons::A) == ButtonLabel::Cross);
+            CHECK(GamePad::FaceButtonLabel(0, Buttons::Y) == ButtonLabel::Triangle);
+            CHECK(GamePad::FaceButtonLabel(1, Buttons::A) == ButtonLabel::A);
+            CHECK(GamePad::FaceButtonLabel(2, Buttons::A) == ButtonLabel::B);
+            CHECK(GamePad::FaceButtonLabel(2, Buttons::B) == ButtonLabel::A);
+            CHECK(GamePad::FaceButtonLabel(1, Buttons::Start) == ButtonLabel::Unknown);
+            CHECK(GamePad::FaceButtonLabel(3, Buttons::A) == ButtonLabel::Unknown);
+            sony.Detach();
+            microsoft.Detach();
+            nintendo.Detach();
+            return false;
+        }
+        return true;
+    };
+    CHECK(game.Run() == 0);
+}
+
 void Script() {
     const std::filesystem::path path = std::filesystem::temp_directory_path() / "coldx_input_test.txt";
     {
@@ -390,6 +433,7 @@ int main() {
     KeyboardEdges();
     MouseState_();
     GamePads();
+    PadKinds();
     Script();
     Storage_();
     return CheckResult();
