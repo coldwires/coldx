@@ -7,7 +7,7 @@ behaviour; `not started` has no code.
 
 | # | Feature | State |
 |---|---|---|
-| 1 | Game loop: fixed and variable timestep, catch-up cap, lifecycle hooks | done |
+| 1 | Game loop: fixed and variable timestep, catch-up cap, lifecycle hooks, optional drawing between updates (`GameTime::Alpha`) | done |
 | 2 | Window settings: title, size, resizable, fullscreen at start, vsync | done |
 | 3 | Fullscreen toggle (borderless or exclusive at a chosen mode), display modes, resize, title and vsync while running | done |
 | 4 | Console window on Windows, `COLDX_*` debug options | done |

@@ -4,6 +4,8 @@
 
 #include "framework_test.h"
 
+#include <array>
+#include <cmath>
 #include <memory>
 
 #include <SDL3/SDL.h>
@@ -138,6 +140,35 @@ Result ExclusiveFullscreen() {
     return r;
 }
 
+// TIME-05: drawing between updates in a real window with vsync: draws at the display's
+// rate, updates at 60.
+Result DrawBetweenUpdates() {
+    Result r{"TIME-05", "P1"};
+    Probe game;
+    game.Settings().drawBetweenUpdates = true;
+    double start = 0;
+    int startUpdates = 0, startDraws = 0;
+    float refresh = 0;
+    game.update = [&](Probe& p, const GameTime&) {
+        if (p.updates == 60) {
+            start = Now();
+            startUpdates = p.updates;
+            startDraws = p.draws;
+            const SDL_DisplayMode* m = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(OnlyWindow()));
+            refresh = m ? m->refresh_rate : 0;
+        }
+        if (p.updates == 60 + 300) p.Exit();
+    };
+    game.Run();
+    const double seconds = Now() - start;
+    const double ups = (game.updates - startUpdates) / seconds, fps = (game.draws - startDraws) / seconds;
+    const bool ok = std::abs(ups - 60) < 1.5 && (refresh <= 61 || fps > refresh * 0.9);
+    r.status = ok ? Status::NeedsHuman : Status::Fail;
+    r.notes = Format("%.1f updates and %.1f draws a second over %.1f s on a %.0f Hz display. ", ups, fps, seconds, refresh) +
+              "Whether motion looks smoother needs a person (TIME-06).";
+    return r;
+}
+
 void VirtualScene(HumanScene& s) {
     s.Settings().resizable = true;
     s.Settings().virtualWidth = 640;
@@ -183,6 +214,33 @@ void VirtualScene(HumanScene& s) {
 void RegisterFeatures() {
     AutoTests().push_back({"VRES-01", "P1", "Virtual resolution placement", VirtualResolution});
     AutoTests().push_back({"FS-01", "P1", "Exclusive fullscreen", ExclusiveFullscreen});
+    AutoTests().push_back({"TIME-05", "P1", "Drawing between updates", DrawBetweenUpdates});
+    HumanTests().push_back(
+        {"TIME-06", "P1", "Interpolated motion by eye",
+         {"Two squares cross at 60 updates a second. The top one is drawn interpolated, the bottom one is not.",
+          "Best on a display above 60 Hz. I turns drawing between updates off and on.",
+          "Pass: with it on, the top square moves visibly smoother than the bottom one; neither stutters or jumps back."},
+         [](HumanScene& s) {
+             s.Settings().drawBetweenUpdates = true;
+             auto pos = std::make_shared<std::array<float, 2>>();  // previous, current
+             s.update = [&s, pos](const GameTime& t) {
+                 if (Keyboard::WasPressed(Key::I)) s.Settings().drawBetweenUpdates = !s.Settings().drawBetweenUpdates;
+                 (*pos)[0] = (*pos)[1];
+                 (*pos)[1] += 600.0f * t.Delta();
+                 if ((*pos)[1] > s.Graphics().BackBufferWidth()) (*pos)[0] = (*pos)[1] = -40.0f;
+             };
+             s.draw = [&s, pos](SpriteBatch& b, const GameTime& t) {
+                 const float smooth = (*pos)[0] + ((*pos)[1] - (*pos)[0]) * t.Alpha();
+                 b.Begin();
+                 b.Draw(s.White(), Rectangle(static_cast<int>(smooth), 300, 40, 40), Color::Cyan);
+                 b.Draw(s.White(), Rectangle(static_cast<int>((*pos)[1]), 380, 40, 40), Color(255, 140, 0));
+                 b.End();
+             };
+             s.readout = [&s] {
+                 return std::vector<std::string>{Format("drawing between updates: %s (I toggles)",
+                                                        s.Settings().drawBetweenUpdates ? "on" : "off")};
+             };
+         }});
     HumanTests().push_back({"FS-02", "P1", "Exclusive fullscreen by hand",
                             {"E: exclusive at 1920x1080. B: borderless. F11 toggles fullscreen.",
                              "In exclusive, alt-tab away and back, and press the Windows key.",

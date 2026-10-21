@@ -18,7 +18,8 @@ the debug options.
   `ToggleFullscreen`, `IsFullscreen`, `SetWindowSize`, `SetWindowTitle`, `SetVSync`,
   `SetVirtualResolution`, `SetScaleMode` (`ScaleMode`), `SetFullscreenMode`
   (`FullscreenMode` borderless or exclusive), `DisplayModes`, `DesktopDisplayMode`.
-- `GameTime`: `Delta`, `Total`, `IsRunningSlowly`.
+- `GameTime`: `Delta`, `Total`, `IsRunningSlowly`, `Alpha` (with
+  `GameSettings::drawBetweenUpdates`).
 - `GameComponent`, `DrawableGameComponent`, `GameComponentCollection` (`Game::Components()`:
   `Add`, `Emplace`, `Remove`, `Count`). Update and draw order, `Enabled`, `Visible`.
 - `GraphicsDevice`: `Clear`, `SetRenderTarget`, back buffer size, `PresentedArea`. Exists from `Game`

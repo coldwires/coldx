@@ -340,7 +340,7 @@ int Game::Run() {
         GameTime drawTime;
         if (cfg.fixedTimeStep) {
             accumulator = std::min(accumulator + elapsed, maxElapsed);
-            if (accumulator < step) {
+            if (accumulator < step && !cfg.drawBetweenUpdates) {
                 SDL_DelayPrecise(static_cast<Uint64>((step - accumulator) * 1e9));
                 continue;
             }
@@ -351,7 +351,8 @@ int Game::Run() {
                 total += step;
                 runUpdate(GameTime(static_cast<float>(step), total, slow));
             }
-            drawTime = GameTime(static_cast<float>(step), total, slow);
+            drawTime = GameTime(static_cast<float>(step), total, slow,
+                                cfg.drawBetweenUpdates ? static_cast<float>(std::min(accumulator / step, 0.999)) : 0.0f);
         } else {
             total += elapsed;
             drawTime = GameTime(static_cast<float>(elapsed), total, false);

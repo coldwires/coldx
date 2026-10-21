@@ -120,7 +120,12 @@ window again), `SetScaleMode(mode, smooth)`. Window resizes do not call `OnResiz
 `SetEnabled`, `SetVisible`, `GetGame()`, `Graphics()`. They run after the game's own
 `Update` and `Draw`.
 
-**GameTime.** `Delta()` seconds (float), `Total()` seconds (double), `IsRunningSlowly()`.
+**GameTime.** `Delta()` seconds (float), `Total()` seconds (double), `IsRunningSlowly()`,
+`Alpha()`. By default a fixed-timestep game draws once per update, so a 144 Hz display
+shows 60 frames. `Settings().drawBetweenUpdates = true` draws every display frame;
+`Alpha()` (0 to just under 1, in `Draw`) is how far the frame is toward the next update:
+keep each object's previous and current position and draw
+`previous + (current - previous) * time.Alpha()`.
 
 **GraphicsDevice.** `Clear(Color)`, `SetRenderTarget(const RenderTarget2D*)` (`nullptr` =
 back buffer), `BackBufferWidth()`, `BackBufferHeight()`, `PresentedArea()`,
