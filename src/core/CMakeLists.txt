@@ -16,6 +16,7 @@ add_library(coldx_core STATIC
     matrix.cpp
     mixer.cpp
     mouse.cpp
+    scaling.cpp
     music.cpp
     shader_blob.cpp
     sound_effect.cpp

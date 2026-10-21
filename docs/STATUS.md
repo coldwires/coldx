@@ -31,6 +31,7 @@ behaviour; `not started` has no code.
 | 29 | `demo` sample: components, content, input, audio, text, many sprites | done |
 | 26 | `Storage`: per-user folder, atomic writes | done |
 | 27 | Typed text input (layout-aware characters) | not started |
+| 31 | Virtual resolution: fixed back buffer scaled into the window (Fit, Integer, Stretch), mouse mapped | done |
 | 30 | `tests/framework`: stress and edge-case runner, automatic checks plus guided ones for a person | done |
 
 ## Shaders

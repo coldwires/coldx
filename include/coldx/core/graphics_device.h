@@ -3,10 +3,19 @@
 #include <memory>
 
 #include <coldx/core/color.h>
+#include <coldx/core/rectangle.h>
 
 namespace coldx {
 
 class RenderTarget2D;
+
+// How a fixed virtual resolution (GameSettings::virtualWidth and virtualHeight) fills the
+// window.
+enum class ScaleMode {
+    Fit,      // as large as fits with the aspect ratio kept; bars on two sides
+    Integer,  // whole multiples only (1x, 2x, 3x), for pixel art; below 1x it shrinks as Fit
+    Stretch,  // fills the window; the aspect ratio is not kept
+};
 
 namespace detail {
 struct GraphicsAccess;
@@ -26,9 +35,14 @@ public:
     // Do not draw a target into itself.
     void SetRenderTarget(const RenderTarget2D* target);
 
-    // Size of the back buffer in pixels, as of the current frame.
+    // Size of the back buffer in pixels, as of the current frame. With a virtual resolution
+    // set, that size, whatever the window's.
     int BackBufferWidth() const;
     int BackBufferHeight() const;
+
+    // Where the back buffer was shown in the window last frame, in window pixels. The whole
+    // window unless a virtual resolution is set; empty headless.
+    Rectangle PresentedArea() const;
 
 private:
     friend struct detail::GraphicsAccess;

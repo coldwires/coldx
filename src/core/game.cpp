@@ -27,6 +27,8 @@ struct Game::Impl {
     int reportedHeight = 0;
 
     void ReportSize(Game& game, int width, int height);
+    // Hands the virtual resolution settings to the device and to input.
+    void ApplyPresentation();
     bool sdlStarted = false;
 };
 
@@ -37,6 +39,19 @@ void Game::Impl::ReportSize(Game& game, int width, int height) {
     reportedWidth = width;
     reportedHeight = height;
     game.OnResize(width, height);
+}
+
+void Game::Impl::ApplyPresentation() {
+    detail::Presentation p;
+    if (settings.virtualWidth > 0 && settings.virtualHeight > 0) {
+        p.width = settings.virtualWidth;
+        p.height = settings.virtualHeight;
+    }
+    p.mode = settings.scaleMode;
+    p.smooth = settings.smoothScaling;
+    p.letterbox = settings.letterboxColor;
+    detail::GraphicsAccess::SetPresentation(*graphics, p);
+    detail::Input::Get().presentation = p;
 }
 
 // The device outlives Run and goes here, after the derived game's members (its textures and
@@ -87,7 +102,7 @@ void Game::SetWindowSize(int width, int height) {
     if (!impl_->window) return;
     if (impl_->headless) {
         detail::GraphicsAccess::ResizeHeadless(*impl_->graphics, width, height);
-        impl_->ReportSize(*this, width, height);
+        if (impl_->settings.virtualWidth <= 0) impl_->ReportSize(*this, width, height);
     } else if (!SDL_SetWindowSize(impl_->window, width, height)) {
         SDL_Log("coldx.core: could not resize the window: %s", SDL_GetError());
     }
@@ -101,6 +116,31 @@ void Game::SetWindowTitle(const std::string& title) {
 void Game::SetVSync(bool vsync) {
     impl_->settings.vsync = vsync;
     detail::GraphicsAccess::SetVSync(*impl_->graphics, vsync);
+}
+
+void Game::SetVirtualResolution(int width, int height) {
+    Impl& s = *impl_;
+    if (width <= 0 || height <= 0) width = height = 0;
+    s.settings.virtualWidth = width;
+    s.settings.virtualHeight = height;
+    if (!s.window) return;
+    s.ApplyPresentation();
+    if (width > 0) {
+        s.ReportSize(*this, width, height);
+    } else if (s.headless) {
+        s.ReportSize(*this, s.settings.width, s.settings.height);
+        detail::GraphicsAccess::ResizeHeadless(*s.graphics, s.settings.width, s.settings.height);
+    } else {
+        int w = 0, h = 0;
+        SDL_GetWindowSizeInPixels(s.window, &w, &h);
+        s.ReportSize(*this, w, h);
+    }
+}
+
+void Game::SetScaleMode(ScaleMode mode, bool smooth) {
+    impl_->settings.scaleMode = mode;
+    impl_->settings.smoothScaling = smooth;
+    if (impl_->window) impl_->ApplyPresentation();
 }
 
 void Game::Exit() {
@@ -162,6 +202,7 @@ int Game::Run() {
     }
     s.headless = debug.headless;
     SDL_Window* presentTo = debug.headless ? nullptr : s.window;
+    s.ApplyPresentation();
     if (!detail::GraphicsAccess::Open(*s.graphics, presentTo, cfg.vsync, cfg.width, cfg.height)) {
         ReportFatal("Could not create the graphics device", dialogs);
         SDL_DestroyWindow(s.window);
@@ -172,6 +213,7 @@ int Game::Run() {
 
     detail::Input& input = detail::Input::Get();
     input.Start(s.window);
+    s.ApplyPresentation();
     detail::Audio& audio = detail::Audio::Get();
     audio.Start(debug.headless);
     detail::InputScript script;
@@ -217,8 +259,9 @@ int Game::Run() {
                 s.exitRequested = true;
                 break;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-                // Headless, the back buffer does not follow the hidden window.
-                if (!s.headless) s.ReportSize(*this, event.window.data1, event.window.data2);
+                // Headless, the back buffer does not follow the hidden window; with a virtual
+                // resolution it does not follow the window at all.
+                if (!s.headless && s.settings.virtualWidth <= 0) s.ReportSize(*this, event.window.data1, event.window.data2);
                 break;
             case SDL_EVENT_WINDOW_FOCUS_GAINED:
                 OnFocusChanged(true);

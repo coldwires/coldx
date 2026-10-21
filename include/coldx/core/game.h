@@ -29,6 +29,16 @@ struct GameSettings {
     bool fullscreen = false;
     bool vsync = true;
 
+    // A fixed size to draw at, scaled into the window: the back buffer is this size, and
+    // mouse positions are in its pixels. 0 x 0: the back buffer is the window's pixel size.
+    int virtualWidth = 0;
+    int virtualHeight = 0;
+    ScaleMode scaleMode = ScaleMode::Fit;
+    // Linear filtering when scaling. Off keeps pixel art sharp.
+    bool smoothScaling = false;
+    // The bars beside a scaled image.
+    Color letterboxColor = Color::Black;
+
     bool fixedTimeStep = true;
     double targetElapsedSeconds = 1.0 / 60.0;
     // Most updates run in one frame. Time beyond that is dropped, so a stall (a breakpoint,
@@ -69,6 +79,10 @@ public:
     void SetWindowSize(int width, int height);
     void SetWindowTitle(const std::string& title);
     void SetVSync(bool vsync);
+    // A virtual resolution while running, or 0 x 0 to follow the window again. Calls
+    // OnResize when the back buffer's size changes. Takes effect at the next frame.
+    void SetVirtualResolution(int width, int height);
+    void SetScaleMode(ScaleMode mode, bool smooth = false);
     // Exists from construction, so members can hold a reference to it. It is usable from
     // Initialize on.
     GraphicsDevice& Graphics();
@@ -87,7 +101,9 @@ protected:
     virtual void Update(const GameTime&) {}
     virtual void Draw(const GameTime&) {}
 
-    // The back buffer's new size in pixels. Only on a real change, not at startup.
+    // The back buffer's new size in pixels. Only on a real change, not at startup. With a
+    // virtual resolution the back buffer keeps its size, so resizing the window does not
+    // call it.
     virtual void OnResize(int /*width*/, int /*height*/) {}
     virtual void OnFocusChanged(bool /*focused*/) {}
     // Called once when the loop ends, before UnloadContent.

@@ -19,6 +19,8 @@ struct GraphicsDevice::Impl {
     SDL_GPUTexture* backBuffer = nullptr;
     Uint32 width = 0;
     Uint32 height = 0;
+    detail::Presentation presentation;
+    Rectangle presented;  // where the back buffer went in the swapchain, last frame
     bool inFrame = false;
     SDL_GPUTexture* target = nullptr;
     Uint32 targetWidth = 0;
@@ -72,6 +74,10 @@ int GraphicsDevice::BackBufferWidth() const {
 
 int GraphicsDevice::BackBufferHeight() const {
     return static_cast<int>(impl_->height);
+}
+
+Rectangle GraphicsDevice::PresentedArea() const {
+    return impl_->presented;
 }
 
 namespace detail {
@@ -128,6 +134,10 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
     }
 
     if (!window) {
+        if (g.presentation.Active()) {
+            width = g.presentation.width;
+            height = g.presentation.height;
+        }
         if (!ResizeBackBuffer(graphics, static_cast<unsigned>(width), static_cast<unsigned>(height))) {
             Close(graphics);
             return false;
@@ -147,6 +157,10 @@ bool GraphicsAccess::Open(GraphicsDevice& graphics, SDL_Window* window, bool vsy
     int pixelWidth = 0;
     int pixelHeight = 0;
     SDL_GetWindowSizeInPixels(window, &pixelWidth, &pixelHeight);
+    if (g.presentation.Active()) {
+        pixelWidth = g.presentation.width;
+        pixelHeight = g.presentation.height;
+    }
     if (!ResizeBackBuffer(graphics, static_cast<unsigned>(pixelWidth), static_cast<unsigned>(pixelHeight))) {
         Close(graphics);
         return false;
@@ -170,8 +184,15 @@ void GraphicsAccess::SetVSync(GraphicsDevice& graphics, bool vsync) {
 
 void GraphicsAccess::ResizeHeadless(GraphicsDevice& graphics, int width, int height) {
     GraphicsDevice::Impl& g = *graphics.impl_;
-    if (g.device && !g.window && width > 0 && height > 0)
+    if (g.device && !g.window && width > 0 && height > 0 && !g.presentation.Active())
         ResizeBackBuffer(graphics, static_cast<unsigned>(width), static_cast<unsigned>(height));
+}
+
+void GraphicsAccess::SetPresentation(GraphicsDevice& graphics, const Presentation& presentation) {
+    GraphicsDevice::Impl& g = *graphics.impl_;
+    g.presentation = presentation;
+    if (g.device && !g.window && presentation.Active())
+        ResizeBackBuffer(graphics, static_cast<unsigned>(presentation.width), static_cast<unsigned>(presentation.height));
 }
 
 void GraphicsAccess::ReleaseWindow(GraphicsDevice& graphics) {
@@ -210,7 +231,14 @@ bool GraphicsAccess::BeginFrame(GraphicsDevice& graphics) {
         }
         // No swapchain texture means nothing would be shown, so skip drawing.
         if (!g.swapchain) return false;
-        if (!ResizeBackBuffer(graphics, w, h)) return false;
+        const detail::Presentation& p = g.presentation;
+        if (p.Active()) {
+            if (!ResizeBackBuffer(graphics, static_cast<unsigned>(p.width), static_cast<unsigned>(p.height))) return false;
+            g.presented = FitRectangle(static_cast<int>(w), static_cast<int>(h), p.width, p.height, p.mode);
+        } else {
+            if (!ResizeBackBuffer(graphics, w, h)) return false;
+            g.presented = Rectangle(0, 0, static_cast<int>(w), static_cast<int>(h));
+        }
     }
 
     g.inFrame = true;
@@ -228,10 +256,15 @@ void GraphicsAccess::EndFrame(GraphicsDevice& graphics) {
         blit.source.w = g.width;
         blit.source.h = g.height;
         blit.destination.texture = g.swapchain;
-        blit.destination.w = g.width;
-        blit.destination.h = g.height;
-        blit.load_op = SDL_GPU_LOADOP_DONT_CARE;
-        blit.filter = SDL_GPU_FILTER_NEAREST;
+        blit.destination.x = static_cast<Uint32>(g.presented.x);
+        blit.destination.y = static_cast<Uint32>(g.presented.y);
+        blit.destination.w = static_cast<Uint32>(g.presented.width);
+        blit.destination.h = static_cast<Uint32>(g.presented.height);
+        const detail::Presentation& p = g.presentation;
+        // The bars around a scaled image are cleared; a 1:1 image covers the whole window.
+        blit.load_op = p.Active() ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_DONT_CARE;
+        blit.clear_color = {p.letterbox.r / 255.0f, p.letterbox.g / 255.0f, p.letterbox.b / 255.0f, 1.0f};
+        blit.filter = p.Active() && p.smooth ? SDL_GPU_FILTER_LINEAR : SDL_GPU_FILTER_NEAREST;
         SDL_BlitGPUTexture(g.commands, &blit);
     }
     if (g.commands && !SDL_SubmitGPUCommandBuffer(g.commands))

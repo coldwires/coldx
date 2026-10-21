@@ -101,6 +101,14 @@ starts: `title`, `width`, `height`, `resizable`, `fullscreen`, `vsync`, `fixedTi
 `SetFullscreen(bool)`, `ToggleFullscreen()`, `IsFullscreen()` (borderless, desktop
 resolution), `SetWindowSize(w, h)`, `SetWindowTitle`, `SetVSync`.
 
+**Virtual resolution.** `Settings().virtualWidth = 320; virtualHeight = 180;` draws at a
+fixed size scaled into the window: the back buffer is 320x180 whatever the window, and
+mouse positions are in its pixels. `scaleMode`: `ScaleMode::Fit` (default, bars),
+`Integer` (whole multiples, for pixel art), `Stretch`. `smoothScaling` (false: sharp),
+`letterboxColor` (black). While running: `SetVirtualResolution(w, h)` (0, 0 to follow the
+window again), `SetScaleMode(mode, smooth)`. Window resizes do not call `OnResize` then;
+`Graphics().PresentedArea()` is where the image sits in the window.
+
 **Components.** `class Hud : public DrawableGameComponent` with `Initialize`,
 `LoadContent`, `UnloadContent`, `Update`, `Draw`; construct with the game. Add with
 `Components().Emplace<Hud>(*this)` (returns `Hud&`) or `Components().Add(std::make_unique<Hud>(*this))`;
@@ -111,8 +119,8 @@ resolution), `SetWindowSize(w, h)`, `SetWindowTitle`, `SetVSync`.
 **GameTime.** `Delta()` seconds (float), `Total()` seconds (double), `IsRunningSlowly()`.
 
 **GraphicsDevice.** `Clear(Color)`, `SetRenderTarget(const RenderTarget2D*)` (`nullptr` =
-back buffer), `BackBufferWidth()`, `BackBufferHeight()`. Clear and render targets only
-work inside `Draw`.
+back buffer), `BackBufferWidth()`, `BackBufferHeight()`, `PresentedArea()`. Clear and
+render targets only work inside `Draw`.
 
 **ContentManager.** `Content().Load<Texture2D>("sprites/player")` reads
 `content/sprites/player.png`; also `Load<SoundEffect>` (.wav, .ogg), `Load<Music>` (.ogg),

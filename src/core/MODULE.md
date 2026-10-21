@@ -15,11 +15,12 @@ the debug options.
 - `Game`: subclass it and override `Initialize`, `LoadContent`, `UnloadContent`, `Update`,
   `Draw`, `OnResize`, `OnFocusChanged`, `OnExiting`. `Run` opens the window and loops.
   `Settings()` (`GameSettings`) is read when `Run` starts. While running: `SetFullscreen`,
-  `ToggleFullscreen`, `IsFullscreen`, `SetWindowSize`, `SetWindowTitle`, `SetVSync`.
+  `ToggleFullscreen`, `IsFullscreen`, `SetWindowSize`, `SetWindowTitle`, `SetVSync`,
+  `SetVirtualResolution`, `SetScaleMode` (`ScaleMode`).
 - `GameTime`: `Delta`, `Total`, `IsRunningSlowly`.
 - `GameComponent`, `DrawableGameComponent`, `GameComponentCollection` (`Game::Components()`:
   `Add`, `Emplace`, `Remove`, `Count`). Update and draw order, `Enabled`, `Visible`.
-- `GraphicsDevice`: `Clear`, `SetRenderTarget`, back buffer size. Exists from `Game`
+- `GraphicsDevice`: `Clear`, `SetRenderTarget`, back buffer size, `PresentedArea`. Exists from `Game`
   construction; usable from `Initialize`.
 - `Texture2D`: `FromFile` (PNG), `FromPixels`, `SetData`. A shared handle; premultiplied.
 - `RenderTarget2D`: a `Texture2D` that can be drawn into. `Create`.
@@ -51,6 +52,8 @@ the debug options.
   current target, frame begin and end, capture. `GraphicsAccess` is how the rest of core
   reaches the device, command buffer and current target; `DeviceToken` lets resources
   outlive the device safely.
+- `scaling.*`: a virtual resolution's placement in the window (`FitRectangle`) and the
+  mapping between window and back buffer pixels, shared by the final blit and the mouse.
 - `texture2d.cpp` + `texture_access.h`: textures and render targets.
 - `sprite_batch.cpp`: the public API, sprite geometry (origin, scale, rotation, flip), the
   queue and sorting. `sprite_renderer.*`: the GPU side, one pipeline per blend state made
@@ -98,7 +101,10 @@ the debug options.
   components unload before the game's UnloadContent and are destroyed before the device.
 - Every Update sees one input snapshot; edges compare it with the previous Update's.
 - Storage never writes outside its folder: names with separators or dots-only are refused.
-- `OnResize` fires only when the back buffer size really changes.
+- `OnResize` fires only when the back buffer size really changes. With a virtual
+  resolution that is never a window resize.
+- The final blit and the mouse use the same `FitRectangle`, so a click lands on the pixel
+  drawn under it.
 - Log lines start with `coldx.core:`.
 
 ## Gotchas

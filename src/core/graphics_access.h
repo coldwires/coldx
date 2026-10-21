@@ -5,6 +5,8 @@
 
 #include <coldx/core/graphics_device.h>
 
+#include "scaling.h"
+
 struct SDL_Window;
 struct SDL_GPUDevice;
 struct SDL_GPUCommandBuffer;
@@ -33,6 +35,9 @@ struct GraphicsAccess {
     static void SetVSync(GraphicsDevice& graphics, bool vsync);
     // Headless only: the back buffer size, which with a window follows the window.
     static void ResizeHeadless(GraphicsDevice& graphics, int width, int height);
+    // A fixed back buffer size scaled into the window, or inactive for one that follows the
+    // window. Takes effect at the next frame; headless, at once.
+    static void SetPresentation(GraphicsDevice& graphics, const Presentation& presentation);
     static void Close(GraphicsDevice& graphics);
 
     // False when there is nothing to draw into this frame, e.g. the window is minimized.

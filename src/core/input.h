@@ -8,6 +8,8 @@
 #include <coldx/core/keyboard.h>
 #include <coldx/core/mouse.h>
 
+#include "scaling.h"
+
 union SDL_Event;
 struct SDL_Window;
 struct SDL_Gamepad;
@@ -27,6 +29,8 @@ struct GamePadRaw {
 // consistent state per Update and can tell what changed since the last one.
 struct Input {
     SDL_Window* window = nullptr;
+    // The game's virtual resolution, if any: mouse positions are in its pixels.
+    Presentation presentation;
     KeyboardState liveKeys, currentKeys, previousKeys;
     MouseState liveMouse, currentMouse, previousMouse;
     std::array<SDL_Gamepad*, GamePad::MaxPlayers> pads{};
@@ -51,6 +55,8 @@ struct Input {
 
     // Window coordinates to back buffer pixels, and back.
     float PixelDensity() const;
+    void WindowToBackBuffer(float x, float y, int& outX, int& outY) const;
+    void BackBufferToWindow(int x, int y, float& outX, float& outY) const;
 };
 
 } // namespace coldx::detail
