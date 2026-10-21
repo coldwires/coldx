@@ -47,9 +47,9 @@ Result FixedTimestep() {
     const SDL_DisplayMode* mode = display ? SDL_GetCurrentDisplayMode(display) : nullptr;
     r.status = std::abs(updates - 3600) <= 1 ? Status::NeedsHuman : Status::Fail;
     r.notes = Format("%lld updates and %lld draws in 60 s at %.0f Hz with vsync on (want 3600 +-1); the most off single "
-                     "second had %d updates. Draws are not decoupled from updates: with a fixed timestep coldx draws "
+                     "second had %d updates. By default draws are not decoupled from updates: with a fixed timestep coldx draws "
                      "once per frame that ran updates, as XNA does, so a high-refresh display shows 60 fps, not "
-                     "interpolated frames. Smoothness of motion, and 60 Hz or slow machines, need a person.",
+                     "interpolated frames; drawBetweenUpdates turns that on (TIME-05). Smoothness of motion, and 60 Hz or slow machines, need a person.",
                      updates, draws, mode ? mode->refresh_rate : 0.0f, worstSecond);
     return r;
 }

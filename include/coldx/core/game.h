@@ -68,6 +68,12 @@ struct GameSettings {
     // a slow load) slows the game down instead of making it run hundreds of updates to catch
     // up. Variable timestep clamps Delta to the same total.
     int maxUpdatesPerFrame = 5;
+    // Fixed timestep only. Off (XNA's way): a frame is drawn only after an update, so a
+    // 144 Hz display shows 60 frames a second. On: every display frame is drawn, updates
+    // still run at their own rate, and GameTime::Alpha says where between two updates the
+    // frame falls, for drawing interpolated positions. With vsync off it draws as fast as
+    // it can. Unlike the other settings, a change while running takes effect at once.
+    bool drawBetweenUpdates = false;
 
     // Windows only: whether to open a console window for log output. Other platforms log to
     // the terminal that launched the game. Skipped when output is already redirected.
