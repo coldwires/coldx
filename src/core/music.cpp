@@ -37,8 +37,16 @@ bool MediaPlayer::Play(const Music& music, bool looped) {
     return detail::Audio::Get().PlayMusic(music.data_, looped);
 }
 
+bool MediaPlayer::CrossFade(const Music& music, float fadeSeconds, bool looped) {
+    return detail::Audio::Get().PlayMusic(music.data_, looped, fadeSeconds);
+}
+
 void MediaPlayer::Stop() {
     detail::Audio::Get().StopMusic();
+}
+
+void MediaPlayer::FadeOut(float fadeSeconds) {
+    detail::Audio::Get().StopMusic(fadeSeconds);
 }
 
 static void SendMusic(detail::MixCommandType type, float volume = 0.0f) {

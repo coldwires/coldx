@@ -207,6 +207,32 @@ void TypingScene(HumanScene& s) {
     };
 }
 
+void CrossFadeScene(HumanScene& s) {
+    auto tracks = std::make_shared<std::array<Music, 2>>();
+    auto current = std::make_shared<int>(0);
+    s.load = [tracks] {
+        (*tracks)[0] = Music::FromFile("content/loop.ogg");
+        (*tracks)[1] = Music::FromFile("content/stereo.ogg");
+        MediaPlayer::Play((*tracks)[0]);
+    };
+    s.update = [tracks, current](const GameTime&) {
+        auto to = [&](float seconds) {
+            *current = 1 - *current;
+            MediaPlayer::CrossFade((*tracks)[static_cast<size_t>(*current)], seconds);
+        };
+        if (Keyboard::WasPressed(Key::D1)) to(0.5f);
+        if (Keyboard::WasPressed(Key::D2)) to(2.0f);
+        if (Keyboard::WasPressed(Key::D3)) to(0.0f);
+        if (Keyboard::WasPressed(Key::O)) MediaPlayer::FadeOut(2.0f);
+        if (Keyboard::WasPressed(Key::R)) MediaPlayer::Play((*tracks)[static_cast<size_t>(*current)]);
+    };
+    s.readout = [current] {
+        return std::vector<std::string>{Format("track %d (%s), playing: %s", *current, *current ? "test tones" : "loop",
+                                               MediaPlayer::IsPlaying() ? "yes" : "no"),
+                                        "1: crossfade 0.5 s   2: crossfade 2 s   3: cut   O: fade out 2 s   R: restart"};
+    };
+}
+
 void VirtualScene(HumanScene& s) {
     s.Settings().resizable = true;
     s.Settings().virtualWidth = 640;
@@ -253,6 +279,11 @@ void RegisterFeatures() {
     AutoTests().push_back({"VRES-01", "P1", "Virtual resolution placement", VirtualResolution});
     AutoTests().push_back({"FS-01", "P1", "Exclusive fullscreen", ExclusiveFullscreen});
     AutoTests().push_back({"TIME-05", "P1", "Drawing between updates", DrawBetweenUpdates});
+    HumanTests().push_back({"AUD-06", "P1", "Music crossfade",
+                            {"Switch between the two tracks with each key, several times, also mid-fade.",
+                             "Pass: crossfades are smooth with no dip in loudness halfway and no click; a cut (3) is",
+                             "instant; fade out ends in silence and playing shows no."},
+                            CrossFadeScene});
     HumanTests().push_back({"INP-06", "P1", "Text input",
                             {"Type a name with accents (e with acute, u with umlaut) and dead keys; paste text with Ctrl+V;",
                              "turn on a Japanese or Chinese IME and type. The font draws Latin-1 only: other scripts show as",

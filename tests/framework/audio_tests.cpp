@@ -172,8 +172,8 @@ Result StreamingMusic() {
                                    "stb_vorbis_get_samples_float_interleaved takes a float count, and stops when one stereo "
                                    "frame no longer fits. ",
                                    static_cast<long long>(effectFrames), static_cast<long long>(streamFrames))) +
-              "No crossfade: MediaPlayer plays one track. Whether the loop sounds seamless needs a person (an encoder can "
-              "add a click to the file itself).";
+              "Crossfades are AUD-06. Whether the loop sounds seamless needs a person (an encoder can add a click to "
+              "the file itself).";
     return r;
 }
 
@@ -271,8 +271,6 @@ void RegisterAudio() {
     AutoTests().push_back({"AUD-03", "P1", "Streaming music", StreamingMusic});
     AutoTests().push_back({"AUD-04", "P1", "Live parameter changes", LiveParameters});
     AutoTests().push_back({"AUD-05", "P2", "No audio device", NoDevice});
-    MissingFeatures().push_back({"AUD-03b", "P1", Status::Missing,
-                                 "Crossfading between music tracks: MediaPlayer plays one track at a time."});
 }
 
 } // namespace ft

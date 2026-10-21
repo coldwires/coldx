@@ -40,9 +40,9 @@ public:
     // Sends a command. On failure (queue full, audio off) logs once and returns false.
     bool Submit(const MixCommand& command);
 
-    bool PlayMusic(std::shared_ptr<const MusicData> data, bool looped);
+    bool PlayMusic(std::shared_ptr<const MusicData> data, bool looped, float fadeSeconds = 0.0f);
     bool MusicActive() const;
-    void StopMusic();
+    void StopMusic(float fadeSeconds = 0.0f);
 
     float masterVolume = 1.0f;
     float musicVolume = 1.0f;

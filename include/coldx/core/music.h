@@ -29,13 +29,19 @@ private:
     std::shared_ptr<const detail::MusicData> data_;
 };
 
-// Plays one Music at a time, alongside any sound effects.
+// Plays one Music at a time, alongside any sound effects; during a crossfade the old track
+// fades out under the new one.
 class MediaPlayer {
 public:
     // Replaces whatever is playing. False if Run has not started, audio is off, or the music
     // is empty.
     static bool Play(const Music& music, bool looped = true);
+    // The same, crossfading: the playing track fades out over fadeSeconds while this one
+    // fades in. With nothing playing, it just starts.
+    static bool CrossFade(const Music& music, float fadeSeconds, bool looped = true);
     static void Stop();
+    // Fades the track out over fadeSeconds, then stops it. IsPlaying is false at once.
+    static void FadeOut(float fadeSeconds);
     static void Pause();
     static void Resume();
     // True from Play until Stop, or until an unlooped track ends. Still true while paused.

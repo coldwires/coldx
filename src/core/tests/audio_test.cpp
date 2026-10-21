@@ -318,6 +318,109 @@ void MusicMixing() {
     CHECK(m.TakeRetiredMusic() == stream.get());
 }
 
+// Crossfades and fade-outs: the old track fades under the new one and is handed back when
+// its fade ends; after the fade the output is the new track alone, sample for sample.
+void MusicFades() {
+    const std::vector<unsigned char> toneBytes = ReadFile(COLDX_TEST_DATA "/tone.ogg");
+    const std::vector<unsigned char> stereoBytes = ReadFile(COLDX_TEST_DATA "/stereo.ogg");
+    const auto tone = LoadMusic(toneBytes, "tone.ogg");
+    const auto stereo = LoadMusic(stereoBytes, "stereo.ogg");
+    CHECK(tone && stereo);
+    if (!tone || !stereo) return;
+    auto play = [](MusicStream* stream, std::uint32_t generation, float fade) {
+        MixCommand c;
+        c.type = MixCommandType::PlayMusic;
+        c.music = stream;
+        c.generation = generation;
+        c.looped = true;
+        c.fade = fade;
+        return c;
+    };
+    auto mixBlocks = [](Mixer& m, int frames) {  // in 480-frame blocks, as a device would pull
+        std::vector<float> out;
+        for (int done = 0; done < frames; done += 480) {
+            const auto block = Mix(m, 480);
+            out.insert(out.end(), block.begin(), block.end());
+        }
+        return out;
+    };
+    {   // Crossfade over 0.1 s (4800 frames).
+        auto a = MusicStream::Open(tone), b = MusicStream::Open(stereo), reference = MusicStream::Open(stereo);
+        Mixer m(Rate), alone(Rate);
+        m.Submit(play(a.get(), 1, 0.0f));
+        mixBlocks(m, 4800);
+        m.Submit(play(b.get(), 2, 0.1f));
+        alone.Submit(play(reference.get(), 1, 0.0f));
+        mixBlocks(m, 4800);
+        CHECK(m.MusicEnded() == 1);  // the old track counts as ended at once
+        const auto after = mixBlocks(m, 4800);
+        const auto expected = mixBlocks(alone, 9600);
+        bool same = true;
+        for (size_t i = 0; i < after.size() && same; ++i) same = Near(after[i], expected[4800 * 2 + i], 1e-5f);
+        CHECK(same);
+        CHECK(m.TakeRetiredMusic() == a.get());
+        CHECK(m.TakeRetiredMusic() == nullptr);
+    }
+    {   // The curve itself: a fade-out over two 480-frame blocks is cos(pi/4) = 0.707 after the
+        // first and 0 after the second, linear within each block.
+        auto a = MusicStream::Open(stereo), reference = MusicStream::Open(stereo);
+        Mixer m(Rate), alone(Rate);
+        m.Submit(play(a.get(), 1, 0.0f));
+        alone.Submit(play(reference.get(), 1, 0.0f));
+        Mix(m, 480);
+        MixCommand stop;
+        stop.type = MixCommandType::StopMusic;
+        stop.fade = 960.0f / Rate;
+        m.Submit(stop);
+        const auto faded = mixBlocks(m, 960);
+        const auto full = mixBlocks(alone, 1440);
+        bool curve = true;
+        for (int i = 0; i < 960 && curve; ++i) {
+            const float k = static_cast<float>(i % 480 + 1) / 480.0f;
+            const float gain = i < 480 ? 1.0f + (0.70710678f - 1.0f) * k : 0.70710678f * (1.0f - k);
+            curve = Near(faded[static_cast<size_t>(i) * 2], full[static_cast<size_t>(480 + i) * 2] * gain, 1e-5f);
+            if (!curve)
+                std::printf("fade frame %d: got %f want %f\n", i, faded[static_cast<size_t>(i) * 2],
+                            full[static_cast<size_t>(480 + i) * 2] * gain);
+        }
+        CHECK(curve);
+    }
+    {   // Fade out over 0.05 s: then silence, the stream handed back, ended at once.
+        auto a = MusicStream::Open(stereo);
+        Mixer m(Rate);
+        m.Submit(play(a.get(), 1, 0.0f));
+        mixBlocks(m, 960);
+        MixCommand stop;
+        stop.type = MixCommandType::StopMusic;
+        stop.fade = 0.05f;
+        m.Submit(stop);
+        const auto fading = mixBlocks(m, 2400);
+        CHECK(m.MusicEnded() == 1);
+        float loud = 0.0f;
+        for (float v : fading) loud = std::max(loud, std::fabs(v));
+        CHECK(loud > 0.05f);  // still audible while fading
+        CHECK(Near(fading[fading.size() - 2], 0.0f, 1e-6f));  // gain reaches 0 at the end
+        const auto after = mixBlocks(m, 960);
+        bool silent = true;
+        for (float v : after) silent = silent && v == 0.0f;
+        CHECK(silent);
+        CHECK(m.TakeRetiredMusic() == a.get());
+    }
+    {   // A plain Play during a crossfade cuts the fading track at once.
+        auto a = MusicStream::Open(tone), b = MusicStream::Open(stereo), c = MusicStream::Open(tone);
+        Mixer m(Rate);
+        m.Submit(play(a.get(), 1, 0.0f));
+        Mix(m, 480);
+        m.Submit(play(b.get(), 2, 1.0f));
+        Mix(m, 480);
+        m.Submit(play(c.get(), 3, 0.0f));
+        Mix(m, 480);
+        CHECK(m.TakeRetiredMusic() == a.get());
+        CHECK(m.TakeRetiredMusic() == b.get());
+        CHECK(m.MusicEnded() == 2);
+    }
+}
+
 class Driver : public Game {
 public:
     std::function<void()> load;
@@ -412,6 +515,7 @@ int main() {
     Ramping();
     Decoding();
     MusicMixing();
+    MusicFades();
     EndToEnd();
     return CheckResult();
 }

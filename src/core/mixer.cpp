@@ -1,5 +1,6 @@
 #include "mixer.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -27,6 +28,29 @@ MusicStream* Mixer::TakeRetiredMusic() {
 void Mixer::End(Voice& v, int slot) {
     v.sound = nullptr;
     ended_[static_cast<size_t>(slot)].store(v.generation, std::memory_order_release);
+}
+
+void Mixer::Retire(MusicStream* stream) {
+    // If the return queue is somehow full, the stream leaks rather than being freed here.
+    if (stream) retired_.Push(stream);
+}
+
+void Mixer::EndMusic(std::int64_t fadeFrames) {
+    if (fadeFrames > 0 && music_ && !musicPaused_) {
+        // The playing track fades out from where it is. Only one track fades at a time: one
+        // already fading is cut.
+        Retire(fading_);
+        fading_ = music_;
+        fadeOutDone_ = 0;
+        fadeOutFrames_ = fadeFrames;
+        musicEnded_.store(musicGeneration_, std::memory_order_release);
+        music_ = nullptr;
+    } else if (fadeFrames == 0) {
+        // A cut, not a fade: anything still fading goes too.
+        Retire(fading_);
+        fading_ = nullptr;
+    }
+    RetireMusic();
 }
 
 void Mixer::RetireMusic() {
@@ -75,20 +99,26 @@ void Mixer::Apply(const MixCommand& c) {
     case MixCommandType::SetMasterVolume:
         master_ = c.volume;
         break;
-    case MixCommandType::PlayMusic:
-        RetireMusic();
+    case MixCommandType::PlayMusic: {
+        const auto fadeFrames = static_cast<std::int64_t>(c.fade * static_cast<float>(rate_));
+        EndMusic(fadeFrames);
         music_ = c.music;
         musicGeneration_ = c.generation;
         musicGain_ = musicVolume_;
+        fadeInDone_ = 0;
+        fadeInFrames_ = fadeFrames > 0 && fading_ ? fadeFrames : 0;
         if (music_) {
             music_->looped = c.looped;
             music_->bufferCount = 0;
             music_->position = 0.0;
         }
         break;
-    case MixCommandType::StopMusic:
-        RetireMusic();
+    }
+    case MixCommandType::StopMusic: {
+        const auto fadeFrames = static_cast<std::int64_t>(c.fade * static_cast<float>(rate_));
+        EndMusic(fadeFrames);
         break;
+    }
     case MixCommandType::PauseMusic:
         musicPaused_ = true;
         break;
@@ -145,12 +175,10 @@ void Mixer::MixVoice(Voice& v, int slot, float* out, int frames) {
 
 // Music decodes into its buffer as it goes. The last frame of each chunk is carried to the
 // front of the next, so interpolation never has a gap at a chunk boundary.
-void Mixer::MixMusic(float* out, int frames) {
-    MusicStream& m = *music_;
+bool Mixer::MixStream(MusicStream& m, float* out, int frames, float startGain, float endGain) {
     const int channels = m.Channels();
     const double step = static_cast<double>(m.SampleRate()) / rate_;
-    const float startGain = musicGain_, gainStep = (musicVolume_ - musicGain_) / static_cast<float>(frames);
-    musicGain_ = musicVolume_;
+    const float gainStep = (endGain - startGain) / static_cast<float>(frames);
 
     auto refill = [&]() -> bool {
         int carried = 0;
@@ -171,10 +199,7 @@ void Mixer::MixMusic(float* out, int frames) {
 
     for (int i = 0; i < frames; ++i) {
         while (static_cast<int>(m.position) + 1 >= m.bufferCount) {
-            if (!refill()) {
-                RetireMusic();
-                return;
-            }
+            if (!refill()) return false;
         }
         const auto index = static_cast<int>(m.position);
         const float frac = static_cast<float>(m.position - index);
@@ -187,6 +212,35 @@ void Mixer::MixMusic(float* out, int frames) {
         out[i * 2 + 1] += r * gain;
         m.position += step;
     }
+    return true;
+}
+
+// Fades follow an equal-power curve (sine in, cosine out), so a crossfade between two
+// tracks keeps its loudness instead of dipping in the middle. Sampled at block ends and
+// linear between, like the volume ramp.
+void Mixer::MixMusic(float* out, int frames) {
+    constexpr float QuarterTurn = 1.5707963f;
+    auto curve = [](std::int64_t done, std::int64_t total) {
+        return total > 0 ? std::min(1.0f, static_cast<float>(done) / static_cast<float>(total)) : 1.0f;
+    };
+    if (music_) {
+        const float in0 = std::sin(curve(fadeInDone_, fadeInFrames_) * QuarterTurn);
+        fadeInDone_ += frames;
+        const float in1 = std::sin(curve(fadeInDone_, fadeInFrames_) * QuarterTurn);
+        const float start = musicGain_ * in0, end = musicVolume_ * in1;
+        musicGain_ = musicVolume_;
+        if (!MixStream(*music_, out, frames, start, end)) RetireMusic();
+    }
+    if (fading_) {
+        const float out0 = std::cos(curve(fadeOutDone_, fadeOutFrames_) * QuarterTurn);
+        fadeOutDone_ += frames;
+        const float out1 = std::cos(curve(fadeOutDone_, fadeOutFrames_) * QuarterTurn);
+        const bool more = MixStream(*fading_, out, frames, musicVolume_ * out0, musicVolume_ * out1);
+        if (!more || fadeOutDone_ >= fadeOutFrames_) {
+            Retire(fading_);
+            fading_ = nullptr;
+        }
+    }
 }
 
 void Mixer::Mix(float* out, int frames) {
@@ -198,7 +252,7 @@ void Mixer::Mix(float* out, int frames) {
         Voice& v = voices_[static_cast<size_t>(slot)];
         if (v.sound && !v.paused) MixVoice(v, slot, out, frames);
     }
-    if (music_ && !musicPaused_) MixMusic(out, frames);
+    if ((music_ || fading_) && !musicPaused_) MixMusic(out, frames);
     for (int i = 0; i < frames * 2; ++i) out[i] = Clamp(out[i], -1.0f, 1.0f);
 }
 

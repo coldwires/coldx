@@ -26,4 +26,5 @@ add_custom_command(TARGET coldx_framework_tests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${font_dir}/LiberationSans-Regular.ttf ${font_dir}/LICENSE
         ${PROJECT_SOURCE_DIR}/samples/hello_audio/content/loop.ogg
+        ${PROJECT_SOURCE_DIR}/src/core/tests/data/stereo.ogg
         $<TARGET_FILE_DIR:coldx_framework_tests>/content/)

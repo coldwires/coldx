@@ -214,8 +214,9 @@ from `Keyboard`. With an IME: `Composition()`, `CompositionCursor()`, and
 `SetLooped`. Move-only; destroying it stops it.
 
 **Music and MediaPlayer.** `Music::FromFile("content/x.ogg")`;
-`MediaPlayer::Play(music, looped = true)`, `Stop()`, `Pause()`, `Resume()`, `IsPlaying()`,
-`SetVolume`. One track at a time.
+`MediaPlayer::Play(music, looped = true)`, `CrossFade(music, seconds, looped = true)`,
+`Stop()`, `FadeOut(seconds)`, `Pause()`, `Resume()`, `IsPlaying()`, `SetVolume`. One track
+at a time; during a crossfade the old one fades out under it.
 
 **Storage.** `Storage::WriteFile("name.txt", contents)`, `ReadFile("name.txt")` returns
 `std::optional<std::string>`, `Exists`, `Remove`, `Folder()`. Plain file names only.
