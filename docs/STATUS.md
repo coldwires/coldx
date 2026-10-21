@@ -33,17 +33,6 @@ behaviour; `not started` has no code.
 | 27 | Typed text input (layout-aware characters) | not started |
 | 30 | `tests/framework`: stress and edge-case runner, automatic checks plus guided ones for a person | done |
 
-## Known bugs
-
-Found by `tests/framework`, not yet fixed.
-
-| Where | Bug |
-|---|---|
-| `SoundEffect::Play` | every sound skipped for lack of a voice logs a line; bursts beyond 64 voices stall the game thread |
-| mixer | volume and pan changes apply as a step at a block boundary, not a ramp: zipper noise when moved every frame |
-| OGG decoding | a stereo OGG loaded as a `SoundEffect` loses its last frame |
-| `mouse.h` | says the position outside the window keeps the last inside one; it follows the pointer, as in XNA |
-
 ## Shaders
 
 | # | Feature | State |

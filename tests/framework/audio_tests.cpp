@@ -71,7 +71,7 @@ Result ManySounds() {
         worst = std::max(worst, stats[i].worstMs);
     }
     r.status = rc == 0 && worst < 4.0 ? Status::NeedsHuman : Status::Fail;
-    r.notes = notes + Format("voice limit %d: extra sounds are skipped, and every skip is logged, one line per sound. "
+    r.notes = notes + Format("voice limit %d: extra sounds are skipped, and the skips are logged once a second. "
                              "Whether the mix ever drops out has to be heard.",
                              SoundEffect::MaxVoices);
     return r;

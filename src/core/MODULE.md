@@ -67,8 +67,8 @@ the debug options.
   current and previous before each Update, and polls the pads. `keyboard.cpp`,
   `mouse.cpp`, `gamepad.cpp` are the public classes over it.
 - `input_script.*`: `COLDX_INPUT`, scripted input applied before numbered Updates.
-- Audio: `mixer.*` mixes up to 64 voices and one music stream into stereo float at
-  48 kHz (linear resampling, pitch, balance pan, clamp); it is pure arithmetic, tested
+- Audio: `mixer.*` mixes up to 256 voices and one music stream into stereo float at
+  48 kHz (linear resampling, pitch, balance pan, gains ramped per block, clamp); it is pure arithmetic, tested
   without a device. `spsc_queue.h` carries commands to it. `audio.*` is the game-thread
   side: the SDL device stream whose callback runs the mixer, the voice slots, and freeing
   what the mixer hands back. `sound_effect.cpp`, `music.cpp` are the public classes;

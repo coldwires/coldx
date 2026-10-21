@@ -19,3 +19,9 @@ about right after a call (`IsPlaying`, `State`) is tracked on the game side by g
 A full command queue drops commands, logged once; 1,024 per mix is far beyond normal use.
 Linear resampling is simple and cheap; it softens high frequencies slightly when pitching
 up, which suits game effects.
+
+**Later (2026-10-20).** Stress testing raised the voice count from 64 to 256: bursts of
+sounds ran out at 64, and an idle voice costs one pointer test per mix. Volume and pan
+changes now ramp linearly across the next mix block, since a step at the block boundary
+clicked when a game moved them every frame. Skipped sounds are counted and logged once a
+second rather than once each.

@@ -263,9 +263,9 @@ Result MouseEdges() {
     r.status = released ? Status::NeedsHuman : Status::Fail;
     r.notes = notes + (released ? "Focus loss released the held button. " : "A held button stayed down after focus loss. ") +
               "Wheel deltas, both directions and natural scrolling, are covered by core.input. " +
-              (keptInside ? std::string("Outside the window the last position inside is kept, as mouse.h says. ")
-                          : std::string("Outside the window the position follows the pointer past the edges; mouse.h says "
-                                        "it keeps the last position inside, so the header is wrong (or the code is). ")) +
+              (keptInside ? std::string("Bug: outside the window the position stopped at the edge; mouse.h says it "
+                                        "follows the pointer, as in XNA. ")
+                          : std::string("Outside the window the position follows the pointer, as mouse.h says. ")) +
               "Real alt-tab with a button held needs a person.";
     return r;
 }

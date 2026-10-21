@@ -57,7 +57,7 @@ std::shared_ptr<SoundData> DecodeOgg(const std::vector<unsigned char>& file, con
         if (room <= 0) sound->samples.resize(sound->samples.size() + 4096 * static_cast<size_t>(info.channels));
         const int got = stb_vorbis_get_samples_float_interleaved(
             v, info.channels, sound->samples.data() + static_cast<size_t>(total) * info.channels,
-            static_cast<int>(sound->samples.size() / info.channels) - total);
+            (static_cast<int>(sound->samples.size() / info.channels) - total) * info.channels);
         if (got == 0) break;
         total += got;
     }
