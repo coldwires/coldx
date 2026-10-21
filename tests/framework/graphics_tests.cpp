@@ -130,8 +130,8 @@ Result Fullscreen() {
     const bool ok = rc == 0 && problems.empty() && pixels;
     r.status = ok ? Status::NeedsHuman : Status::Fail;
     r.notes = ok ? "6 toggles: back buffer always matched the window (desktop resolution when fullscreen); a render "
-                   "target made before the toggles kept its contents. Fullscreen is borderless only; exclusive mode "
-                   "does not exist. Alt-tab and moving between monitors need a person."
+                   "target made before the toggles kept its contents. These toggles are borderless; exclusive mode "
+                   "is FS-01. Alt-tab and moving between monitors need a person."
                  : "Problems:" + problems + (pixels ? "" : " render target contents lost or capture missing;");
     std::filesystem::remove(capture);
     return r;

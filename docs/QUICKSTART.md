@@ -98,8 +98,12 @@ All in namespace `coldx`, all from `#include <coldx/coldx.h>`.
 starts: `title`, `width`, `height`, `resizable`, `fullscreen`, `vsync`, `fixedTimeStep`
 (default true), `targetElapsedSeconds` (1/60), `maxUpdatesPerFrame` (5), `console`
 (`ConsoleMode::DebugBuilds`/`Always`/`Never`), `company`, `name`. While running:
-`SetFullscreen(bool)`, `ToggleFullscreen()`, `IsFullscreen()` (borderless, desktop
-resolution), `SetWindowSize(w, h)`, `SetWindowTitle`, `SetVSync`.
+`SetFullscreen(bool)`, `ToggleFullscreen()`, `IsFullscreen()`, `SetWindowSize(w, h)`,
+`SetWindowTitle`, `SetVSync`. Fullscreen is borderless at the desktop's resolution unless
+`fullscreenMode = FullscreenMode::Exclusive` (with `fullscreenWidth`, `fullscreenHeight`,
+`fullscreenRefreshRate`, 0 = the desktop's) or, while running,
+`SetFullscreenMode(FullscreenMode::Exclusive, 1920, 1080)`. `DisplayModes()` lists what the
+display offers (`DisplayMode`: `width`, `height`, `refreshRate`), `DesktopDisplayMode()`.
 
 **Virtual resolution.** `Settings().virtualWidth = 320; virtualHeight = 180;` draws at a
 fixed size scaled into the window: the back buffer is 320x180 whatever the window, and

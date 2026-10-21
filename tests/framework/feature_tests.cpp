@@ -74,6 +74,70 @@ Result VirtualResolution() {
     return r;
 }
 
+// FS-01: exclusive fullscreen at a resolution below the desktop's, entered while running
+// and at startup; the display must come back to its desktop mode afterwards.
+Result ExclusiveFullscreen() {
+    Result r{"FS-01", "P1"};
+    std::string notes, problems;
+    DisplayMode desktop;
+    size_t modeCount = 0;
+    {
+        Probe game;
+        double since = 0;
+        int phase = 0;
+        game.update = [&](Probe& p, const GameTime&) {
+            const int w = p.Graphics().BackBufferWidth(), h = p.Graphics().BackBufferHeight();
+            if (phase == 0) {
+                desktop = p.DesktopDisplayMode();
+                const std::vector<DisplayMode> modes = p.DisplayModes();
+                modeCount = modes.size();
+                if (modes.empty()) problems += " no display modes listed;";
+                p.SetFullscreenMode(FullscreenMode::Exclusive, 1920, 1080);
+                p.SetFullscreen(true);
+                phase = 1;
+                since = Now();
+            } else if (phase == 1 && ((w == 1920 && h == 1080) || Now() - since > 5)) {
+                const SDL_DisplayMode* m = SDL_GetWindowFullscreenMode(OnlyWindow());
+                notes += Format("running: back buffer %dx%d after %.1f s, window mode %s; ", w, h, Now() - since,
+                                m ? Format("%dx%d at %.0f Hz", m->w, m->h, m->refresh_rate).c_str() : "borderless");
+                if (w != 1920 || h != 1080 || !m) problems += " exclusive 1920x1080 not entered;";
+                p.SetFullscreen(false);
+                phase = 2;
+                since = Now();
+            } else if (phase == 2 && ((w == 1280 && h == 720) || Now() - since > 5)) {
+                if (w != 1280 || h != 720) problems += Format(" back to a window gave %dx%d;", w, h);
+                p.Exit();
+            }
+        };
+        if (game.Run() != 0) problems += " first run failed;";
+    }
+    {
+        Probe game;
+        game.Settings().fullscreen = true;
+        game.Settings().fullscreenMode = FullscreenMode::Exclusive;
+        game.Settings().fullscreenWidth = 1920;
+        game.Settings().fullscreenHeight = 1080;
+        int first = 0;
+        game.update = [&](Probe& p, const GameTime&) {
+            if (p.updates == 1) first = p.Graphics().BackBufferWidth();
+            if (p.updates == 30) p.Exit();
+        };
+        game.Run();
+        notes += Format("started fullscreen: first frame %d wide; ", first);
+        if (first != 1920) problems += " a fullscreen start did not begin at 1920;";
+    }
+    // After both runs the display is back at its desktop mode.
+    SDL_Init(SDL_INIT_VIDEO);
+    const SDL_DisplayMode* now = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+    if (now && (now->w != desktop.width || now->h != desktop.height)) problems += " the display did not return to its desktop mode;";
+    notes += Format("%zu modes listed; desktop %dx%d at %.0f Hz, now %dx%d. ", modeCount, desktop.width, desktop.height,
+                    desktop.refreshRate, now ? now->w : 0, now ? now->h : 0);
+    SDL_Quit();
+    r.status = problems.empty() ? Status::NeedsHuman : Status::Fail;
+    r.notes = notes + "Alt-tab out of exclusive mode needs a person (FS-02)." + (problems.empty() ? "" : " Problems:" + problems);
+    return r;
+}
+
 void VirtualScene(HumanScene& s) {
     s.Settings().resizable = true;
     s.Settings().virtualWidth = 640;
@@ -118,6 +182,31 @@ void VirtualScene(HumanScene& s) {
 
 void RegisterFeatures() {
     AutoTests().push_back({"VRES-01", "P1", "Virtual resolution placement", VirtualResolution});
+    AutoTests().push_back({"FS-01", "P1", "Exclusive fullscreen", ExclusiveFullscreen});
+    HumanTests().push_back({"FS-02", "P1", "Exclusive fullscreen by hand",
+                            {"E: exclusive at 1920x1080. B: borderless. F11 toggles fullscreen.",
+                             "In exclusive, alt-tab away and back, and press the Windows key.",
+                             "Pass: the game comes back at 1920x1080, corners intact; the desktop is untouched after quitting."},
+                            [](HumanScene& s) {
+                                s.update = [&s](const GameTime&) {
+                                    if (Keyboard::WasPressed(Key::E)) s.SetFullscreenMode(FullscreenMode::Exclusive, 1920, 1080);
+                                    if (Keyboard::WasPressed(Key::B)) s.SetFullscreenMode(FullscreenMode::Borderless);
+                                    if (Keyboard::WasPressed(Key::F11)) s.ToggleFullscreen();
+                                };
+                                s.draw = [&s](SpriteBatch& b, const GameTime&) {
+                                    const int w = s.Graphics().BackBufferWidth(), h = s.Graphics().BackBufferHeight();
+                                    b.Begin();
+                                    for (auto [x, y] : {std::pair{0, 0}, {w - 24, 0}, {0, h - 24}, {w - 24, h - 24}})
+                                        b.Draw(s.White(), Rectangle(x, y, 24, 24), Color::Yellow);
+                                    b.End();
+                                };
+                                s.readout = [&s] {
+                                    return std::vector<std::string>{Format(
+                                        "back buffer %d x %d, %s, %s", s.Graphics().BackBufferWidth(), s.Graphics().BackBufferHeight(),
+                                        s.IsFullscreen() ? "fullscreen" : "windowed",
+                                        s.Settings().fullscreenMode == FullscreenMode::Exclusive ? "exclusive" : "borderless")};
+                                };
+                            }});
     HumanTests().push_back({"VRES-02", "P1", "Virtual resolution by eye",
                             {"640x360 scaled into the window. Resize it, try each mode, go fullscreen.",
                              "Pass: the yellow frame is always fully visible; Integer keeps the checker crisp;",

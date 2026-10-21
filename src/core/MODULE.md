@@ -16,7 +16,8 @@ the debug options.
   `Draw`, `OnResize`, `OnFocusChanged`, `OnExiting`. `Run` opens the window and loops.
   `Settings()` (`GameSettings`) is read when `Run` starts. While running: `SetFullscreen`,
   `ToggleFullscreen`, `IsFullscreen`, `SetWindowSize`, `SetWindowTitle`, `SetVSync`,
-  `SetVirtualResolution`, `SetScaleMode` (`ScaleMode`).
+  `SetVirtualResolution`, `SetScaleMode` (`ScaleMode`), `SetFullscreenMode`
+  (`FullscreenMode` borderless or exclusive), `DisplayModes`, `DesktopDisplayMode`.
 - `GameTime`: `Delta`, `Total`, `IsRunningSlowly`.
 - `GameComponent`, `DrawableGameComponent`, `GameComponentCollection` (`Game::Components()`:
   `Add`, `Emplace`, `Remove`, `Count`). Update and draw order, `Enabled`, `Visible`.

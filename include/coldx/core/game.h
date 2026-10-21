@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <coldx/core/content_manager.h>
 #include <coldx/core/game_component.h>
@@ -16,6 +17,22 @@ enum class ConsoleMode {
     Never,
 };
 
+enum class FullscreenMode {
+    // A window covering the display at the desktop's resolution. Alt-tab is instant.
+    Borderless,
+    // The display switches to a resolution of its own (GameSettings::fullscreenWidth and
+    // fullscreenHeight, or the desktop's). Alt-tab may flicker while the display changes.
+    Exclusive,
+};
+
+// A resolution and refresh rate a display can switch to.
+struct DisplayMode {
+    int width = 0;
+    int height = 0;
+    float refreshRate = 0.0f;  // Hz; 0 where the display does not say
+    friend bool operator==(const DisplayMode&, const DisplayMode&) = default;
+};
+
 // Read once, when Run starts. Set them in the game's constructor.
 struct GameSettings {
     std::string title = "coldx";
@@ -27,6 +44,12 @@ struct GameSettings {
     int height = 720;
     bool resizable = false;
     bool fullscreen = false;
+    FullscreenMode fullscreenMode = FullscreenMode::Borderless;
+    // Exclusive only: the resolution to switch to, or 0 for the desktop's. The closest the
+    // display has is used. fullscreenRefreshRate 0 takes the highest at that size.
+    int fullscreenWidth = 0;
+    int fullscreenHeight = 0;
+    float fullscreenRefreshRate = 0.0f;
     bool vsync = true;
 
     // A fixed size to draw at, scaled into the window: the back buffer is this size, and
@@ -70,10 +93,17 @@ public:
     // The window while the game runs. Before Run they set Settings(); during Run they
     // change the window at once. Headless, there is no window to change: a size change
     // resizes the back buffer and calls OnResize, and fullscreen is only remembered.
-    // Fullscreen is borderless at the desktop's resolution.
+    // Fullscreen is borderless at the desktop's resolution unless the mode says otherwise.
     void SetFullscreen(bool fullscreen);
     void ToggleFullscreen();
     bool IsFullscreen() const;
+    // How fullscreen looks from now on; applied at once if the game is fullscreen. Width
+    // and height 0 mean the desktop's resolution.
+    void SetFullscreenMode(FullscreenMode mode, int width = 0, int height = 0, float refreshRate = 0.0f);
+    // The modes the window's display offers, largest first, and its desktop mode. Empty
+    // before Run and headless.
+    std::vector<DisplayMode> DisplayModes() const;
+    DisplayMode DesktopDisplayMode() const;
     // In window coordinates; the back buffer follows in pixels, which differ on high-DPI
     // displays.
     void SetWindowSize(int width, int height);
