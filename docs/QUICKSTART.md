@@ -174,7 +174,16 @@ inside `Draw` it does not see that frame's drawing yet. A screenshot: draw into 
 `IsKeyUp(Key)`. `Keyboard::WasPressed(Key)`, `WasReleased(Key)`. Keys: `Key::A`..`Key::Z`,
 `Key::D0`..`Key::D9`, `Key::F1`..`Key::F12`, `Up`, `Down`, `Left`, `Right`, `Space`,
 `Enter`, `Escape`, `Tab`, `Backspace`, `LeftShift`, `RightShift`, `LeftControl`,
-`LeftAlt`, and the rest in `keyboard.h`.
+`LeftAlt`, and the rest in `keyboard.h`. Keys are physical positions (`Key::W` is the
+same key on AZERTY). `Keyboard::KeyName(Key)` is what it is called on the current layout,
+for showing bindings; `Keyboard::KeyForCharacter('w')` is the key that types w.
+
+**TextInput.** For typed text (names, chat): `TextInput::Start()` (from `Initialize` on),
+`Stop()`, `IsActive()`. `TextInput::GetText()` is the UTF-8 typed since the previous
+Update, accents and IME text included; append it to your string. Read Backspace and Enter
+from `Keyboard`. With an IME: `Composition()`, `CompositionCursor()`, and
+`SetCaretArea(Rectangle)` to place its candidate list. `Clipboard::GetText()`,
+`SetText(s)`, `HasText()`.
 
 **Mouse.** `Mouse::GetState()` returns `MouseState` with `x`, `y`, `Position()`, `left`,
 `right`, `middle`, `x1`, `x2`, `IsDown(MouseButton)`, `scrollWheel`,
@@ -250,5 +259,5 @@ inside `Draw` it does not see that frame's drawing yet. A screenshot: draw into 
 
 The first runs 60 frames with no window and saves the log and the last frame. The second
 plays a script of input (`10 key down Left`, `30 mouse move 100 200`, `31 mouse down left`,
-`60 exit`). `SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU backend. The README has
+`40 text hello`, `60 exit`). `SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU backend. The README has
 the full list, and how to write shaders.

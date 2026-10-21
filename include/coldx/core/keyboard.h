@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 
 namespace coldx {
 
@@ -90,6 +91,14 @@ public:
     // timestep running several updates in one frame, only the first of them sees the press.
     static bool WasPressed(Key key);
     static bool WasReleased(Key key);
+
+    // What the key is called on the current layout, for showing bindings: Key::Q is "A"
+    // on AZERTY, "Q" on QWERTY; non-character keys have their usual names ("Left Shift",
+    // "F5"). Empty for a key with no name. From Initialize on.
+    static std::string KeyName(Key key);
+    // The key that types character on the current layout, unshifted, or Key::Unknown. 'a'
+    // and 'A' give the same key. For default bindings by letter: KeyForCharacter('w').
+    static Key KeyForCharacter(char32_t character);
 };
 
 } // namespace coldx

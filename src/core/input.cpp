@@ -59,6 +59,8 @@ void Input::Start(SDL_Window* w) {
 }
 
 void Input::Stop() {
+    if (textActive && window) SDL_StopTextInput(window);
+    textActive = false;
     for (SDL_Gamepad*& pad : pads) {
         if (pad) SDL_CloseGamepad(pad);
         pad = nullptr;
@@ -114,6 +116,13 @@ void Input::HandleEvent(const SDL_Event& event) {
         WindowToBackBuffer(event.button.x, event.button.y, liveMouse.x, liveMouse.y);
         SetButton(liveMouse, event.button.button, event.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
         break;
+    case SDL_EVENT_TEXT_INPUT:
+        if (textActive && event.text.text) liveText += event.text.text;
+        break;
+    case SDL_EVENT_TEXT_EDITING:
+        composition = event.edit.text ? event.edit.text : "";
+        compositionCursor = event.edit.start;
+        break;
     case SDL_EVENT_MOUSE_WHEEL: {
         // "Natural" scrolling reports the opposite sign; undo it so up is always up.
         const float flip = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.0f : 1.0f;
@@ -124,6 +133,8 @@ void Input::HandleEvent(const SDL_Event& event) {
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         // Releases that happen while another window has focus never arrive here.
         liveKeys = KeyboardState{};
+        composition.clear();
+        compositionCursor = 0;
         liveMouse.left = liveMouse.right = liveMouse.middle = liveMouse.x1 = liveMouse.x2 = false;
         break;
     case SDL_EVENT_GAMEPAD_ADDED: {
@@ -172,6 +183,8 @@ void Input::BeginUpdate() {
     currentKeys = liveKeys;
     previousMouse = currentMouse;
     currentMouse = liveMouse;
+    currentText.swap(liveText);
+    liveText.clear();
     for (int player = 0; player < GamePad::MaxPlayers; ++player) {
         previousPads[player] = currentPads[player];
         GamePadRaw raw;

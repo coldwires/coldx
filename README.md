@@ -263,7 +263,7 @@ Environment variables, read when `Run` starts. They work on any game without cha
 | `COLDX_HEADLESS=1` | Keep the window hidden and present nothing. Drawing still happens, into a back buffer of `GameSettings` width x height. Error dialogs are skipped. |
 | `COLDX_FRAMES=<n>` | Exit after drawing n frames |
 | `COLDX_CAPTURE=<path.png>` | On exit, save the last drawn frame as a PNG |
-| `COLDX_INPUT=<path>` | Scripted input: lines like `10 key down Up`, `20 mouse move 100 200`, `21 mouse down left`, `30 wheel 1`, `40 exit`, applied before the numbered Update |
+| `COLDX_INPUT=<path>` | Scripted input: lines like `10 key down Up`, `20 mouse move 100 200`, `21 mouse down left`, `30 wheel 1`, `35 text hello` (while the game has `TextInput` on), `40 exit`, applied before the numbered Update |
 
 SDL's own `SDL_GPU_DRIVER=vulkan` (or `direct3d12`, `metal`) picks the GPU backend.
 

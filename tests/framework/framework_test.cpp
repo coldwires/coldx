@@ -131,10 +131,12 @@ void HumanScene::LoadContent() {
 }
 
 void HumanScene::Update(const GameTime& time) {
-    if (Keyboard::WasPressed(Key::P)) {
+    // A scene taking typed text needs P and F as letters: F1 and F2 judge it instead.
+    const bool typing = TextInput::IsActive();
+    if (Keyboard::WasPressed(typing ? Key::F1 : Key::P)) {
         verdict_ = Status::Pass;
         Exit();
-    } else if (Keyboard::WasPressed(Key::F)) {
+    } else if (Keyboard::WasPressed(typing ? Key::F2 : Key::F)) {
         verdict_ = Status::Fail;
         Exit();
     } else if (Keyboard::WasPressed(Key::Escape)) {
@@ -150,7 +152,7 @@ void HumanScene::Draw(const GameTime& time) {
 
     std::string text = test_.id + " (" + test_.priority + "): " + test_.title + "\n";
     for (const std::string& line : test_.instructions) text += line + "\n";
-    text += "P = pass   F = fail   Escape = skip\n\n";
+    text += TextInput::IsActive() ? "F1 = pass   F2 = fail   Escape = skip\n\n" : "P = pass   F = fail   Escape = skip\n\n";
     if (readout)
         for (const std::string& line : readout()) text += line + "\n";
 

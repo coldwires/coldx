@@ -21,5 +21,6 @@
 #include <coldx/core/sprite_batch.h>
 #include <coldx/core/sprite_font.h>
 #include <coldx/core/storage.h>
+#include <coldx/core/text_input.h>
 #include <coldx/core/texture2d.h>
 #include <coldx/core/vector2.h>

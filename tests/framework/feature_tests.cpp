@@ -169,6 +169,44 @@ Result DrawBetweenUpdates() {
     return r;
 }
 
+// Removes the last UTF-8 character.
+void PopCharacter(std::string& text) {
+    while (!text.empty() && (static_cast<unsigned char>(text.back()) & 0xC0) == 0x80) text.pop_back();
+    if (!text.empty()) text.pop_back();
+}
+
+void TypingScene(HumanScene& s) {
+    auto text = std::make_shared<std::string>();
+    s.load = [] { TextInput::Start(); };
+    s.update = [text](const GameTime&) {
+        *text += TextInput::GetText();
+        const KeyboardState k = Keyboard::GetState();
+        const bool ctrl = k.IsKeyDown(Key::LeftControl) || k.IsKeyDown(Key::RightControl);
+        if (Keyboard::WasPressed(Key::Backspace)) PopCharacter(*text);
+        if (Keyboard::WasPressed(Key::Enter)) text->clear();
+        if (ctrl && Keyboard::WasPressed(Key::V)) *text += Clipboard::GetText();
+        if (ctrl && Keyboard::WasPressed(Key::C)) Clipboard::SetText(*text);
+    };
+    s.draw = [&s, text](SpriteBatch& b, const GameTime&) {
+        const Vector2 at(40, 320);
+        const Vector2 size = s.Font().MeasureString(*text);
+        b.Begin();
+        b.Draw(s.White(), Rectangle(30, 310, 900, 50), Color(30, 30, 50));
+        b.DrawString(s.Font(), *text, at, Color::White);
+        b.DrawString(s.Font(), TextInput::Composition(), Vector2(at.x + size.x, at.y), Color::Yellow);
+        b.Draw(s.White(), Rectangle(static_cast<int>(at.x + size.x), 316, 2, 36), Color::Cyan);
+        b.End();
+        TextInput::SetCaretArea(Rectangle(static_cast<int>(at.x + size.x), 316, 2, 36));
+    };
+    s.readout = [text] {
+        int characters = 0;
+        for (unsigned char c : *text) characters += (c & 0xC0) != 0x80 ? 1 : 0;
+        return std::vector<std::string>{Format("%d characters, %zu bytes; composing: %zu bytes", characters, text->size(),
+                                               TextInput::Composition().size()),
+                                        "Ctrl+V pastes, Ctrl+C copies the line, Backspace deletes, Enter clears"};
+    };
+}
+
 void VirtualScene(HumanScene& s) {
     s.Settings().resizable = true;
     s.Settings().virtualWidth = 640;
@@ -215,6 +253,12 @@ void RegisterFeatures() {
     AutoTests().push_back({"VRES-01", "P1", "Virtual resolution placement", VirtualResolution});
     AutoTests().push_back({"FS-01", "P1", "Exclusive fullscreen", ExclusiveFullscreen});
     AutoTests().push_back({"TIME-05", "P1", "Drawing between updates", DrawBetweenUpdates});
+    HumanTests().push_back({"INP-06", "P1", "Text input",
+                            {"Type a name with accents (e with acute, u with umlaut) and dead keys; paste text with Ctrl+V;",
+                             "turn on a Japanese or Chinese IME and type. The font draws Latin-1 only: other scripts show as",
+                             "gaps, so check the counts. Pass: accents arrive as one character each; Backspace removes one",
+                             "character; the IME's candidate list sits beside the cyan caret; paste and copy work."},
+                            TypingScene});
     HumanTests().push_back(
         {"TIME-06", "P1", "Interpolated motion by eye",
          {"Two squares cross at 60 updates a second. The top one is drawn interpolated, the bottom one is not.",

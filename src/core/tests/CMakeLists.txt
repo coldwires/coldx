@@ -39,6 +39,12 @@ target_include_directories(coldx_core_loop_test PRIVATE ${PROJECT_SOURCE_DIR}/te
 coldx_set_warnings(coldx_core_loop_test)
 add_test(NAME core.loop COMMAND coldx_core_loop_test)
 
+add_executable(coldx_core_text_input_test text_input_test.cpp)
+target_link_libraries(coldx_core_text_input_test PRIVATE coldx::core SDL3::SDL3-static)
+target_include_directories(coldx_core_text_input_test PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+coldx_set_warnings(coldx_core_text_input_test)
+add_test(NAME core.text_input COMMAND coldx_core_text_input_test)
+
 # Audio does not depend on the GPU backend either. Headless runs use SDL's dummy audio
 # driver, so the test is silent.
 add_executable(coldx_core_audio_test audio_test.cpp)
