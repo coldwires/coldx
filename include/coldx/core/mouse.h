@@ -13,8 +13,8 @@ enum class MouseButton {
 };
 
 struct MouseState {
-    // Back buffer pixels, (0, 0) at the top left. Outside the window it keeps the last
-    // position inside it.
+    // Back buffer pixels, (0, 0) at the top left. Outside the window it follows the
+    // pointer, so it can be negative or past the edges, as in XNA.
     int x = 0;
     int y = 0;
     // Notches scrolled since Run started: up and right are positive. Fractional on

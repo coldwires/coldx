@@ -48,8 +48,9 @@ public:
     static void SetMasterVolume(float volume);
     static float MasterVolume();
 
-    // How many sounds can play at once, effects and instances together.
-    static constexpr int MaxVoices = 64;
+    // How many sounds can play at once, effects and instances together. Beyond it Play
+    // returns false; the skips are counted and logged at most once a second.
+    static constexpr int MaxVoices = 256;
 
 private:
     friend class SoundEffectInstance;

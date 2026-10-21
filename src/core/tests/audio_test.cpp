@@ -180,6 +180,46 @@ void Lifetimes() {
     }
 }
 
+// Volume and pan changes ramp across the next block instead of jumping; a new sound starts
+// at its own gain.
+void Ramping() {
+    SoundData flat;
+    flat.channels = 1;
+    flat.sampleRate = Rate;
+    flat.frames = 4;
+    flat.samples = {0.5f, 0.5f, 0.5f, 0.5f};
+    {   // Volume 1 to 0 over a 100-frame block: down by 1/100 each frame, silent after.
+        Mixer m(Rate);
+        m.Submit(Play(0, 1, flat, 1.0f, 0.0f, 0.0f, true));
+        auto out = Mix(m, 10);
+        CHECK(Near(out[0], 0.5f) && Near(out[18], 0.5f));
+        m.Submit(Command(MixCommandType::SetVolume, 0, 1, 0.0f));
+        out = Mix(m, 100);
+        bool ramped = true;
+        for (int i = 0; i < 100; ++i) ramped = ramped && Near(out[i * 2], 0.5f * (1.0f - (i + 1) / 100.0f));
+        CHECK(ramped);
+        out = Mix(m, 10);
+        CHECK(out[0] == 0.0f && out[18] == 0.0f);
+    }
+    {   // Pan to the right: the left side fades over the block, the right stays.
+        Mixer m(Rate);
+        m.Submit(Play(0, 1, flat, 1.0f, 0.0f, 0.0f, true));
+        Mix(m, 4);
+        m.Submit(Command(MixCommandType::SetPan, 0, 1, 1.0f));
+        const auto out = Mix(m, 4);
+        CHECK(Near(out[0], 0.375f) && Near(out[2], 0.25f) && Near(out[6], 0.0f));
+        CHECK(Near(out[1], 0.5f) && Near(out[7], 0.5f));
+    }
+    {   // Master volume ramps too.
+        Mixer m(Rate);
+        m.Submit(Play(0, 1, flat, 1.0f, 0.0f, 0.0f, true));
+        Mix(m, 4);
+        m.Submit(Command(MixCommandType::SetMasterVolume, 0, 0, 0.0f));
+        const auto out = Mix(m, 2);
+        CHECK(Near(out[0], 0.25f) && Near(out[2], 0.0f));
+    }
+}
+
 std::vector<unsigned char> ReadFile(const char* path) {
     std::ifstream file(path, std::ios::binary);
     return std::vector<unsigned char>(std::istreambuf_iterator<char>(file), {});
@@ -215,6 +255,27 @@ void Decoding() {
             for (std::int64_t i = 1; i < sound->frames; ++i)
                 if ((sound->samples[i - 1] < 0.0f) != (sound->samples[i] < 0.0f)) ++crossings;
             CHECK(std::abs(crossings - 441) <= 4);  // two crossings per cycle, 220.5 cycles
+        }
+    }
+    {   // Stereo, 441 Hz left and 882 Hz right: decoded whole, it has every frame a stream
+        // read gives, and the channels stay apart.
+        const std::vector<unsigned char> bytes = ReadFile(COLDX_TEST_DATA "/stereo.ogg");
+        const auto sound = DecodeSound(bytes, "stereo.ogg");
+        const auto data = LoadMusic(bytes, "stereo.ogg");
+        CHECK(sound && data);
+        if (sound && data) {
+            CHECK(sound->channels == 2 && sound->sampleRate == 44100);
+            auto stream = MusicStream::Open(data);
+            std::vector<float> chunk(2 * 1000);
+            std::int64_t streamed = 0;
+            for (int n; (n = stream->Read(chunk.data(), 1000)) > 0;) streamed += n;
+            CHECK(sound->frames == streamed);
+            int left = 0, right = 0;
+            for (std::int64_t i = 1; i < sound->frames; ++i) {
+                left += (sound->samples[(i - 1) * 2] < 0.0f) != (sound->samples[i * 2] < 0.0f) ? 1 : 0;
+                right += (sound->samples[(i - 1) * 2 + 1] < 0.0f) != (sound->samples[i * 2 + 1] < 0.0f) ? 1 : 0;
+            }
+            CHECK(std::abs(left - 441) <= 4 && std::abs(right - 882) <= 8);
         }
     }
 }
@@ -327,7 +388,7 @@ void EndToEnd() {
             mark = t;
         } else if (phase == 2 && t > mark + 0.1) {
             // The stop has reached the audio thread, and the finished `once` instance holds
-            // nothing: every voice is free. 64 three-second sounds play; the 65th finds none.
+            // nothing: every voice is free. MaxVoices three-second sounds play; one more finds none.
             CHECK(once.State() == SoundState::Stopped);
             int played = 0;
             for (int i = 0; i < SoundEffect::MaxVoices + 1; ++i) played += longEffect.Play() ? 1 : 0;
@@ -348,6 +409,7 @@ void EndToEnd() {
 int main() {
     Basics();
     Lifetimes();
+    Ramping();
     Decoding();
     MusicMixing();
     EndToEnd();

@@ -9,7 +9,7 @@
 
 namespace coldx::detail {
 
-constexpr int MixerVoices = 64;
+constexpr int MixerVoices = 256;
 
 enum class MixCommandType : std::uint8_t {
     Play,
@@ -40,7 +40,8 @@ struct MixCommand {
 };
 
 // Mixes up to MixerVoices sounds and one music stream into interleaved stereo float at a
-// fixed output rate, with linear resampling, pitch, pan and volume.
+// fixed output rate, with linear resampling, pitch, pan and volume. Volume and pan changes
+// ramp across the next block, so moving them every frame does not click.
 //
 // Two threads: the game thread calls Submit, Ended, MusicEnded and TakeRetiredMusic; the
 // audio thread calls Mix. They meet only through lock-free queues and atomics, and the
@@ -71,6 +72,8 @@ private:
         float volume = 1.0f;
         float pitch = 0.0f;
         float pan = 0.0f;
+        float gainLeft = 0.0f;  // gains last applied, the start of the next ramp
+        float gainRight = 0.0f;
         bool looped = false;
         bool paused = false;
     };
@@ -90,6 +93,7 @@ private:
     MusicStream* music_ = nullptr;
     bool musicPaused_ = false;
     float musicVolume_ = 1.0f;
+    float musicGain_ = 1.0f;  // last applied, ramped toward musicVolume_
     std::uint32_t musicGeneration_ = 0;
     std::atomic<std::uint32_t> musicEnded_{0};
 };

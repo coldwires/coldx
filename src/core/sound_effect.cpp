@@ -7,6 +7,8 @@
 
 namespace coldx {
 
+static_assert(SoundEffect::MaxVoices == detail::MixerVoices);
+
 namespace {
 
 float Clamp(float v, float lo, float hi) {
@@ -26,6 +28,19 @@ std::vector<unsigned char> ReadWhole(const std::string& path, bool& ok) {
     return bytes;
 }
 
+// Sounds skipped for lack of a voice. A burst can skip hundreds in a frame; one log line
+// each would cost more than the sounds, so they are summed and logged once a second.
+void NoteSkipped() {
+    static int skipped = 0;
+    static Uint64 lastLog = 0;
+    ++skipped;
+    const Uint64 now = SDL_GetTicks();
+    if (lastLog != 0 && now - lastLog < 1000) return;
+    SDL_Log("coldx.core: %d sound(s) skipped: all %d voices are playing", skipped, SoundEffect::MaxVoices);
+    skipped = 0;
+    lastLog = now;
+}
+
 // Starts sound on a fresh slot with the given settings; the slot is held by the caller.
 int Start(const std::shared_ptr<const detail::SoundData>& sound, float volume, float pitch, float pan, bool looped,
           std::uint32_t& generation) {
@@ -33,7 +48,7 @@ int Start(const std::shared_ptr<const detail::SoundData>& sound, float volume, f
     if (!sound || !audio.Running()) return -1;
     const int slot = audio.Acquire(sound, generation);
     if (slot < 0) {
-        SDL_Log("coldx.core: all %d voices are playing; sound skipped", SoundEffect::MaxVoices);
+        NoteSkipped();
         return -1;
     }
     detail::MixCommand play;

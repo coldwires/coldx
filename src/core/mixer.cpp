@@ -48,7 +48,11 @@ void Mixer::Apply(const MixCommand& c) {
     case MixCommandType::Play:
         if (!v) break;
         if (v->sound) End(*v, c.slot);
-        *v = Voice{c.sound, c.generation, 0.0, c.volume, c.pitch, c.pan, c.looped, false};
+        *v = Voice{c.sound, c.generation, 0.0, c.volume, c.pitch, c.pan, 0.0f, 0.0f, c.looped, false};
+        // A new sound starts at its gain; only changes after that ramp.
+        PanGains(c.pan, v->gainLeft, v->gainRight);
+        v->gainLeft *= c.volume * master_;
+        v->gainRight *= c.volume * master_;
         break;
     case MixCommandType::Stop:
         if (current) End(*v, c.slot);
@@ -75,6 +79,7 @@ void Mixer::Apply(const MixCommand& c) {
         RetireMusic();
         music_ = c.music;
         musicGeneration_ = c.generation;
+        musicGain_ = musicVolume_;
         if (music_) {
             music_->looped = c.looped;
             music_->bufferCount = 0;
@@ -97,13 +102,20 @@ void Mixer::Apply(const MixCommand& c) {
 }
 
 // Linear interpolation between neighbouring frames, stepping by the source/output rate
-// ratio times the pitch. A looping voice interpolates across the loop point.
+// ratio times the pitch. A looping voice interpolates across the loop point. The gains
+// move linearly from the last block's to this one's.
 void Mixer::MixVoice(Voice& v, int slot, float* out, int frames) {
     const SoundData& s = *v.sound;
     const double step = static_cast<double>(s.sampleRate) / rate_ * std::exp2(static_cast<double>(v.pitch));
     float left = 0.0f, right = 0.0f;
     PanGains(v.pan, left, right);
-    const float gain = v.volume * master_;
+    left *= v.volume * master_;
+    right *= v.volume * master_;
+    const float startLeft = v.gainLeft, startRight = v.gainRight;
+    const float stepLeft = (left - startLeft) / static_cast<float>(frames);
+    const float stepRight = (right - startRight) / static_cast<float>(frames);
+    v.gainLeft = left;
+    v.gainRight = right;
     const float* data = s.samples.data();
     const int channels = s.channels;
 
@@ -124,8 +136,9 @@ void Mixer::MixVoice(Voice& v, int slot, float* out, int frames) {
         float l = a[0] + (b[0] - a[0]) * frac;
         float r = l;
         if (channels == 2) r = a[1] + (b[1] - a[1]) * frac;
-        out[i * 2] += l * gain * left;
-        out[i * 2 + 1] += r * gain * right;
+        const float k = static_cast<float>(i + 1);
+        out[i * 2] += l * (startLeft + stepLeft * k);
+        out[i * 2 + 1] += r * (startRight + stepRight * k);
         v.position += step;
     }
 }
@@ -136,6 +149,8 @@ void Mixer::MixMusic(float* out, int frames) {
     MusicStream& m = *music_;
     const int channels = m.Channels();
     const double step = static_cast<double>(m.SampleRate()) / rate_;
+    const float startGain = musicGain_, gainStep = (musicVolume_ - musicGain_) / static_cast<float>(frames);
+    musicGain_ = musicVolume_;
 
     auto refill = [&]() -> bool {
         int carried = 0;
@@ -167,8 +182,9 @@ void Mixer::MixMusic(float* out, int frames) {
         const float* b = a + channels;
         const float l = a[0] + (b[0] - a[0]) * frac;
         const float r = channels == 2 ? a[1] + (b[1] - a[1]) * frac : l;
-        out[i * 2] += l * musicVolume_;
-        out[i * 2 + 1] += r * musicVolume_;
+        const float gain = startGain + gainStep * static_cast<float>(i + 1);
+        out[i * 2] += l * gain;
+        out[i * 2 + 1] += r * gain;
         m.position += step;
     }
 }

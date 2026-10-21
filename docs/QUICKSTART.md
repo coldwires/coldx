@@ -171,7 +171,8 @@ then `Content().Load<Level>("levels/one")`.
 **SoundEffect.** `SoundEffect::FromFile("content/x.wav")` (WAV or OGG),
 `FromSamples(const float*, frames, channels, rate)`, `Play(volume = 1, pitch = 0, pan = 0)`
 (pitch in octaves, -1..1; pan -1..1), `CreateInstance()`, `Duration()`,
-`SoundEffect::SetMasterVolume`. Up to `SoundEffect::MaxVoices` (64) at once.
+`SoundEffect::SetMasterVolume`. Up to `SoundEffect::MaxVoices` (256) at once; past that
+`Play` returns false. Volume and pan can change every frame: they ramp, so no clicks.
 
 **SoundEffectInstance.** `Play()`, `Pause()`, `Resume()`, `Stop()`, `State()`
 (`SoundState::Stopped`/`Playing`/`Paused`), `SetVolume`, `SetPitch`, `SetPan`,
@@ -217,6 +218,9 @@ then `Content().Load<Level>("levels/one")`.
   constructor. `SpriteBatch` is the exception.
 - No exceptions: a failed load returns an empty object and logs why.
 - Thumbstick y is up-positive, as in XNA; screen y grows downward.
+- On Windows, `<windows.h>` declares a function `Rectangle`, so with `using namespace
+  coldx` the name is ambiguous. Define `NOGDI` before including it, or write
+  `coldx::Rectangle`.
 
 ## Running without a screen
 
