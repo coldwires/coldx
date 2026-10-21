@@ -36,6 +36,8 @@ the debug options.
 - `Keyboard`, `KeyboardState`, `Key`; `Mouse`, `MouseState`, `MouseButton`; `GamePad`,
   `GamePadState`, `Buttons`, `GamePadDeadZone`. Each has `GetState` (as of the start of the
   current Update) and `WasPressed`/`WasReleased` (since the previous Update).
+  `Keyboard::KeyName`, `KeyForCharacter` for the current layout.
+- `TextInput` (typed UTF-8 per Update, IME composition, caret area), `Clipboard`.
 - `SoundEffect` (`FromFile` WAV/OGG, `FromSamples`, `Play`, `CreateInstance`,
   `MasterVolume`), `SoundEffectInstance` (play, pause, resume, stop, volume, pitch, pan,
   loop, `State`), `Music` (`FromFile` OGG), `MediaPlayer` (one track: play, stop, pause,
@@ -74,6 +76,8 @@ the debug options.
 - `input.*`: the input hub. Live state follows SDL events; `BeginUpdate` copies it to
   current and previous before each Update, and polls the pads. `keyboard.cpp`,
   `mouse.cpp`, `gamepad.cpp` are the public classes over it.
+- `text_input.cpp`: `TextInput` and `Clipboard` over SDL; typed text is gathered by
+  `input.*` like the other input and handed over each Update.
 - `input_script.*`: `COLDX_INPUT`, scripted input applied before numbered Updates.
 - Audio: `mixer.*` mixes up to 256 voices and one music stream into stereo float at
   48 kHz (linear resampling, pitch, balance pan, gains ramped per block, clamp); it is pure arithmetic, tested

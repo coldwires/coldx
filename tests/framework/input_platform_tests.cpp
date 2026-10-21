@@ -353,13 +353,6 @@ void RegisterInput() {
     AutoTests().push_back({"INP-03", "P1", "Deadzones and triggers", Deadzones});
     AutoTests().push_back({"INP-04", "P2", "Rumble", Rumble});
     AutoTests().push_back({"INP-07", "P1", "Mouse edges", MouseEdges});
-    MissingFeatures().push_back({"INP-06", "P1", Status::Missing,
-                                 "Text input: no API for typed characters, accents, paste or IME. Keyboard gives physical "
-                                 "keys only."});
-    MissingFeatures().push_back({"INP-05b", "P1", Status::Missing,
-                                 "Layout-aware keys: Key values are physical positions (documented in keyboard.h); there "
-                                 "is no way to ask which character a key types on the current layout, so letter-based "
-                                 "bindings cannot be offered."});
 }
 
 void RegisterPlatform() {

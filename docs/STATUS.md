@@ -30,7 +30,7 @@ behaviour; `not started` has no code.
 | 24 | `Log` for games | done |
 | 29 | `demo` sample: components, content, input, audio, text, many sprites | done |
 | 26 | `Storage`: per-user folder, atomic writes | done |
-| 27 | Typed text input (layout-aware characters) | not started |
+| 27 | Typed text input (UTF-8, IME composition), clipboard, key names on the current layout | done |
 | 31 | Virtual resolution: fixed back buffer scaled into the window (Fit, Integer, Stretch), mouse mapped | done |
 | 30 | `tests/framework`: stress and edge-case runner, automatic checks plus guided ones for a person | done |
 

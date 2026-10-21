@@ -26,6 +26,7 @@ add_library(coldx_core STATIC
     sprite_renderer.cpp
     stb_truetype_impl.cpp
     storage.cpp
+    text_input.cpp
     texture2d.cpp
 )
 add_library(coldx::core ALIAS coldx_core)

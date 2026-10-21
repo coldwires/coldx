@@ -47,6 +47,7 @@ std::string Validate(const std::vector<std::string>& w) {
         return "expected: mouse move <x> <y>, or mouse down|up left|right|middle|x1|x2";
     }
     if (w[0] == "wheel") return (w.size() == 2 || w.size() == 3) ? "" : "expected: wheel <dy> [<dx>]";
+    if (w[0] == "text") return w.size() >= 2 ? "" : "expected: text <what to type>";
     return "unknown command \"" + w[0] + "\"";
 }
 
@@ -102,6 +103,9 @@ bool InputScript::Apply(int update, Input& input) const {
             input.liveMouse.y = std::atoi(w[3].c_str());
         } else if (w[0] == "mouse") {
             MouseButtonByName(w[2], input.liveMouse, w[1] == "down");
+        } else if (w[0] == "text") {
+            // As typed: only while the game has text input on.
+            if (input.textActive) input.liveText += Rest(w, 1);
         } else if (w[0] == "wheel") {
             input.liveMouse.scrollWheel += static_cast<float>(std::atof(w[1].c_str()));
             if (w.size() == 3) input.liveMouse.horizontalScrollWheel += static_cast<float>(std::atof(w[2].c_str()));

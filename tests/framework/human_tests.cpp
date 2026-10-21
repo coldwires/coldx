@@ -249,16 +249,22 @@ void RegisterHuman() {
         GamepadScene);
     add("INP-05", "P1", "AZERTY and Dvorak",
         {"Switch Windows to AZERTY, then Dvorak. Press the key in the W position (top row, second letter).",
-         "Pass: it shows as W on every layout: coldx keys are physical positions."},
+         "Pass: it shows as W on every layout (coldx keys are physical positions), and its name on this layout",
+         "matches the keycap: Z on AZERTY, comma on Dvorak. The 'w' line names the key that types w."},
         [](HumanScene& s) {
             s.readout = [] {
+                const Key w = Keyboard::KeyForCharacter('w');
+                std::vector<std::string> lines{Format("physical W key is named \"%s\" here; 'w' is typed by physical key %d (\"%s\")",
+                                                      Keyboard::KeyName(Key::W).c_str(), static_cast<int>(w),
+                                                      Keyboard::KeyName(w).c_str())};
                 std::string held;
                 const KeyboardState k = Keyboard::GetState();
                 const std::pair<Key, const char*> named[] = {{Key::W, "W"}, {Key::A, "A"}, {Key::S, "S"}, {Key::D, "D"}, {Key::Q, "Q"},
                                                              {Key::Z, "Z"}, {Key::Space, "Space"}, {Key::LeftShift, "LeftShift"}};
                 for (auto [key, name] : named)
                     if (k.IsKeyDown(key)) held += std::string(name) + " ";
-                return std::vector<std::string>{"physical keys held: " + held};
+                lines.push_back("physical keys held: " + held);
+                return lines;
             };
         });
     add("INP-07", "P1", "Mouse, by hand",

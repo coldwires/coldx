@@ -17,6 +17,7 @@ struct Input;
 //     21 mouse down left      left, right, middle, x1, x2
 //     22 mouse up left
 //     30 wheel 1              notches up; optional second number is horizontal
+//     35 text hello there     typed text, if the game has TextInput on
 //     40 exit
 class InputScript {
 public:

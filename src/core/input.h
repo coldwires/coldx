@@ -33,6 +33,11 @@ struct Input {
     Presentation presentation;
     KeyboardState liveKeys, currentKeys, previousKeys;
     MouseState liveMouse, currentMouse, previousMouse;
+    // Text input: typed text gathers in liveText and moves to currentText each Update.
+    bool textActive = false;
+    std::string liveText, currentText;
+    std::string composition;
+    int compositionCursor = 0;
     std::array<SDL_Gamepad*, GamePad::MaxPlayers> pads{};
     std::array<GamePadRaw, GamePad::MaxPlayers> currentPads{}, previousPads{};
     // Requested rumble per player, and when it was last sent. SDL ends a rumble after at

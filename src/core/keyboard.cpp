@@ -35,4 +35,18 @@ bool Keyboard::WasReleased(Key key) {
     return in.currentKeys.IsKeyUp(key) && in.previousKeys.IsKeyDown(key);
 }
 
+std::string Keyboard::KeyName(Key key) {
+    const SDL_Keycode code = SDL_GetKeyFromScancode(static_cast<SDL_Scancode>(key), SDL_KMOD_NONE, false);
+    const char* name = code != SDLK_UNKNOWN ? SDL_GetKeyName(code) : "";
+    return name ? name : "";
+}
+
+Key Keyboard::KeyForCharacter(char32_t character) {
+    // Keycodes for characters are the lowercase character.
+    if (character >= 'A' && character <= 'Z') character += 'a' - 'A';
+    SDL_Keymod mods = SDL_KMOD_NONE;
+    const SDL_Scancode code = SDL_GetScancodeFromKey(static_cast<SDL_Keycode>(character), &mods);
+    return mods == SDL_KMOD_NONE ? static_cast<Key>(code) : Key::Unknown;
+}
+
 } // namespace coldx
