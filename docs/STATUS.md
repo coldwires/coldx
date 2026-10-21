@@ -13,7 +13,7 @@ behaviour; `not started` has no code.
 | 4 | Console window on Windows, `COLDX_*` debug options | done |
 | 5 | `GraphicsDevice`: clear, internal back buffer, capture | done |
 | 6 | `RenderTarget2D`, `GraphicsDevice::SetRenderTarget` | done |
-| 7 | `Texture2D`: PNG, raw pixels, `SetData` | done |
+| 7 | `Texture2D`: PNG, raw pixels, `SetData`, `GetData`, `SaveAsPng`; `GetBackBufferData` | done |
 | 8 | `SpriteBatch`: position, destination, source, tint | done |
 | 9 | `SpriteBatch`: sort modes, blend and sampler states, transform, rotation, origin, scale, flip, depth | done |
 | 10 | `SpriteFont` from a TTF at runtime; `DrawString`, `MeasureString` | done |

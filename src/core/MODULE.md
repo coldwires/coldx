@@ -22,7 +22,8 @@ the debug options.
   `Add`, `Emplace`, `Remove`, `Count`). Update and draw order, `Enabled`, `Visible`.
 - `GraphicsDevice`: `Clear`, `SetRenderTarget`, back buffer size, `PresentedArea`. Exists from `Game`
   construction; usable from `Initialize`.
-- `Texture2D`: `FromFile` (PNG), `FromPixels`, `SetData`. A shared handle; premultiplied.
+- `Texture2D`: `FromFile` (PNG), `FromPixels`, `SetData`, `GetData`, `SaveAsPng`. A shared
+  handle; premultiplied. `GraphicsDevice::GetBackBufferData`.
 - `RenderTarget2D`: a `Texture2D` that can be drawn into. `Create`.
 - `SpriteBatch`: `Begin(sortMode, blend, sampler, transform)`, `Draw` (position or
   destination, source, tint, rotation, origin, scale, flip, depth), `End`.
@@ -52,6 +53,8 @@ the debug options.
   current target, frame begin and end, capture. `GraphicsAccess` is how the rest of core
   reaches the device, command buffer and current target; `DeviceToken` lets resources
   outlive the device safely.
+- `gpu_download.*`: reading a texture back (a copy pass and a fence) and writing PNGs;
+  used by `GetData`, `GetBackBufferData` and `COLDX_CAPTURE`.
 - `scaling.*`: a virtual resolution's placement in the window (`FitRectangle`) and the
   mapping between window and back buffer pixels, shared by the final blit and the mouse.
 - `texture2d.cpp` + `texture_access.h`: textures and render targets.

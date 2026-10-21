@@ -119,8 +119,9 @@ window again), `SetScaleMode(mode, smooth)`. Window resizes do not call `OnResiz
 **GameTime.** `Delta()` seconds (float), `Total()` seconds (double), `IsRunningSlowly()`.
 
 **GraphicsDevice.** `Clear(Color)`, `SetRenderTarget(const RenderTarget2D*)` (`nullptr` =
-back buffer), `BackBufferWidth()`, `BackBufferHeight()`, `PresentedArea()`. Clear and
-render targets only work inside `Draw`.
+back buffer), `BackBufferWidth()`, `BackBufferHeight()`, `PresentedArea()`,
+`GetBackBufferData(Color*)` (the last finished frame). Clear and render targets only work
+inside `Draw`.
 
 **ContentManager.** `Content().Load<Texture2D>("sprites/player")` reads
 `content/sprites/player.png`; also `Load<SoundEffect>` (.wav, .ogg), `Load<Music>` (.ogg),
@@ -130,8 +131,11 @@ then `Content().Load<Level>("levels/one")`.
 
 **Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,
 `Texture2D::FromPixels(Graphics(), w, h, const Color*)`, `SetData(const Color*)`,
-`Width()`, `Height()`, `IsEmpty()`. A handle: copies share one texture. Create in
-`LoadContent` or later.
+`GetData(Color*)`, `GetData(Rectangle, Color*)`, `SaveAsPng(path)`, `Width()`, `Height()`,
+`IsEmpty()`. A handle: copies share one texture. Create in `LoadContent` or later.
+`GetData` waits for the GPU (fine for screenshots and collision masks, not every frame);
+inside `Draw` it does not see that frame's drawing yet. A screenshot: draw into a
+`RenderTarget2D`, then `SaveAsPng` it from `Update`.
 
 **RenderTarget2D.** A `Texture2D` you can draw into: `RenderTarget2D::Create(Graphics(), w, h)`.
 

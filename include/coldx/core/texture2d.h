@@ -4,6 +4,7 @@
 #include <string>
 
 #include <coldx/core/color.h>
+#include <coldx/core/rectangle.h>
 
 namespace coldx {
 
@@ -39,6 +40,17 @@ public:
     // Replaces every pixel, for every copy. pixels must hold Width() * Height() entries,
     // premultiplied.
     void SetData(const Color* pixels);
+
+    // Copies pixels back from the GPU: the whole texture, or a region of it, rows top to
+    // bottom, premultiplied. pixels must hold the region's width * height entries. It waits
+    // for the GPU, so it suits screenshots and collision masks, not every frame. Inside Draw
+    // it sees what earlier frames drew, not this one. False for an empty texture or a region
+    // not wholly inside it.
+    bool GetData(Color* pixels) const;
+    bool GetData(const Rectangle& region, Color* pixels) const;
+    // Writes the texture to a PNG with straight alpha, which FromFile loads back as the same
+    // image. False on failure, with the reason logged.
+    bool SaveAsPng(const std::string& path) const;
 
     int Width() const;
     int Height() const;

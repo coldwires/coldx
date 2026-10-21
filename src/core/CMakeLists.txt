@@ -8,6 +8,7 @@ add_library(coldx_core STATIC
     game.cpp
     game_component.cpp
     gamepad.cpp
+    gpu_download.cpp
     graphics_device.cpp
     input.cpp
     input_script.cpp
