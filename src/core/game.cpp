@@ -29,6 +29,8 @@ struct Game::Impl {
     void ReportSize(Game& game, int width, int height);
     // Hands the virtual resolution settings to the device and to input.
     void ApplyPresentation();
+    // Tells SDL which mode fullscreen uses, from the settings.
+    void ApplyFullscreenMode();
     bool sdlStarted = false;
 };
 
@@ -39,6 +41,28 @@ void Game::Impl::ReportSize(Game& game, int width, int height) {
     reportedWidth = width;
     reportedHeight = height;
     game.OnResize(width, height);
+}
+
+void Game::Impl::ApplyFullscreenMode() {
+    if (!window || headless) return;
+    if (settings.fullscreenMode == FullscreenMode::Borderless) {
+        SDL_SetWindowFullscreenMode(window, nullptr);
+        return;
+    }
+    const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
+    SDL_DisplayMode mode{};
+    const SDL_DisplayMode* desktop = SDL_GetDesktopDisplayMode(display);
+    const int w = settings.fullscreenWidth > 0 ? settings.fullscreenWidth : (desktop ? desktop->w : 0);
+    const int h = settings.fullscreenHeight > 0 ? settings.fullscreenHeight : (desktop ? desktop->h : 0);
+    if (!SDL_GetClosestFullscreenDisplayMode(display, w, h, settings.fullscreenRefreshRate, false, &mode)) {
+        SDL_Log("coldx.core: no fullscreen mode near %dx%d (%s); using borderless", w, h, SDL_GetError());
+        SDL_SetWindowFullscreenMode(window, nullptr);
+        return;
+    }
+    if (!SDL_SetWindowFullscreenMode(window, &mode))
+        SDL_Log("coldx.core: could not set fullscreen mode %dx%d: %s", mode.w, mode.h, SDL_GetError());
+    else
+        SDL_Log("coldx.core: exclusive fullscreen %dx%d at %.0f Hz", mode.w, mode.h, mode.refresh_rate);
 }
 
 void Game::Impl::ApplyPresentation() {
@@ -88,6 +112,31 @@ void Game::SetFullscreen(bool fullscreen) {
 
 void Game::ToggleFullscreen() {
     SetFullscreen(!IsFullscreen());
+}
+
+void Game::SetFullscreenMode(FullscreenMode mode, int width, int height, float refreshRate) {
+    GameSettings& c = impl_->settings;
+    c.fullscreenMode = mode;
+    c.fullscreenWidth = std::max(0, width);
+    c.fullscreenHeight = std::max(0, height);
+    c.fullscreenRefreshRate = std::max(0.0f, refreshRate);
+    impl_->ApplyFullscreenMode();
+}
+
+std::vector<DisplayMode> Game::DisplayModes() const {
+    std::vector<DisplayMode> result;
+    if (!impl_->window || impl_->headless) return result;
+    int count = 0;
+    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(SDL_GetDisplayForWindow(impl_->window), &count);
+    for (int i = 0; modes && i < count; ++i) result.push_back({modes[i]->w, modes[i]->h, modes[i]->refresh_rate});
+    SDL_free(modes);
+    return result;
+}
+
+DisplayMode Game::DesktopDisplayMode() const {
+    if (!impl_->window || impl_->headless) return {};
+    const SDL_DisplayMode* m = SDL_GetDesktopDisplayMode(SDL_GetDisplayForWindow(impl_->window));
+    return m ? DisplayMode{m->w, m->h, m->refresh_rate} : DisplayMode{};
 }
 
 bool Game::IsFullscreen() const {
@@ -192,8 +241,10 @@ int Game::Run() {
 
     SDL_WindowFlags flags = 0;
     if (cfg.resizable) flags |= SDL_WINDOW_RESIZABLE;
-    if (cfg.fullscreen && !debug.headless) flags |= SDL_WINDOW_FULLSCREEN;
-    if (debug.headless) flags |= SDL_WINDOW_HIDDEN;
+    // Fullscreen is entered once the window exists, after its mode is chosen.
+    const bool startFullscreen = cfg.fullscreen && !debug.headless;
+    // Hidden until its fullscreen state is set, so a fullscreen start never shows a window.
+    flags |= SDL_WINDOW_HIDDEN;
     s.window = SDL_CreateWindow(cfg.title.c_str(), cfg.width, cfg.height, flags);
     if (!s.window) {
         ReportFatal("Could not create the window", dialogs);
@@ -201,6 +252,13 @@ int Game::Run() {
         return 1;
     }
     s.headless = debug.headless;
+    s.ApplyFullscreenMode();
+    if (startFullscreen && !SDL_SetWindowFullscreen(s.window, true))
+        SDL_Log("coldx.core: could not start fullscreen: %s", SDL_GetError());
+    if (!debug.headless) {
+        SDL_ShowWindow(s.window);
+        SDL_SyncWindow(s.window);
+    }
     SDL_Window* presentTo = debug.headless ? nullptr : s.window;
     s.ApplyPresentation();
     if (!detail::GraphicsAccess::Open(*s.graphics, presentTo, cfg.vsync, cfg.width, cfg.height)) {
