@@ -10,6 +10,7 @@ add_executable(coldx_framework_tests
     audio_tests.cpp
     input_platform_tests.cpp
     human_tests.cpp
+    feature_tests.cpp
 )
 target_link_libraries(coldx_framework_tests PRIVATE coldx::core SDL3::SDL3-static)
 # Some tests read the mixer directly, the way core's own tests do.

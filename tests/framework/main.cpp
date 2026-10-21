@@ -146,6 +146,7 @@ int main(int argc, char** argv) {
     RegisterInput();
     RegisterPlatform();
     RegisterHuman();
+    RegisterFeatures();
 
     std::map<std::string, Result> autos;
     std::map<std::string, Status> human;

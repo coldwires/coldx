@@ -70,6 +70,36 @@ float Input::PixelDensity() const {
     return density > 0.0f ? density : 1.0f;
 }
 
+// Window coordinates are scaled by the pixel density to window pixels, then, with a virtual
+// resolution, through where the back buffer is shown.
+void Input::WindowToBackBuffer(float x, float y, int& outX, int& outY) const {
+    const float density = PixelDensity();
+    if (!presentation.Active() || !window) {
+        outX = static_cast<int>(x * density);
+        outY = static_cast<int>(y * density);
+        return;
+    }
+    int w = 0, h = 0;
+    SDL_GetWindowSizeInPixels(window, &w, &h);
+    const Rectangle placed = FitRectangle(w, h, presentation.width, presentation.height, presentation.mode);
+    OutputToImage(placed, presentation.width, presentation.height, x * density, y * density, outX, outY);
+}
+
+void Input::BackBufferToWindow(int x, int y, float& outX, float& outY) const {
+    const float density = PixelDensity();
+    if (!presentation.Active() || !window) {
+        outX = x / density;
+        outY = y / density;
+        return;
+    }
+    int w = 0, h = 0;
+    SDL_GetWindowSizeInPixels(window, &w, &h);
+    const Rectangle placed = FitRectangle(w, h, presentation.width, presentation.height, presentation.mode);
+    ImageToOutput(placed, presentation.width, presentation.height, x, y, outX, outY);
+    outX /= density;
+    outY /= density;
+}
+
 void Input::HandleEvent(const SDL_Event& event) {
     switch (event.type) {
     case SDL_EVENT_KEY_DOWN:
@@ -77,13 +107,11 @@ void Input::HandleEvent(const SDL_Event& event) {
         liveKeys.SetKey(static_cast<Key>(event.key.scancode), event.type == SDL_EVENT_KEY_DOWN);
         break;
     case SDL_EVENT_MOUSE_MOTION:
-        liveMouse.x = static_cast<int>(event.motion.x * PixelDensity());
-        liveMouse.y = static_cast<int>(event.motion.y * PixelDensity());
+        WindowToBackBuffer(event.motion.x, event.motion.y, liveMouse.x, liveMouse.y);
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP:
-        liveMouse.x = static_cast<int>(event.button.x * PixelDensity());
-        liveMouse.y = static_cast<int>(event.button.y * PixelDensity());
+        WindowToBackBuffer(event.button.x, event.button.y, liveMouse.x, liveMouse.y);
         SetButton(liveMouse, event.button.button, event.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
         break;
     case SDL_EVENT_MOUSE_WHEEL: {

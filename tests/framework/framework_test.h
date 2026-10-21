@@ -63,6 +63,7 @@ void RegisterAudio();
 void RegisterInput();
 void RegisterPlatform();
 void RegisterHuman();
+void RegisterFeatures();
 
 // The scene a HumanTest runs in. Tests fill in the hooks; the runner draws the
 // instructions and readout lines over whatever the scene draws, and ends the scene on
