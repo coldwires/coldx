@@ -37,6 +37,7 @@
 - `hello_audio` sample. Every test has a CTest timeout.
 - `demo` sample: a small game using components, ContentManager, input, sound, music,
   text, a named-tile sprite sheet and Storage.
+- `coldx_framework_tests`: automated and human-judged stress tests with a report.
 - `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its
   text size.
 - `docs/QUICKSTART.md`: a complete game, the API on one page, differences from XNA. Its

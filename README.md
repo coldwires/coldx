@@ -279,6 +279,13 @@ and total game time.
     cmake --build build --config Debug
     cd build && ctest -C Debug --output-on-failure
 
+`coldx_framework_tests` (in `tests/framework/`) stress-tests the framework the way a large
+game would: resizing and fullscreen, dozens of cached render targets, sprite throughput,
+timestep accuracy and stalls, sound bursts, loop seams, gamepads through SDL's virtual pads,
+save locations. `--auto` runs everything that can be measured and writes a report; with no
+arguments it opens a menu of the checks a person has to judge (sharpness, hearing, real
+controllers), each with on-screen instructions. It opens real windows and goes fullscreen.
+
 `samples/stress` draws 10,000 moving sprites with vsync off and logs frames per second; pass
 a count as its first argument for more.
 
