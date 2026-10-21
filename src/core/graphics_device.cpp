@@ -3,6 +3,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "gpu_download.h"
 #include "graphics_access.h"
 #include "texture_access.h"
 
@@ -78,6 +79,12 @@ int GraphicsDevice::BackBufferHeight() const {
 
 Rectangle GraphicsDevice::PresentedArea() const {
     return impl_->presented;
+}
+
+bool GraphicsDevice::GetBackBufferData(Color* pixels) const {
+    const Impl& g = *impl_;
+    return detail::DownloadTexture(g.device, g.backBuffer, Rectangle(0, 0, static_cast<int>(g.width), static_cast<int>(g.height)),
+                                   pixels);
 }
 
 namespace detail {
@@ -279,49 +286,10 @@ void GraphicsAccess::EndFrame(GraphicsDevice& graphics) {
 bool GraphicsAccess::SaveBackBuffer(GraphicsDevice& graphics, const std::string& path) {
     GraphicsDevice::Impl& g = *graphics.impl_;
     if (!g.backBuffer) return false;
-
-    const Uint32 size = g.width * g.height * 4;
-    SDL_GPUTransferBufferCreateInfo bufferInfo{};
-    bufferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
-    bufferInfo.size = size;
-    SDL_GPUTransferBuffer* buffer = SDL_CreateGPUTransferBuffer(g.device, &bufferInfo);
-    if (!buffer) {
-        SDL_Log("coldx.core: capture: SDL_CreateGPUTransferBuffer failed: %s", SDL_GetError());
-        return false;
-    }
-
-    SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(g.device);
-    SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(commands);
-    SDL_GPUTextureRegion source{};
-    source.texture = g.backBuffer;
-    source.w = g.width;
-    source.h = g.height;
-    source.d = 1;
-    SDL_GPUTextureTransferInfo destination{};
-    destination.transfer_buffer = buffer;
-    destination.pixels_per_row = g.width;
-    destination.rows_per_layer = g.height;
-    SDL_DownloadFromGPUTexture(copy, &source, &destination);
-    SDL_EndGPUCopyPass(copy);
-
-    SDL_GPUFence* fence = SDL_SubmitGPUCommandBufferAndAcquireFence(commands);
-    bool saved = false;
-    if (fence) {
-        SDL_WaitForGPUFences(g.device, true, &fence, 1);
-        SDL_ReleaseGPUFence(g.device, fence);
-
-        void* pixels = SDL_MapGPUTransferBuffer(g.device, buffer, false);
-        SDL_Surface* surface = SDL_CreateSurfaceFrom(static_cast<int>(g.width), static_cast<int>(g.height),
-                                                     SDL_PIXELFORMAT_RGBA32, pixels, static_cast<int>(g.width * 4));
-        saved = surface && SDL_SavePNG(surface, path.c_str());
-        if (!saved) SDL_Log("coldx.core: capture: could not write %s: %s", path.c_str(), SDL_GetError());
-        SDL_DestroySurface(surface);
-        SDL_UnmapGPUTransferBuffer(g.device, buffer);
-    } else {
-        SDL_Log("coldx.core: capture: submit failed: %s", SDL_GetError());
-    }
-    SDL_ReleaseGPUTransferBuffer(g.device, buffer);
-    return saved;
+    // As drawn, premultiplied: tests compare these bytes with what the GPU should produce.
+    std::unique_ptr<Color[]> pixels(new Color[static_cast<size_t>(g.width) * g.height]);
+    return graphics.GetBackBufferData(pixels.get()) &&
+           WritePng(path.c_str(), static_cast<int>(g.width), static_cast<int>(g.height), pixels.get(), false);
 }
 
 SDL_GPUDevice* GraphicsAccess::Device(GraphicsDevice& graphics) {

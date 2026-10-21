@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 
 #include "content_path.h"
+#include "gpu_download.h"
 #include "graphics_access.h"
 #include "texture_access.h"
 
@@ -183,6 +184,26 @@ Texture2D Texture2D::FromFile(GraphicsDevice& graphics, const std::string& path)
 void Texture2D::SetData(const Color* pixels) {
     if (!impl_ || !pixels || !impl_->token->device) return;
     Upload(impl_->token->device, impl_->texture, impl_->width, impl_->height, pixels);
+}
+
+bool Texture2D::GetData(Color* pixels) const {
+    return GetData(Rectangle(0, 0, Width(), Height()), pixels);
+}
+
+bool Texture2D::GetData(const Rectangle& region, Color* pixels) const {
+    if (!impl_ || !impl_->token->device || !pixels) return false;
+    if (region.IsEmpty() || region.x < 0 || region.y < 0 || region.Right() > impl_->width || region.Bottom() > impl_->height) {
+        SDL_Log("coldx.core: Texture2D::GetData: region %d,%d %dx%d is not inside the %dx%d texture", region.x, region.y,
+                region.width, region.height, impl_->width, impl_->height);
+        return false;
+    }
+    return detail::DownloadTexture(impl_->token->device, impl_->texture, region, pixels);
+}
+
+bool Texture2D::SaveAsPng(const std::string& path) const {
+    if (!impl_) return false;
+    std::unique_ptr<Color[]> pixels(new Color[static_cast<size_t>(impl_->width) * impl_->height]);
+    return GetData(pixels.get()) && detail::WritePng(path.c_str(), impl_->width, impl_->height, pixels.get(), true);
 }
 
 int Texture2D::Width() const {

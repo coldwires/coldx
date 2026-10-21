@@ -44,6 +44,10 @@ public:
     // window unless a virtual resolution is set; empty headless.
     Rectangle PresentedArea() const;
 
+    // The back buffer as the last finished frame left it, BackBufferWidth() *
+    // BackBufferHeight() pixels, premultiplied. Waits for the GPU, as Texture2D::GetData.
+    bool GetBackBufferData(Color* pixels) const;
+
 private:
     friend struct detail::GraphicsAccess;
     struct Impl;
