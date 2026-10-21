@@ -20,7 +20,7 @@ behaviour; `not started` has no code.
 | 25 | `SpriteFont` from baked content | not started (needs the content pipeline) |
 | 11 | Keyboard, with `WasPressed`/`WasReleased` | done |
 | 12 | Mouse, gamepad (4 players, hot-plug, dead zones, rumble, name, type, face labels) | done |
-| 13 | Audio: `SoundEffect`, `SoundEffectInstance`, streaming `Music`, `MediaPlayer` | done |
+| 13 | Audio: `SoundEffect`, `SoundEffectInstance`, streaming `Music`, `MediaPlayer` with crossfade and fade out | done |
 | 14 | `GameComponent`, `DrawableGameComponent` | done |
 | 15 | `ContentManager`: loose files, cache, `RegisterLoader` | done |
 | 28 | `ContentManager` reading packed `.rime` content | not started |

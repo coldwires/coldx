@@ -24,4 +24,6 @@ up, which suits game effects.
 sounds ran out at 64, and an idle voice costs one pointer test per mix. Volume and pan
 changes now ramp linearly across the next mix block, since a step at the block boundary
 clicked when a game moved them every frame. Skipped sounds are counted and logged once a
-second rather than once each.
+second rather than once each. Music can crossfade: the outgoing stream is held by the mixer
+as a second, fading stream on an equal-power curve and handed back when its fade ends; a
+third track arriving mid-fade cuts the one fading.

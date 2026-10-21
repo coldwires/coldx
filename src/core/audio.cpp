@@ -127,7 +127,7 @@ bool Audio::Submit(const MixCommand& command) {
     return false;
 }
 
-bool Audio::PlayMusic(std::shared_ptr<const MusicData> data, bool looped) {
+bool Audio::PlayMusic(std::shared_ptr<const MusicData> data, bool looped, float fadeSeconds) {
     if (!mixer_ || !data) return false;
     Pump();
     std::unique_ptr<MusicStream> stream = MusicStream::Open(std::move(data));
@@ -137,6 +137,7 @@ bool Audio::PlayMusic(std::shared_ptr<const MusicData> data, bool looped) {
     play.music = stream.get();
     play.looped = looped;
     play.generation = ++musicGeneration;
+    play.fade = fadeSeconds > 0.0f ? fadeSeconds : 0.0f;
     if (!Submit(play)) return false;
     streams_.push_back(std::move(stream));
     musicStarted = true;
@@ -147,9 +148,10 @@ bool Audio::MusicActive() const {
     return mixer_ && musicStarted && mixer_->MusicEnded() != musicGeneration;
 }
 
-void Audio::StopMusic() {
+void Audio::StopMusic(float fadeSeconds) {
     MixCommand stop;
     stop.type = MixCommandType::StopMusic;
+    stop.fade = fadeSeconds > 0.0f ? fadeSeconds : 0.0f;
     Submit(stop);
     musicStarted = false;
 }

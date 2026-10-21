@@ -80,8 +80,9 @@ the debug options.
 - `text_input.cpp`: `TextInput` and `Clipboard` over SDL; typed text is gathered by
   `input.*` like the other input and handed over each Update.
 - `input_script.*`: `COLDX_INPUT`, scripted input applied before numbered Updates.
-- Audio: `mixer.*` mixes up to 256 voices and one music stream into stereo float at
-  48 kHz (linear resampling, pitch, balance pan, gains ramped per block, clamp); it is pure arithmetic, tested
+- Audio: `mixer.*` mixes up to 256 voices and one music stream (two during a crossfade,
+  equal-power) into stereo float at 48 kHz (linear resampling, pitch, balance pan, gains
+  ramped per block, clamp); it is pure arithmetic, tested
   without a device. `spsc_queue.h` carries commands to it. `audio.*` is the game-thread
   side: the SDL device stream whose callback runs the mixer, the voice slots, and freeing
   what the mixer hands back. `sound_effect.cpp`, `music.cpp` are the public classes;

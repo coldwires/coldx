@@ -37,6 +37,7 @@ struct MixCommand {
     float pitch = 0.0f;  // octaves
     float pan = 0.0f;
     bool looped = false;
+    float fade = 0.0f;  // PlayMusic and StopMusic: seconds to crossfade or fade out over
 };
 
 // Mixes up to MixerVoices sounds and one music stream into interleaved stereo float at a
@@ -82,7 +83,15 @@ private:
     void End(Voice& v, int slot);
     void RetireMusic();
     void MixVoice(Voice& v, int slot, float* out, int frames);
+    // Adds frames of a stream, its gain moving linearly from startGain to endGain. False
+    // once an unlooped stream has run out.
+    bool MixStream(MusicStream& m, float* out, int frames, float startGain, float endGain);
     void MixMusic(float* out, int frames);
+    // Hands a stream back without touching the playing track's generation.
+    void Retire(MusicStream* stream);
+    // Ends the playing track: at once, or fading out over fadeFrames under whatever plays
+    // next. A cut also ends a fade still running.
+    void EndMusic(std::int64_t fadeFrames);
 
     const int rate_;
     SpscQueue<MixCommand, 1024> commands_;
@@ -91,6 +100,11 @@ private:
     std::array<std::atomic<std::uint32_t>, MixerVoices> ended_{};
     float master_ = 1.0f;
     MusicStream* music_ = nullptr;
+    // The track being faded out, while music_ fades in (or nothing plays, after a fading
+    // stop). Frames done of each fade, out of its total; a total of 0 is no fade.
+    MusicStream* fading_ = nullptr;
+    std::int64_t fadeInDone_ = 0, fadeInFrames_ = 0;
+    std::int64_t fadeOutDone_ = 0, fadeOutFrames_ = 0;
     bool musicPaused_ = false;
     float musicVolume_ = 1.0f;
     float musicGain_ = 1.0f;  // last applied, ramped toward musicVolume_
