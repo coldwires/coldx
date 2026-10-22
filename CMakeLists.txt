@@ -44,6 +44,7 @@ function(coldx_game target)
 endfunction()
 
 include(cmake/coldx_shaders.cmake)
+include(cmake/coldx_content.cmake)
 
 # Regenerates the committed headers in shaders/compiled after a built-in shader changes:
 #   cmake --build build --target coldx_builtin_shaders
@@ -55,10 +56,13 @@ coldx_compile_shaders(coldx_builtin_shaders
 )
 
 add_subdirectory(src/core)
+add_subdirectory(src/content)
+add_subdirectory(tools/coldxc)
 
 if(COLDX_BUILD_TESTS)
     enable_testing()
     add_subdirectory(src/core/tests)
+    add_subdirectory(src/content/tests)
     add_subdirectory(tests/framework)
     find_package(Python3 COMPONENTS Interpreter)
     if(Python3_FOUND)

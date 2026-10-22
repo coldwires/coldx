@@ -38,6 +38,23 @@
 - `demo` sample: a small game using components, ContentManager, input, sound, music,
   text, a named-tile sprite sheet and Storage.
 - `coldx_framework_tests`: automated and human-judged stress tests with a report.
+- Fixes from the stress tests: volume, pan and music volume ramp instead of stepping; 256
+  voices, and skipped sounds are logged once a second; stereo OGG sound effects keep their
+  last frame.
+- Virtual resolution: a fixed back buffer scaled into the window (`ScaleMode` Fit, Integer,
+  Stretch), with the mouse mapped into it.
+- `Texture2D::GetData`, `SaveAsPng`; `GraphicsDevice::GetBackBufferData`.
+- Exclusive fullscreen at a chosen mode; `DisplayModes`, `DesktopDisplayMode`.
+- `GameSettings::drawBetweenUpdates` and `GameTime::Alpha` for interpolated drawing.
+- `TextInput` (typed UTF-8, IME composition), `Clipboard`, `Keyboard::KeyName` and
+  `KeyForCharacter`.
+- `GamePad::GetCapabilities` (name, type, rumble) and `FaceButtonLabel`.
+- `MediaPlayer::CrossFade` and `FadeOut`.
+- `.rime` packages: `coldx/core/rime.h`, `ContentManager::Mount`, the default
+  `content.rime`, `LooseFiles`, `RegisterDataLoader`, `ReadBytes`; `FromMemory` for
+  textures, sounds and music.
+- The `content` module and `coldxc`: content projects, processors (built-in and a game's
+  own), a build cache, `coldx_add_content`. The `demo` sample loads from a package.
 - `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its
   text size.
 - `docs/QUICKSTART.md`: a complete game, the API on one page, differences from XNA. Its

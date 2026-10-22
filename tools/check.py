@@ -41,6 +41,7 @@ def source_files(base):
 # may use). Every directory under src/ is a module and has a row here.
 MODULES = {
     "core": (0, [], ["SDL3", "stb", "dr_libs"]),
+    "content": (1, ["core"], ["SDL3"]),
 }
 
 
