@@ -67,12 +67,18 @@ Covered by `core.font.*`.
 
 1. `include/coldx/core/content_manager.h` `ContentManager::Load<T>` - returns the cached
    copy if there is one; otherwise looks up the loader registered for `T`.
-2. `content_manager.cpp` - the loader finds the file: the name under the root directory,
-   as given if it has an extension, else with each of the loader's extensions in turn.
-   It calls the type's own loading function (for textures, the flow below) and caches
-   the result, which `Load` returns a copy of. Copies are handles: they share the data.
+2. `content_manager.cpp` - the candidates are the name as given if it has an extension,
+   then the name with each of the loader's extensions. The first load mounts
+   `<root>.rime` beside the executable if there is one.
+3. Mounted packages are searched newest first: `rime_package.cpp` hashes each candidate
+   with the package's seed and binary-searches the entry table, then reads the entry and
+   checks its CRC. Failing that, loose files under the root directory, if `LooseFiles`
+   allows them.
+4. The bytes go to the type's data loader (for textures, `Texture2D::FromMemory`, then the
+   flow below), and the result is cached; `Load` returns a copy. Copies are handles: they
+   share the data. A loader registered with a path sees loose files only.
 
-Covered by `core.content`.
+Covered by `core.content` and `core.rime`.
 
 ## Loading a texture
 

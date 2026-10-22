@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace coldx {
 
@@ -20,6 +22,8 @@ public:
     // A relative path is taken from the executable's folder. Empty on failure, with the
     // reason logged.
     static Music FromFile(const std::string& path);
+    // An OGG file already in memory; the Music keeps the bytes. name is for log lines.
+    static Music FromMemory(std::vector<std::uint8_t> ogg, const std::string& name = "memory");
 
     float Duration() const;  // seconds
     bool IsEmpty() const;

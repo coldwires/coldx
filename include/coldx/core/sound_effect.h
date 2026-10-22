@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -28,6 +29,8 @@ public:
     // A relative path is taken from the executable's folder. Empty on failure, with the
     // reason logged.
     static SoundEffect FromFile(const std::string& path);
+    // A WAV or OGG file already in memory. name is for log lines.
+    static SoundEffect FromMemory(const void* data, std::size_t size, const std::string& name = "memory");
     // Interleaved samples, -1 to 1. channels is 1 or 2.
     static SoundEffect FromSamples(const float* samples, int frames, int channels, int sampleRate);
 

@@ -25,6 +25,12 @@ Music Music::FromFile(const std::string& path) {
     return music;
 }
 
+Music Music::FromMemory(std::vector<std::uint8_t> ogg, const std::string& name) {
+    Music music;
+    music.data_ = detail::LoadMusic(std::move(ogg), name.c_str());
+    return music;
+}
+
 float Music::Duration() const {
     return data_ ? data_->duration : 0.0f;
 }

@@ -72,6 +72,14 @@ int Start(const std::shared_ptr<const detail::SoundData>& sound, float volume, f
 SoundEffect::SoundEffect() = default;
 SoundEffect::~SoundEffect() = default;
 
+SoundEffect SoundEffect::FromMemory(const void* data, std::size_t size, const std::string& name) {
+    SoundEffect effect;
+    if (!data) return effect;
+    const auto* bytes = static_cast<const unsigned char*>(data);
+    effect.data_ = detail::DecodeSound(std::vector<unsigned char>(bytes, bytes + size), name.c_str());
+    return effect;
+}
+
 SoundEffect SoundEffect::FromFile(const std::string& path) {
     const std::string full = detail::ResolveContentPath(path);
     bool ok = false;

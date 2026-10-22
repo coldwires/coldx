@@ -8,7 +8,7 @@ the debug options.
 **Third-party:** SDL3, stb, dr_libs
 **Public headers:** `include/coldx/core/`, all included by `include/coldx/coldx.h`
 **Library target:** `coldx::core`
-**Size:** ~7.2k lines
+**Size:** ~9.5k lines
 
 ## Public surface
 
@@ -41,10 +41,13 @@ the debug options.
 - `TextInput` (typed UTF-8 per Update, IME composition, caret area), `Clipboard`.
 - `SoundEffect` (`FromFile` WAV/OGG, `FromSamples`, `Play`, `CreateInstance`,
   `MasterVolume`), `SoundEffectInstance` (play, pause, resume, stop, volume, pitch, pan,
-  loop, `State`), `Music` (`FromFile` OGG), `MediaPlayer` (one track: play, stop, pause,
-  resume, volume, `IsPlaying`).
+  loop, `State`), `Music` (`FromFile`, `FromMemory` OGG), `MediaPlayer` (one track: play,
+  crossfade, stop, fade out, pause, resume, volume, `IsPlaying`). `SoundEffect::FromMemory`,
+  `Texture2D::FromMemory`.
 - `ContentManager` (`Game::Content()`): `Load<T>(name)` with a cache, `LoadFont(name, size)`,
-  `RegisterLoader<T>`, `Unload`, `SetRootDirectory`.
+  `ReadBytes`, `RegisterDataLoader<T>` (packed and loose), `RegisterLoader<T>` (loose
+  only), `Mount` (`.rime`), `SetLooseFiles` (`LooseFiles`), `Unload`, `SetRootDirectory`.
+- `rime.h`: the `.rime` format, `NormalizeName`, `HashName`, `Crc32`, `PackageWriter`.
 - `Storage`: per-user folder named by `GameSettings::company`/`name`; whole-file
   `ReadFile`, atomic `WriteFile`, `Exists`, `Remove`.
 - `Color`, `Vector2`, `Point`, `Rectangle`, `Matrix`, `MathHelper`.
@@ -71,7 +74,10 @@ the debug options.
 - `sprite_font.cpp` + `font_access.h`: baking (stb_truetype packs ASCII and Latin-1 into one
   atlas), UTF-8 decoding, and the one layout routine both measuring and drawing use.
   `stb_truetype_impl.cpp` compiles stb's implementation, warnings silenced there only.
-- `content_manager.cpp`: finding files by name and extension, built-in loaders, the cache.
+- `content_manager.cpp`: finding content by name and extension in packages, then loose
+  files; built-in loaders; the cache.
+- `rime.cpp` (format, hash, writer), `rime_package.*` (reading and checking a package),
+  `rime_bytes.h` (little-endian fields).
   `Load<T>` and `RegisterLoader<T>` are templates in the header, type-erased into it.
 - `content_path.*`: relative content paths resolve against the executable's folder.
 - `input.*`: the input hub. Live state follows SDL events; `BeginUpdate` copies it to
