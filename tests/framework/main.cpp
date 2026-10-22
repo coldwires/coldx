@@ -1,7 +1,8 @@
 // coldx_framework_tests: runs the framework stress tests and writes the report.
 //
 //   coldx_framework_tests --auto              every automated test, then the report
-//   coldx_framework_tests --auto --only ID    one test
+//   coldx_framework_tests --auto --only ID    one test; FS-01 runs only this way, since
+//                                             switching the display mode can upset the taskbar
 //   coldx_framework_tests --auto --soak 240   include TIME-04 for that many minutes
 //   coldx_framework_tests                     menu of the tests a person judges
 //   --report PATH                             where the report goes (framework_test_report.md)
@@ -154,6 +155,11 @@ int main(int argc, char** argv) {
     if (automatic) {
         for (const AutoTest& t : AutoTests()) {
             if (!only.empty() && t.id != only) continue;
+            if (only.empty() && t.onlyWhenNamed) {
+                std::printf("%s %s ... not run: changes the display mode; run it with --only %s\n", t.id.c_str(),
+                            t.title.c_str(), t.id.c_str());
+                continue;
+            }
             std::printf("%s %s ... ", t.id.c_str(), t.title.c_str());
             std::fflush(stdout);
             const double start = Now();
