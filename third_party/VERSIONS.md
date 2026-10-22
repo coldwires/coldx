@@ -8,6 +8,8 @@ update its row here in the same commit.
 |---|---|---|---|---|
 | SDL | 3.4.18 | `SDL/` | `SDL3-3.4.18.tar.gz` from the libsdl-org/SDL GitHub release `release-3.4.18` (commit `829a65d769d935c4852f8159e964312c0957260a`) | zlib (`SDL/LICENSE.txt`) |
 | stb_truetype | 1.26 | `stb/stb/` | `stb_truetype.h` from nothings/stb at commit `a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d` | MIT or public domain (`stb/LICENSE`) |
+| stb_image | 2.30 | `stb/stb/` | `stb_image.h` from nothings/stb at commit `a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d`; coldxc uses its zlib decoder only | MIT or public domain (`stb/LICENSE`) |
+| stb_image_write | 1.16 | `stb/stb/` | `stb_image_write.h` from nothings/stb at commit `a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d`; coldxc uses its zlib compressor only | MIT or public domain (`stb/LICENSE`) |
 | dr_wav | 0.14.6 | `dr_libs/dr_libs/` | `dr_wav.h` from mackron/dr_libs at commit `dfe8377631000664666519fdb83da193fd8037f4` | MIT-0 or public domain (`dr_libs/LICENSE`) |
 | stb_vorbis | 1.22 | `stb/stb/` | `stb_vorbis.c` from nothings/stb at commit `a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d` | MIT or public domain (`stb/LICENSE`) |
 | LZ4 | 1.10.0 | `lz4/lz4/` | `lz4.c`, `lz4.h`, `lz4hc.c`, `lz4hc.h` from `lib/` of `v1.10.0.tar.gz`, the lz4/lz4 GitHub tag `v1.10.0` | BSD 2-Clause (`lz4/LICENSE`) |
@@ -15,6 +17,8 @@ update its row here in the same commit.
 
 SDL tarball SHA-256: `9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3`
 `stb_truetype.h` SHA-256: `ecd30b05e0dd4fea3a13c26810dd9e1992dc379049482c393d5a19e6b5090aab`
+`stb_image.h` SHA-256: `594c2fe35d49488b4382dbfaec8f98366defca819d916ac95becf3e75f4200b3`
+`stb_image_write.h` SHA-256: `cbd5f0ad7a9cf4468affb36354a1d2338034f2c12473cf1a8e32053cb6914a05`
 `dr_wav.h` SHA-256: `03e70c1a2d9787cd7ed3e966c075bea7bac6373f759db9cd7ca9ccdfc4ec4493`
 `stb_vorbis.c` SHA-256: `4c7cb2ff1f7011e9d67950446b7eb9ca044f2e464d76bfbb0b84dd2e23e65636`
 LZ4 tarball SHA-256: `537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b`

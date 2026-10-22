@@ -4,10 +4,10 @@
 game's own), the processed-source cache, and the `coldxc` command line.
 **Layer:** 1
 **Depends on:** core
-**Third-party:** SDL3
+**Third-party:** SDL3, stb
 **Public headers:** `include/coldx/content/`
 **Library target:** `coldx::content`
-**Size:** ~1.4k lines
+**Size:** ~2.1k lines
 
 The format and reading packages are core's (`coldx/core/rime.h`, `ContentManager::Mount`),
 so a game that only loads packages does not link this module. Tools link it.
@@ -37,6 +37,9 @@ so a game that only loads packages does not link this module. Tools link it.
   cache, the package, and writing it only when it changed.
 - `protect_build.*`: key files, fingerprints (hash, mask, marker), the source generated
   into a game (`--game-source`) and `--identify`.
+- `watermark.*`: writing and reading the PNG and WAV watermark layers; marked PNGs are
+  written here. `zlib_codec.*`: stb's zlib compressor and decompressor, nothing else of
+  stb_image or stb_image_write.
 - `tool.cpp`: `RunTool`. `tools/coldxc/main.cpp` is `RunTool` with nothing added.
 
 ## Invariants

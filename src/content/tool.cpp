@@ -8,6 +8,7 @@
 
 #include "project.h"
 #include "protect_build.h"
+#include "watermark.h"
 
 namespace coldx::content {
 
@@ -28,7 +29,8 @@ void Usage() {
         "  --build-id     mark the package (and the game, with --game-source) with a fingerprint of ID\n"
         "  --game-source  write the C++ file that gives the game its key and fingerprint\n"
         "  --new-key      write a new random key to FILE\n"
-        "  --identify     print the fingerprint found in a game or package built from --project\n"
+        "  --identify     print the fingerprint in a game, package, PNG or WAV built from --project\n"
+        "                 (give --key-file too if the package was encrypted)\n"
         "  --verbose      one line per source\n");
 }
 
@@ -89,7 +91,33 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
             std::fprintf(stderr, "coldxc: cannot read the project %s\n", options.project.c_str());
             return 1;
         }
-        return detail::Identify(identify, rime::HashName(0, project.seed)) ? 0 : 1;
+        const std::uint64_t seed = rime::HashName(0, project.seed);
+        rime::Key key{};
+        if (!options.keyFile.empty()) {
+            std::string error;
+            if (!detail::ReadKeyFile(options.keyFile, key, error)) {
+                std::fprintf(stderr, "coldxc: %s\n", error.c_str());
+                return 1;
+            }
+        }
+        std::ifstream suspect(std::filesystem::path(std::u8string(identify.begin(), identify.end())), std::ios::binary);
+        const std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(suspect)), {});
+        const bool png = bytes.size() > 8 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G';
+        const bool wav = bytes.size() > 12 && std::string(bytes.begin(), bytes.begin() + 4) == "RIFF";
+        if (png || wav) {
+            const std::uint64_t secret = detail::WatermarkSecret(seed, options.keyFile.empty() ? nullptr : &key);
+            bool any = false;
+            for (const detail::Finding& f : png ? detail::ReadPng(bytes, secret) : detail::ReadWav(bytes, secret)) {
+                if (f.found)
+                    std::printf("fingerprint 0x%016llx in %s (%zu of %zu marks agree)\n", static_cast<unsigned long long>(f.fingerprint),
+                                f.layer.c_str(), f.agree, f.total);
+                else
+                    std::printf("no mark in %s\n", f.layer.c_str());
+                any = any || f.found;
+            }
+            return any ? 0 : 1;
+        }
+        return detail::Identify(identify, seed) ? 0 : 1;
     }
     if (options.project.empty() || options.output.empty()) {
         Usage();
