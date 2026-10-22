@@ -35,6 +35,8 @@ public:
 private:
     friend class GameComponentCollection;
     friend class DrawableGameComponent;
+    // Which components draw, without dynamic_cast: coldx builds with RTTI off.
+    virtual DrawableGameComponent* AsDrawable() { return nullptr; }
     Game& game_;
     GameComponentCollection* owner_ = nullptr;
     bool enabled_ = true;
@@ -60,6 +62,7 @@ public:
     GraphicsDevice& Graphics() const;
 
 private:
+    DrawableGameComponent* AsDrawable() final { return this; }
     bool visible_ = true;
     int drawOrder_ = 0;
 };

@@ -85,14 +85,14 @@ int main() {
             // Found without its extension, cached, and shared.
             const Texture2D player = content.Load<Texture2D>("sprites/player");
             CHECK(player.Width() == 4 && player.Height() == 2);
-            CHECK(content.IsLoaded(typeid(Texture2D), "sprites/player"));
+            CHECK(content.IsLoaded<Texture2D>("sprites/player"));
             const Texture2D again = content.Load<Texture2D>("sprites/player");
             CHECK(detail::TextureAccess::Handle(again) == detail::TextureAccess::Handle(player));
             CHECK(!content.Load<Texture2D>("sprites/player.png").IsEmpty());  // with extension
 
             // A miss is not cached: once the file exists, the next Load finds it.
             CHECK(content.Load<Texture2D>("sprites/enemy").IsEmpty());
-            CHECK(!content.IsLoaded(typeid(Texture2D), "sprites/enemy"));
+            CHECK(!content.IsLoaded<Texture2D>("sprites/enemy"));
             WritePng(root / "sprites" / "enemy.png", 2, 2);
             CHECK(content.Load<Texture2D>("sprites/enemy").Width() == 2);
 
@@ -123,7 +123,7 @@ int main() {
             // Copies outlive Unload; the next Load reads the file again.
             survivor = player;
             content.Unload();
-            CHECK(!content.IsLoaded(typeid(Texture2D), "sprites/player"));
+            CHECK(!content.IsLoaded<Texture2D>("sprites/player"));
             CHECK(!survivor.IsEmpty() && detail::TextureAccess::Handle(survivor) == detail::TextureAccess::Handle(player));
             CHECK(content.Load<Level>("levels/one").text == "level one");
             CHECK(loads == 2);

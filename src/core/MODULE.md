@@ -123,6 +123,8 @@ the debug options.
 - The final blit and the mouse use the same `FitRectangle`, so a click lands on the pixel
   drawn under it.
 - Log lines start with `coldx.core:`.
+- No RTTI: no `typeid` or `dynamic_cast`, so core builds with `/GR-` under `COLDX_HARDEN`.
+  `ContentManager` keys types by `detail::TypeKey<T>()`.
 
 ## Gotchas
 

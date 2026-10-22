@@ -34,6 +34,12 @@ behaviour; `not started` has no code.
 | 31 | Virtual resolution: fixed back buffer scaled into the window (Fit, Integer, Stretch), mouse mapped | done |
 | 30 | `tests/framework`: stress and edge-case runner, automatic checks plus guided ones for a person | done |
 
+## Release builds
+
+| # | Feature | State |
+|---|---|---|
+| 32 | `COLDX_HARDEN`, `coldx_harden`: no RTTI, whole-program optimization, no build-machine details (MSVC) | done |
+
 ## Shaders
 
 | # | Feature | State |

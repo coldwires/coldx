@@ -154,23 +154,21 @@ std::optional<std::vector<std::uint8_t>> ContentManager::ReadBytes(const std::st
     return bytes;
 }
 
-std::string ContentManager::Key(const std::type_info& type, const std::string& name) const {
-    return std::string(type.name()) + '|' + name;
+std::string ContentManager::Key(const void* type, const std::string& name) const {
+    char prefix[32];
+    std::snprintf(prefix, sizeof(prefix), "%p|", type);
+    return prefix + name;
 }
 
-void ContentManager::NoLoader(const char* type, const std::string& name) const {
-    SDL_Log("coldx.core: no content loader for %s (loading \"%s\"); register one with RegisterDataLoader", type,
+void ContentManager::NoLoader(const std::string& name) const {
+    SDL_Log("coldx.core: no content loader for the type asked for (loading \"%s\"); register one with RegisterDataLoader",
             name.c_str());
-}
-
-bool ContentManager::IsLoaded(const std::type_info& type, const std::string& name) const {
-    return cache_.count(Key(type, name)) != 0;
 }
 
 SpriteFont ContentManager::LoadFont(const std::string& name, float pixelHeight) {
     char size[32];
     std::snprintf(size, sizeof(size), "@%g", pixelHeight);
-    const std::string key = Key(typeid(SpriteFont), name + size);
+    const std::string key = Key(detail::TypeKey<SpriteFont>(), name + size);
     if (auto found = cache_.find(key); found != cache_.end()) return *static_cast<const SpriteFont*>(found->second.get());
     std::vector<std::uint8_t> bytes;
     std::string found;

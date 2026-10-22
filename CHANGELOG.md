@@ -55,6 +55,8 @@
   textures, sounds and music.
 - The `content` module and `coldxc`: content projects, processors (built-in and a game's
   own), a build cache, `coldx_add_content`. The `demo` sample loads from a package.
+- `COLDX_HARDEN` and `coldx_harden` for release builds; coldx no longer uses RTTI.
+  `ContentManager::IsLoaded` is now `IsLoaded<T>(name)`.
 - `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its
   text size.
 - `docs/QUICKSTART.md`: a complete game, the API on one page, differences from XNA. Its

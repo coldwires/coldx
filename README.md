@@ -271,6 +271,23 @@ shaders are regenerated with `cmake --build build --target coldx_builtin_shaders
 
 Using a custom shader when drawing is not available yet. `SpriteBatch` uses its built-in pair.
 
+## Release builds
+
+```
+cmake -S . -B build -DCOLDX_HARDEN=ON
+```
+
+```cmake
+coldx_harden(my_game)
+```
+
+`COLDX_HARDEN` builds coldx and its samples in Release without RTTI and with whole-program
+optimization, and leaves out what identifies the build machine: tool versions, the build
+time, folder paths. `coldx_harden` does the same for a game's own executable; the game
+then cannot use `dynamic_cast` or `typeid` on its own types. Symbols go to a `.pdb` beside
+the executable: keep it for crash reports, do not ship it. The flags are listed in
+`cmake/coldx_harden.cmake`.
+
 ## Console window
 
 On Windows, debug builds open a console window for log output and release builds do not.

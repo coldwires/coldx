@@ -103,7 +103,7 @@ void GameComponentCollection::Insert(std::unique_ptr<GameComponent> component) {
     if (!component) return;
     Impl& c = *impl_;
     component->owner_ = this;
-    DrawableGameComponent* drawable = dynamic_cast<DrawableGameComponent*>(component.get());
+    DrawableGameComponent* drawable = component->AsDrawable();
     Impl::Entry entry{std::move(component), drawable, c.nextSequence++};
     if (c.running) Impl::Start(entry);
     if (c.passDepth > 0) {
