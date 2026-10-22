@@ -217,6 +217,9 @@ package is mounted. A game adds its own asset types with a `coldx::content::Proc
 and a tool of its own that calls `coldx::content::RunTool` with it (see
 `include/coldx/content/build.h`).
 
+Put `content/** -text` in the game's `.gitattributes`: Git otherwise rewrites line endings
+in text content on Windows checkouts, and the package then differs from machine to machine.
+
 ## Textures and colors
 
 Textures hold premultiplied alpha. `Texture2D::FromFile` loads a PNG and premultiplies it;
