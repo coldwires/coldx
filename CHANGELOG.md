@@ -60,6 +60,8 @@
   `coldx_add_content(... KEY_FILE)`; `ContentManager::SetKey`, `SetDefaultKey`.
 - Build fingerprints: `--build-id`, `BUILD_ID`, `COLDX_BUILD_ID`, `coldxc --identify`.
 - The `protect` module: `COLDX_HIDDEN`.
+- Watermarks: `[texture] watermark = rgb | alpha`, `[sound] watermark = on`, read by
+  `coldxc --identify`.
 - `COLDX_HARDEN` and `coldx_harden` for release builds; coldx no longer uses RTTI.
   `ContentManager::IsLoaded` is now `IsLoaded<T>(name)`.
 - `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its

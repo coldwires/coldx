@@ -150,7 +150,9 @@ in CMake (link nothing extra). The README's Content section has more. Protection
 `KEY_FILE game.key` (from `coldxc --new-key game.key`) encrypts the package and
 `BUILD_ID "name"` fingerprints it, both as `coldx_add_content` arguments;
 `coldx_harden(my_game)` for release flags; `COLDX_HIDDEN("text")` from
-`<coldx/protect/hidden.h>` for strings.
+`<coldx/protect/hidden.h>` for strings. Watermarks: `watermark = rgb` or `alpha` under a
+`[texture]` section, `watermark = on` under `[sound]` (WAV), for builds with a `BUILD_ID`;
+`coldxc --project ... --identify file.png` reads them.
 
 **Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,
 `Texture2D::FromPixels(Graphics(), w, h, const Color*)`, `SetData(const Color*)`,

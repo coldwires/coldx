@@ -307,6 +307,21 @@ coldx_add_content(my_game PROJECT content/content.coldx
 coldxc --project content/content.coldx --identify suspicious.exe
 ```
 
+Watermarks, per section of the content project, for builds with a `BUILD_ID`:
+
+```
+[texture] art/*.png
+watermark = rgb            # painted art: lowest bits of colours
+[texture] sprites/*.png
+watermark = alpha          # pixel art: alpha 254 on opaque pixels, palette exact
+[sound] sfx/*.wav
+watermark = on             # lowest bits of non-silent samples
+```
+
+`coldxc --project content/content.coldx --identify ripped.png` names the build a file came
+from (add `--key-file` for an encrypted game). The marks change nothing a player can see
+or hear, survive a lossless re-save, and do not survive resizing or lossy re-encoding.
+
 `COLDX_HIDDEN("text")` (link `coldx::protect`) keeps a string out of the executable as
 text. None of this stops a determined reader of the game: the key and the strings are in
 the client. It stops casual extraction and makes leaked builds traceable.

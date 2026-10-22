@@ -9,6 +9,7 @@
 
 #include "project.h"
 #include "protect_build.h"
+#include "watermark.h"
 
 namespace coldx::content {
 
@@ -45,13 +46,16 @@ struct Hasher {
 
 std::uint64_t CacheKey(const Processor& p, const detail::Section& section, const Source& source) {
     Hasher h;
-    h.Add("coldxc cache 2");
+    h.Add("coldxc cache 3");
     h.Add(p.Name());
     const int version = p.Version();
     h.Add(&version, sizeof(version));
     for (const auto& [key, value] : section.settings) h.Add(key + "=" + value);
     h.Add(source.name);
     h.Add(source.bytes.data(), source.bytes.size());
+    // A watermarked output depends on the build's fingerprint and secret too.
+    const std::uint64_t mark[2] = {source.hasFingerprint ? source.fingerprint : 0, source.watermarkSecret};
+    h.Add(mark, sizeof(mark));
     return h.h;
 }
 
@@ -217,6 +221,9 @@ BuildResult Build(const BuildOptions& options, const std::vector<const Processor
         const detail::Section* section = pick.section;
         const Processor& processor = *byName.at(section->processor);
         Source source{file, pick.path.string(), {}};
+        source.hasFingerprint = !options.buildId.empty();
+        source.fingerprint = result.fingerprint;
+        source.watermarkSecret = detail::WatermarkSecret(seed, encrypt ? &key : nullptr);
         if (!ReadFile(pick.path, source.bytes)) {
             result.errors.push_back(file + ": cannot read");
             continue;

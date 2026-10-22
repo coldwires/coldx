@@ -4,6 +4,8 @@
 
 #include <SDL3/SDL.h>
 
+#include "watermark.h"
+
 // The built-in processors check that a source is what its section says, so a broken file
 // fails the build rather than the game, and store it unchanged.
 namespace coldx::content {
@@ -33,13 +35,32 @@ protected:
 class TextureProcessor : public Stored {
 public:
     std::string Name() const override { return "texture"; }
-    std::vector<std::string> SettingKeys() const override { return {"format"}; }
+    std::vector<std::string> SettingKeys() const override { return {"format", "watermark"}; }
 
     // format = png (the default) stores the PNG; format = raw stores the decoded,
     // premultiplied pixels, compressed: larger, but no PNG decode when it loads.
+    // watermark = rgb or alpha marks the PNG with the build's fingerprint (watermark.h).
     bool Process(const Source& source, const Settings& settings, std::vector<Output>& outputs, std::string& error) const override {
         const auto format = settings.find("format");
         const std::string kind = format == settings.end() ? "png" : format->second;
+        const auto watermark = settings.find("watermark");
+        const std::string mark = watermark == settings.end() ? "off" : watermark->second;
+        if (mark != "off" && mark != "rgb" && mark != "alpha") {
+            error = "watermark is off, rgb or alpha, not \"" + mark + "\"";
+            return false;
+        }
+        if (mark != "off" && kind != "png") {
+            error = "watermarks need format = png";
+            return false;
+        }
+        if (kind == "png" && mark != "off" && source.hasFingerprint) {
+            if (!Check(source.bytes, error)) return false;
+            Output out{source.name, rime::AssetType::Texture, {}, false};
+            const detail::PixelMark mode = mark == "alpha" ? detail::PixelMark::Alpha : detail::PixelMark::Rgb;
+            if (!detail::MarkPng(source.bytes, source.watermarkSecret, source.fingerprint, mode, out.bytes, error)) return false;
+            outputs.push_back(std::move(out));
+            return true;
+        }
         if (kind == "png") return Stored::Process(source, settings, outputs, error);
         if (kind != "raw") {
             error = "format is png or raw, not \"" + kind + "\"";
@@ -93,6 +114,29 @@ protected:
 class SoundProcessor : public Stored {
 public:
     std::string Name() const override { return "sound"; }
+    std::vector<std::string> SettingKeys() const override { return {"watermark"}; }
+
+    // watermark = on marks WAV files with the build's fingerprint. OGG cannot be marked
+    // without re-encoding it, so it is an error rather than a silent skip.
+    bool Process(const Source& source, const Settings& settings, std::vector<Output>& outputs, std::string& error) const override {
+        const auto watermark = settings.find("watermark");
+        const std::string mark = watermark == settings.end() ? "off" : watermark->second;
+        if (mark != "off" && mark != "on") {
+            error = "watermark is on or off, not \"" + mark + "\"";
+            return false;
+        }
+        if (mark == "off") return Stored::Process(source, settings, outputs, error);
+        if (!Check(source.bytes, error)) return false;
+        if (!StartsWith(source.bytes, "RIFF")) {
+            error = "watermark = on needs WAV; put OGG sounds in a section without it";
+            return false;
+        }
+        if (!source.hasFingerprint) return Stored::Process(source, settings, outputs, error);
+        Output out{source.name, rime::AssetType::Sound, {}, true};
+        if (!detail::MarkWav(source.bytes, source.watermarkSecret, source.fingerprint, out.bytes, error)) return false;
+        outputs.push_back(std::move(out));
+        return true;
+    }
 
 protected:
     rime::AssetType Type() const override { return rime::AssetType::Sound; }
