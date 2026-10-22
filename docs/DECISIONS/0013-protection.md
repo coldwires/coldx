@@ -27,9 +27,14 @@ game executable, string hiding touches game code.
   each read back from the suspect file alone with the project's secret (the seed, and the
   key if there is one). PNG: a private chunk, the filter chosen for each row, the colour of
   fully transparent pixels, and the lowest bit of a channel (or alpha 254/255 on opaque
-  pixels, which keeps a pixel-art palette exact) at positions scattered by the secret.
-  WAV: a private chunk and the lowest bit of non-silent samples. Each layer repeats an
-  80-bit payload (fingerprint and a 16-bit check) and decides by majority. Marked PNGs are
+  pixels, which keeps a pixel-art palette exact) at 80 places in every 32x32 tile,
+  shuffled by the secret. WAV: a private chunk and the lowest bit of non-silent samples at
+  80 places in every 2048. Each layer repeats an 80-bit payload (fingerprint and a 16-bit
+  check) and decides by majority. Tiling makes crops and trimmed clips readable: the
+  reader tries every alignment, and to keep false accusations out accepts one only with
+  two copies of every bit, 90% agreement and the check (40 random images and 20 wrong
+  secrets in the tests: no claims). The first version spread marks over the whole file
+  with a fixed stride, which needed the uncropped file and left a regular lattice. Marked PNGs are
   written by coldxc itself, as 8-bit RGBA, compressed with stb_image_write's zlib; stb_image
   supplies the decompressor that reads row filters back.
 - Strings: `COLDX_HIDDEN` in the header-only `protect` module scrambles literals at
@@ -40,7 +45,8 @@ text or class names) finds nothing useful. A reader with a debugger finds the ke
 `SetDefaultKey` and the revealed strings in memory; that is accepted, and written down
 where each piece is documented. Fingerprints are removable by anyone who knows where they
 are; they catch careless leaks, not careful ones. Watermark layers survive what the test
-shows: a direct rip keeps them all, a lossless re-save keeps the pixel bits (and often the
-transparent pixels); resizing, lossy re-encoding, screenshots and OGG files are not
+shows: a direct rip keeps them all, a lossless re-save or a crop of about 64x64 pixels or
+more keeps the pixel bits and transparent pixels, a trimmed clip keeps the sample bits;
+resizing, lossy re-encoding, screenshots and OGG files are not
 covered. A robust, spread-spectrum mark would be the next step if that matters. A game using `coldx_harden` cannot use
 `dynamic_cast` or `typeid` on its own types.

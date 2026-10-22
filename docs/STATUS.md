@@ -40,7 +40,7 @@ behaviour; `not started` has no code.
 |---|---|---|
 | 32 | `COLDX_HARDEN`, `coldx_harden`: no RTTI, whole-program optimization, no build-machine details (MSVC) | done |
 | 33 | Encrypted packages (`KEY_FILE`), fingerprints (`BUILD_ID`, `coldxc --identify`) | done |
-| 34 | Watermarks in PNG (chunk, row filters, transparent pixels, pixel bits) and WAV (chunk, sample bits) | done; not robust to resizing or lossy re-encoding |
+| 34 | Watermarks in PNG (chunk, row filters, transparent pixels, pixel bits) and WAV (chunk, sample bits); crops and trimmed clips read | done; not robust to resizing or lossy re-encoding |
 
 ## Shaders
 

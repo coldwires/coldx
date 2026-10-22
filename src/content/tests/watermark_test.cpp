@@ -1,11 +1,13 @@
 // Watermarks: every layer of a marked PNG and WAV reads back the fingerprint; the marks
 // stay invisible and inaudible (at most 1 per channel or sample, palettes and silence
 // untouched); a wrong secret finds nothing; a re-save by another encoder keeps exactly the
-// layers it should; and Build marks only when asked and when there is a build id.
+// layers it should; crops and trimmed clips still name the build; nothing unmarked is ever
+// named; and Build marks only when asked and when there is a build id.
 
 #include <coldx/coldx.h>
 #include <coldx/content/build.h>
 
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -120,12 +122,55 @@ void Painted() {
     CHECK(!Layer(after, "chunk")->found);
     CHECK(Found(after, "pixel bits (rgb)", Print));
     Found(after, "transparent pixels", Print);  // SDL keeps their colour; other editors may not
+
+    // Crops at odd offsets, re-saved: the tiles line up somewhere, and the reader finds where.
+    for (const auto& [cx, cy, cw, ch] : {std::array<int, 4>{13, 7, 70, 64}, std::array<int, 4>{29, 3, 66, 77}, std::array<int, 4>{0, 0, 96, 80}}) {
+        const auto crop = EncodePng(cw, ch, [&](int x, int y, std::uint8_t* q) {
+            std::memcpy(q, &b[(static_cast<size_t>(y + cy) * w2 + static_cast<size_t>(x + cx)) * 4], 4);
+        });
+        std::printf("crop %dx%d at (%d, %d):\n", cw, ch, cx, cy);
+        const auto inCrop = wm::ReadPng(crop, Secret);
+        CHECK(Found(inCrop, "pixel bits (rgb)", Print));
+        CHECK(Found(inCrop, "transparent pixels", Print));
+    }
+    // Too small to hold two copies of every bit: no claim, rather than a guess.
+    const auto tiny = EncodePng(20, 20, [&](int x, int y, std::uint8_t* q) { std::memcpy(q, &b[(static_cast<size_t>(y + 20) * w2 + x + 20) * 4], 4); });
+    CHECK(!Layer(wm::ReadPng(tiny, Secret), "pixel bits (rgb)")->found);
+}
+
+// Nothing unmarked is ever named: random images, and a marked image read with wrong secrets.
+void NoFalseAlarms() {
+    std::uint32_t x = 7;
+    int claims = 0;
+    for (int n = 0; n < 40; ++n) {
+        const auto noise = EncodePng(80, 72, [&](int, int, std::uint8_t* p) {
+            for (int c = 0; c < 4; ++c) {
+                x = x * 1664525u + 1013904223u;
+                p[c] = static_cast<std::uint8_t>(x >> 24);
+            }
+            p[3] = p[3] < 40 ? 0 : (p[3] < 120 ? 255 : p[3]);  // some transparent, some opaque
+        });
+        for (const wm::Finding& f : wm::ReadPng(noise, Secret)) claims += f.found ? 1 : 0;
+    }
+    const auto art = EncodePng(96, 96, [](int px, int py, std::uint8_t* p) {
+        p[0] = static_cast<std::uint8_t>(px * 2);
+        p[1] = static_cast<std::uint8_t>(py * 2);
+        p[2] = 50;
+        p[3] = 255;
+    });
+    std::vector<std::uint8_t> marked;
+    std::string error;
+    CHECK(wm::MarkPng(art, Secret, Print, wm::PixelMark::Rgb, marked, error));
+    for (std::uint64_t k = 1; k <= 20; ++k)
+        for (const wm::Finding& f : wm::ReadPng(marked, Secret * 31 + k)) claims += f.found ? 1 : 0;
+    std::printf("false alarms in 40 random images and 20 wrong secrets: %d\n", claims);
+    CHECK(claims == 0);
 }
 
 void PixelArt() {
     // Flat colours from a four-colour palette, fully opaque.
     const std::uint8_t palette[4][3] = {{20, 12, 28}, {68, 36, 52}, {208, 70, 72}, {222, 238, 214}};
-    const auto original = EncodePng(48, 48, [&](int x, int y, std::uint8_t* p) {
+    const auto original = EncodePng(64, 64, [&](int x, int y, std::uint8_t* p) {
         const auto& c = palette[((x / 6) + (y / 6)) % 4];
         p[0] = c[0];
         p[1] = c[1];
@@ -195,6 +240,14 @@ void Sound() {
     const SoundEffect a = SoundEffect::FromMemory(original.data(), original.size());
     const SoundEffect b = SoundEffect::FromMemory(marked.data(), marked.size());
     CHECK(!a.IsEmpty() && !b.IsEmpty() && std::fabs(a.Duration() - b.Duration()) < 1e-6f);
+
+    // Trimmed: the first 1234 samples and the chunk gone, as an editor would cut it.
+    std::vector<std::int16_t> trimmed;
+    for (size_t i = 1234; i < samples.size(); ++i) trimmed.push_back(static_cast<std::int16_t>(marked[44 + i * 2] | (marked[45 + i * 2] << 8)));
+    std::printf("trimmed by 1234 samples:\n");
+    const auto cut = wm::ReadWav(Wav(trimmed), Secret);
+    CHECK(Found(cut, "sample bits", Print));
+    CHECK(!Layer(cut, "chunk")->found);
 }
 
 void Write(const fs::path& path, const std::vector<std::uint8_t>& bytes) {
@@ -335,6 +388,7 @@ void Damaged() {
 int main() {
     SDL_SetEnvironmentVariable(SDL_GetEnvironment(), "COLDX_HEADLESS", "1", true);
     Painted();
+    NoFalseAlarms();
     PixelArt();
     Sound();
     Pipeline();
