@@ -277,7 +277,7 @@ void VirtualScene(HumanScene& s) {
 
 void RegisterFeatures() {
     AutoTests().push_back({"VRES-01", "P1", "Virtual resolution placement", VirtualResolution});
-    AutoTests().push_back({"FS-01", "P1", "Exclusive fullscreen", ExclusiveFullscreen});
+    AutoTests().push_back({"FS-01", "P1", "Exclusive fullscreen", ExclusiveFullscreen, true});
     AutoTests().push_back({"TIME-05", "P1", "Drawing between updates", DrawBetweenUpdates});
     HumanTests().push_back({"AUD-06", "P1", "Music crossfade",
                             {"Switch between the two tracks with each key, several times, also mid-fade.",

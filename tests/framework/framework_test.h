@@ -38,6 +38,9 @@ struct AutoTest {
     std::string priority;
     std::string title;
     std::function<Result()> run;
+    // Changes the desktop (the display mode), which can leave Windows' taskbar laid out for
+    // the wrong resolution: run only when asked for by --only.
+    bool onlyWhenNamed = false;
 };
 
 // A test a person has to judge: instructions, and a scene with live readouts.
