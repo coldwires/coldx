@@ -70,8 +70,10 @@ int main() {
         CHECK(game.Run() == 0);
         std::printf("on: %d updates, %d draws in %.2f s, up to %d draws between updates\n", game.updates, game.draws,
                     game.seconds, game.maxDrawsBetween);
-        CHECK(game.draws > game.updates * 2);
-        CHECK(game.maxDrawsBetween > 2);
+        // How many frames fit between updates depends on the GPU and what else the machine is
+        // doing (35 to 90 here); that there are some is what is being tested.
+        CHECK(game.draws > game.updates);
+        CHECK(game.maxDrawsBetween >= 2);
         CHECK(game.updates >= 28 && game.updates <= 33);  // 0.5 s at 60 per second
         CHECK(game.alphaInRange && game.alphaRises && game.updateAlphaZero);
     }
