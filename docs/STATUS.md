@@ -23,7 +23,7 @@ behaviour; `not started` has no code.
 | 13 | Audio: `SoundEffect`, `SoundEffectInstance`, streaming `Music`, `MediaPlayer` with crossfade and fade out | done |
 | 14 | `GameComponent`, `DrawableGameComponent` | done |
 | 15 | `ContentManager`: loose files, cache, `RegisterLoader`, `RegisterDataLoader`, `ReadBytes` | done |
-| 28 | `ContentManager` reading packed `.rime` content: mount, default package, checks | done |
+| 28 | `ContentManager` reading packed `.rime` content: mount, default package, checks, LZ4 entries, raw textures | done |
 | 16 | Math: `Vector2`, `Rectangle`, `Color` | done |
 | 17 | Math: `Point`, `Matrix`, `MathHelper` | done |
 | 18 | Custom shaders when drawing (`Effect`); `SpriteBatch::Begin` will take one | not started |

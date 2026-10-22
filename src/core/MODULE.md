@@ -5,7 +5,7 @@ drawing, keyboard, mouse and gamepad input, audio, per-user storage, math types,
 the debug options.
 **Layer:** 0
 **Depends on:** none
-**Third-party:** SDL3, stb, dr_libs
+**Third-party:** SDL3, stb, dr_libs, lz4
 **Public headers:** `include/coldx/core/`, all included by `include/coldx/coldx.h`
 **Library target:** `coldx::core`
 **Size:** ~9.5k lines

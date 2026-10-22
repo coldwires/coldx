@@ -29,6 +29,14 @@ core may not depend on. The spec also has processors turn sources into GPU-ready
   compressed and encrypted flags. A v1 reader refuses entries with flags it does not know,
   and versions it does not know.
 
+**Later (2026-10-21).** Compression came in with LZ4 (owner's go-ahead): the writer
+stores an entry as one LZ4 block, compressed at the highest level, when that saves at
+least a twentieth, so WAV, TTF and data shrink and PNG and OGG stay as they are. The
+reader caps the claimed size of a compressed entry at what LZ4 can expand to before
+allocating. `[texture]` takes `format = raw` to store decoded, premultiplied pixels behind
+a binary tag: a 1280x720 frame was 74 KB as PNG and 84 KB raw and compressed, with no PNG
+decode at load. PNG stays the default.
+
 **Consequences.** Packages are about the size of their sources. Load time is what loose
 files cost now, minus the file system. When compression is added, a processor can store
 decoded, compressed data under the same entry flags without a format change. The hash

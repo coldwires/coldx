@@ -24,12 +24,12 @@
 //   entry table: entry count entries of 40 bytes, sorted by hash
 //     0  u64        name hash
 //     8  u8         asset type
-//     9  u8         entry flags (0; compressed and encrypted are reserved)
+//     9  u8         entry flags: compressed (LZ4 block); encrypted is reserved
 //     10 u16        reserved
-//     12 u32        CRC-32 of the stored bytes
+//     12 u32        CRC-32 of the stored bytes (after compression)
 //     16 u64        offset of the stored bytes
 //     24 u64        stored size
-//     32 u64        original size (the stored size until compression exists)
+//     32 u64        original size: the stored size, or the size after decompressing
 //   the stored bytes of each entry, each starting on a 16-byte boundary
 //
 // No name, type name or extension is written: entries are known by the hash of their
@@ -52,12 +52,16 @@ enum class AssetType : std::uint8_t {
     FirstCustom = 128,
 };
 
-// Per-entry flags. Reserved for later versions; a version 1 reader refuses an entry that
-// has any.
+// Per-entry flags. A reader refuses an entry with a flag it does not know.
 enum EntryFlags : std::uint8_t {
-    Compressed = 1u << 0,
+    Compressed = 1u << 0,  // the stored bytes are one LZ4 block
     Encrypted = 1u << 1,
 };
+
+// A texture stored decoded, for loading without a PNG decode: this tag (not text), then
+// u32 width, u32 height, and width * height premultiplied RGBA pixels, rows top to bottom.
+inline constexpr std::uint8_t RawTextureTag[4] = {0xC7, 0x8E, 0x31, 0xD4};
+inline constexpr std::size_t RawTextureHeader = 12;
 
 // The form names are hashed in: lower case, forward slashes, no leading "./" or "/".
 // "Sprites\Player.PNG" is "sprites/player.png".
@@ -73,7 +77,9 @@ public:
     explicit PackageWriter(std::uint64_t seed) : seed_(seed) {}
 
     // Adds name (normalized here). False, logged, if the name or its hash is already in.
-    bool Add(std::string_view name, AssetType type, std::vector<std::uint8_t> bytes);
+    // With compress, Finish stores the entry compressed if that saves at least a twentieth:
+    // already-compressed data (PNG, OGG) stays as it is.
+    bool Add(std::string_view name, AssetType type, std::vector<std::uint8_t> bytes, bool compress = true);
     std::size_t Count() const { return entries_.size(); }
 
     // The whole package. The same entries give the same bytes, in any order of Add.
@@ -85,6 +91,7 @@ private:
         std::string name;
         AssetType type;
         std::vector<std::uint8_t> bytes;
+        bool compress;
     };
     std::uint64_t seed_;
     std::vector<Pending> entries_;

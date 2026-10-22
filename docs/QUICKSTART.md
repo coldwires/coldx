@@ -144,7 +144,8 @@ first. Release builds read loose files only while no package is mounted
 loose files only. To pack: a `content/content.coldx` project (`seed = my game`, then
 sections like `[texture] sprites/*.png`, `[sound] sounds/*.wav`, `[music] music/*.ogg`,
 `[font] fonts/*.ttf`, `[data] levels/*.lvl`; `from = ../shared` under a section takes its
-files from another folder) and `coldx_add_content(my_game PROJECT content/content.coldx)`
+files from another folder; `format = raw` under `[texture]` skips PNG decoding at load) and
+`coldx_add_content(my_game PROJECT content/content.coldx)`
 in CMake (link nothing extra). The README's Content section has more.
 
 **Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,

@@ -124,8 +124,11 @@ void EndToEnd(const fs::path& dir) {
           "from = ../shared\n"
           "[data] levels/**\n"
           "[upper] notes/*.txt\n"
-          "suffix = !\n");
+          "suffix = !\n"
+          "[texture] raw/*.png\n"
+          "format = raw\n");
     WritePng(dir / "content" / "sprites" / "player.png", 6, 3);
+    WritePng(dir / "content" / "raw" / "tiles.png", 64, 32);
     fs::create_directories(dir / "content" / "sounds");
     fs::copy_file(COLDX_TEST_WAV, dir / "content" / "sounds" / "blip.wav");
     fs::create_directories(dir / "content" / "music");
@@ -145,14 +148,14 @@ void EndToEnd(const fs::path& dir) {
 
     BuildResult r = Build(options, tools.list);
     for (const std::string& e : r.errors) std::printf("error: %s\n", e.c_str());
-    CHECK(r.ok && r.written && r.sources == 7 && r.entries == 7 && r.processed == 7 && r.cached == 0);
+    CHECK(r.ok && r.written && r.sources == 8 && r.entries == 8 && r.processed == 8 && r.cached == 0);
     CHECK(tools.upper->runs == 1);
     const std::string first = Read(options.output);
     CHECK(first.find("player") == std::string::npos && first.find("levels") == std::string::npos);
 
     // Again: everything from the cache, and the package is left as it was.
     r = Build(options, tools.list);
-    CHECK(r.ok && !r.written && r.cached == 7 && r.processed == 0 && tools.upper->runs == 1);
+    CHECK(r.ok && !r.written && r.cached == 8 && r.processed == 0 && tools.upper->runs == 1);
     // Without the cache, the same bytes: builds are deterministic.
     BuildOptions fresh = options;
     fresh.cacheDirectory.clear();
@@ -161,7 +164,7 @@ void EndToEnd(const fs::path& dir) {
     // One change: one source processed, the package rewritten.
     Write(dir / "content" / "notes" / "hello.txt", "hello again");
     r = Build(options, tools.list);
-    CHECK(r.ok && r.written && r.processed == 1 && r.cached == 6 && tools.upper->runs == 3);
+    CHECK(r.ok && r.written && r.processed == 1 && r.cached == 7 && tools.upper->runs == 3);
 
     // The game reads it all, by the names it would use for loose files.
     Driver game;
@@ -170,6 +173,11 @@ void EndToEnd(const fs::path& dir) {
         c.SetLooseFiles(LooseFiles::Never);
         CHECK(c.Mount(options.output));
         CHECK(c.Load<Texture2D>("sprites/player").Width() == 6);
+        // Stored decoded: the same pixels as the PNG, premultiplied.
+        const Texture2D tiles = c.Load<Texture2D>("raw/tiles");
+        std::vector<Color> px(64 * 32);
+        CHECK(tiles.Width() == 64 && tiles.Height() == 32 && tiles.GetData(px.data()));
+        CHECK(px.front() == Color(0, 0, 255, 255) && px.back() == Color(0, 0, 255, 255));
         CHECK(!c.Load<SoundEffect>("sounds/blip").IsEmpty());
         CHECK(!c.Load<Music>("music/theme").IsEmpty());
         CHECK(!c.LoadFont("main", 20).IsEmpty());
@@ -204,6 +212,7 @@ void Failures(const fs::path& dir) {
     Write(dir / "bad" / "a.txt", "a");
     Write(dir / "bad" / "a.up.txt", "x");
     CHECK(build("[texture] broken.png\n").find("broken.png: [texture] PNG does not decode") != std::string::npos);
+    CHECK(build("[texture] broken.png\nformat = jpeg\n").find("format is png or raw") != std::string::npos);
     CHECK(build("[sound] a.txt\n").find("neither WAV nor OGG") != std::string::npos);
     CHECK(build("[shader] a.txt\n").find("line 1: no processor \"shader\"") != std::string::npos);
     CHECK(build("[data] a.txt\nlevel = 3\n").find("has no setting \"level\"") != std::string::npos);

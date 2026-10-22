@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include <SDL3/SDL.h>
+#include <lz4/lz4.h>
 
 #include "rime_bytes.h"
 
@@ -80,8 +81,16 @@ bool Package::Parse(std::uint64_t fileSize) {
         entry.crc = Get32(e + 12);
         entry.offset = Get64(e + 16);
         entry.size = Get64(e + 24);
+        entry.originalSize = Get64(e + 32);
         if (entry.offset > fileSize || entry.size > fileSize - entry.offset) return fail("an entry lies outside the file");
-        if (Get64(e + 32) != entry.size) return fail("an entry's sizes disagree");
+        if (entry.flags & rime::Compressed) {
+            // LZ4 expands at most about 255 to 1; anything claiming more is damaged or hostile,
+            // and must not be allowed to ask for a huge allocation.
+            if (entry.originalSize > entry.size * 255 + 64 || entry.originalSize > std::uint64_t{LZ4_MAX_INPUT_SIZE})
+                return fail("an entry's sizes disagree");
+        } else if (entry.originalSize != entry.size) {
+            return fail("an entry's sizes disagree");
+        }
         if (i > 0 && entries_[i - 1].hash >= entry.hash) return fail("entry table not sorted");
     }
     SDL_Log("coldx.core: mounted %s, %u entries", label_.c_str(), count);
@@ -95,17 +104,28 @@ const Package::Entry* Package::Find(const std::string& name) const {
 }
 
 bool Package::Read(const Entry& entry, std::vector<std::uint8_t>& out) const {
-    if (entry.flags != 0) {
-        SDL_Log("coldx.core: %s: an entry is compressed or encrypted, which this version cannot read", label_.c_str());
+    if (entry.flags & ~rime::Compressed) {
+        SDL_Log("coldx.core: %s: an entry is encrypted or uses a feature this version cannot read", label_.c_str());
         return false;
     }
-    out.resize(static_cast<size_t>(entry.size));
-    if (!ReadAt(entry.offset, out.data(), out.size())) {
+    std::vector<std::uint8_t> stored(static_cast<size_t>(entry.size));
+    if (!ReadAt(entry.offset, stored.data(), stored.size())) {
         SDL_Log("coldx.core: %s: read failed", label_.c_str());
         return false;
     }
-    if (rime::Crc32(out.data(), out.size()) != entry.crc) {
+    if (rime::Crc32(stored.data(), stored.size()) != entry.crc) {
         SDL_Log("coldx.core: %s: an entry is damaged (CRC mismatch)", label_.c_str());
+        return false;
+    }
+    if (!(entry.flags & rime::Compressed)) {
+        out = std::move(stored);
+        return true;
+    }
+    out.resize(static_cast<size_t>(entry.originalSize));
+    const int got = LZ4_decompress_safe(reinterpret_cast<const char*>(stored.data()), reinterpret_cast<char*>(out.data()),
+                                        static_cast<int>(stored.size()), static_cast<int>(out.size()));
+    if (got < 0 || static_cast<std::uint64_t>(got) != entry.originalSize) {
+        SDL_Log("coldx.core: %s: an entry does not decompress", label_.c_str());
         return false;
     }
     return true;

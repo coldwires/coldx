@@ -30,7 +30,8 @@ so a game that only loads packages does not link this module. Tools link it.
 - `project.*`: the project file (`seed`, `[processor] patterns`, `key = value`), glob
   matching, listing a folder.
 - `processors.cpp`: the built-in processors. Each checks its source (a PNG is decoded) and
-  stores it unchanged.
+  stores it unchanged, except `[texture] format = raw`, which stores decoded pixels.
+  Compression is the writer's (`rime::PackageWriter`), per entry, when it helps.
 - `build.cpp`: assigning files to sections (`from` moves a section's base folder), the
   cache, the package, and writing it only when it changed.
 - `tool.cpp`: `RunTool`. `tools/coldxc/main.cpp` is `RunTool` with nothing added.

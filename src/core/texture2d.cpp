@@ -3,7 +3,12 @@
 
 #include <SDL3/SDL.h>
 
+#include <coldx/core/rime.h>
+
+#include <algorithm>
+
 #include "content_path.h"
+#include "rime_bytes.h"
 #include "gpu_download.h"
 #include "graphics_access.h"
 #include "texture_access.h"
@@ -185,6 +190,18 @@ Texture2D Texture2D::FromFile(GraphicsDevice& graphics, const std::string& path)
 }
 
 Texture2D Texture2D::FromMemory(GraphicsDevice& graphics, const void* png, std::size_t size, const std::string& name) {
+    const auto* bytes = static_cast<const std::uint8_t*>(png);
+    if (bytes && size >= rime::RawTextureHeader && std::equal(std::begin(rime::RawTextureTag), std::end(rime::RawTextureTag), bytes)) {
+        const std::uint32_t w = detail::Get32(bytes + 4), h = detail::Get32(bytes + 8);
+        if (w == 0 || h == 0 || w > 16384 || h > 16384 || size - rime::RawTextureHeader != std::size_t{w} * h * 4) {
+            SDL_Log("coldx.core: %s: a stored texture with the wrong size", name.c_str());
+            return {};
+        }
+        // Pixels are not aligned for Color here; copy them out.
+        std::vector<Color> pixels(std::size_t{w} * h);
+        SDL_memcpy(pixels.data(), bytes + rime::RawTextureHeader, pixels.size() * 4);
+        return FromPixels(graphics, static_cast<int>(w), static_cast<int>(h), pixels.data());
+    }
     SDL_IOStream* io = png ? SDL_IOFromConstMem(png, size) : nullptr;
     return FromSurface(graphics, io ? SDL_LoadPNG_IO(io, true) : nullptr, name);
 }

@@ -23,6 +23,7 @@ public:
         std::uint32_t crc = 0;
         std::uint64_t offset = 0;
         std::uint64_t size = 0;
+        std::uint64_t originalSize = 0;
     };
 
     // Null, with the reason logged, if path is not a package this version can read.
@@ -33,7 +34,8 @@ public:
 
     // The entry for a content name, or null. The name is normalized here.
     const Entry* Find(const std::string& name) const;
-    // The entry's bytes. False, logged, on a read error or a CRC mismatch.
+    // The entry's bytes, decompressed. False, logged, on a read error, a CRC mismatch or
+    // data that does not decompress to its recorded size.
     bool Read(const Entry& entry, std::vector<std::uint8_t>& out) const;
 
     const std::string& Label() const { return label_; }

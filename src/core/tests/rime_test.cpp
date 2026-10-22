@@ -128,6 +128,68 @@ void Malformed() {
     CHECK(hurt && !hurt->Read(*hurt->Find("x"), out));
 }
 
+// Entries that shrink are stored as LZ4 blocks; ones that do not (already compressed
+// data) are stored as they are. Compressed entries that lie about their size, or do not
+// decompress, are refused without reading past anything.
+void Compression() {
+    std::vector<std::uint8_t> text;
+    for (int i = 0; i < 20000; ++i) {
+        const std::string line = "line " + std::to_string(i % 97) + " of a very repetitive level file\n";
+        text.insert(text.end(), line.begin(), line.end());
+    }
+    std::vector<std::uint8_t> noise(50000);
+    std::uint32_t x = 12345;
+    for (auto& b : noise) {
+        x = x * 1664525u + 1013904223u;
+        b = static_cast<std::uint8_t>(x >> 24);
+    }
+    rime::PackageWriter w(3);
+    w.Add("level.txt", rime::AssetType::Data, text);
+    w.Add("noise.bin", rime::AssetType::Data, noise);
+    w.Add("raw.txt", rime::AssetType::Data, text, false);
+    const std::vector<std::uint8_t> p = w.Finish();
+    CHECK(p.size() < text.size() + noise.size() + text.size() / 2);  // level.txt shrank
+
+    auto entryFor = [&](const char* name) -> const std::uint8_t* {
+        const std::uint64_t hash = rime::HashName(3, name);
+        for (int i = 0; i < 3; ++i)
+            if (detail::Get64(&p[48 + 40 * i]) == hash) return &p[48 + 40 * i];
+        return nullptr;
+    };
+    const std::uint8_t* level = entryFor("level.txt");
+    const std::uint8_t* rand = entryFor("noise.bin");
+    const std::uint8_t* raw = entryFor("raw.txt");
+    CHECK(level && rand && raw);
+    if (!level || !rand || !raw) return;
+    CHECK(level[9] == rime::Compressed && detail::Get64(level + 24) < text.size() / 4 && detail::Get64(level + 32) == text.size());
+    CHECK(rand[9] == 0 && detail::Get64(rand + 24) == noise.size());
+    CHECK(raw[9] == 0 && detail::Get64(raw + 24) == text.size());
+    std::printf("level.txt: %zu bytes stored as %llu\n", text.size(), static_cast<unsigned long long>(detail::Get64(level + 24)));
+
+    auto package = detail::Package::FromMemory(p, "compressed");
+    std::vector<std::uint8_t> out;
+    CHECK(package && package->Read(*package->Find("level.txt"), out) && out == text);
+    CHECK(package && package->Read(*package->Find("noise.bin"), out) && out == noise);
+
+    // A claimed size far beyond what LZ4 can expand to: refused when mounting.
+    const size_t at = static_cast<size_t>(level - p.data());
+    std::vector<std::uint8_t> bomb = p;
+    detail::Put64(&bomb[at + 32], 1ull << 40);
+    CHECK(detail::Package::FromMemory(bomb, "bomb") == nullptr);
+    // A plausible but wrong size: mounts, and the read fails.
+    std::vector<std::uint8_t> shorter = p;
+    detail::Put64(&shorter[at + 32], text.size() - 1);
+    auto wrong = detail::Package::FromMemory(shorter, "wrong size");
+    CHECK(wrong && !wrong->Read(*wrong->Find("level.txt"), out));
+    // Garbage in the block with a CRC to match: the decoder stops inside its buffers.
+    std::vector<std::uint8_t> garbled = p;
+    const size_t data = static_cast<size_t>(detail::Get64(level + 16)), size = static_cast<size_t>(detail::Get64(level + 24));
+    for (size_t i = 0; i < size; i += 7) garbled[data + i] ^= 0x5A;
+    detail::Put32(&garbled[at + 12], rime::Crc32(&garbled[data], size));
+    auto bad = detail::Package::FromMemory(garbled, "garbled");
+    CHECK(bad && !bad->Read(*bad->Find("level.txt"), out));
+}
+
 struct Level {
     std::string text;
 };
@@ -233,6 +295,7 @@ int main() {
     SDL_SetEnvironmentVariable(SDL_GetEnvironment(), "COLDX_HEADLESS", "1", true);
     Format();
     Malformed();
+    Compression();
     const fs::path dir = fs::temp_directory_path() / "coldx_rime_test";
     fs::remove_all(dir);
     Loading(dir);
