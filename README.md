@@ -209,7 +209,9 @@ coldx_add_content(my_game PROJECT content/content.coldx)
 ```
 
 `coldxc` builds `content.rime` beside the game whenever a file in the folder changes, and
-leaves it alone when nothing did. Names in the package are hashed, never stored. The same
+leaves it alone when nothing did. Entries that compress (WAV, fonts, data) are stored with
+LZ4; `format = raw` under a `[texture]` section stores decoded pixels, which load without
+a PNG decode for a little more space. Names in the package are hashed, never stored. The same
 `Load` calls work packed and loose; release builds stop reading loose files once a
 package is mounted. A game adds its own asset types with a `coldx::content::Processor`
 and a tool of its own that calls `coldx::content::RunTool` with it (see

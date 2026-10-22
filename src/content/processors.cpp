@@ -19,11 +19,13 @@ class Stored : public Processor {
 public:
     bool Process(const Source& source, const Settings&, std::vector<Output>& outputs, std::string& error) const override {
         if (!Check(source.bytes, error)) return false;
-        outputs.push_back({source.name, Type(), source.bytes});
+        outputs.push_back({source.name, Type(), source.bytes, Compressible()});
         return true;
     }
 
 protected:
+    // Formats that are compressed already never shrink; not trying saves build time.
+    virtual bool Compressible() const { return true; }
     virtual rime::AssetType Type() const = 0;
     virtual bool Check(const std::vector<std::uint8_t>& bytes, std::string& error) const = 0;
 };
@@ -31,9 +33,44 @@ protected:
 class TextureProcessor : public Stored {
 public:
     std::string Name() const override { return "texture"; }
+    std::vector<std::string> SettingKeys() const override { return {"format"}; }
+
+    // format = png (the default) stores the PNG; format = raw stores the decoded,
+    // premultiplied pixels, compressed: larger, but no PNG decode when it loads.
+    bool Process(const Source& source, const Settings& settings, std::vector<Output>& outputs, std::string& error) const override {
+        const auto format = settings.find("format");
+        const std::string kind = format == settings.end() ? "png" : format->second;
+        if (kind == "png") return Stored::Process(source, settings, outputs, error);
+        if (kind != "raw") {
+            error = "format is png or raw, not \"" + kind + "\"";
+            return false;
+        }
+        if (!Check(source.bytes, error)) return false;
+        SDL_IOStream* io = SDL_IOFromConstMem(source.bytes.data(), source.bytes.size());
+        SDL_Surface* loaded = io ? SDL_LoadPNG_IO(io, true) : nullptr;
+        SDL_Surface* rgba = loaded ? SDL_ConvertSurface(loaded, SDL_PIXELFORMAT_RGBA32) : nullptr;
+        SDL_DestroySurface(loaded);
+        if (!rgba || !SDL_PremultiplySurfaceAlpha(rgba, false)) {
+            error = std::string("could not decode to RGBA: ") + SDL_GetError();
+            SDL_DestroySurface(rgba);
+            return false;
+        }
+        Output out{source.name, rime::AssetType::Texture, {}, true};
+        out.bytes.assign(std::begin(rime::RawTextureTag), std::end(rime::RawTextureTag));
+        for (std::uint32_t v : {static_cast<std::uint32_t>(rgba->w), static_cast<std::uint32_t>(rgba->h)})
+            for (int i = 0; i < 4; ++i) out.bytes.push_back(static_cast<std::uint8_t>(v >> (8 * i)));
+        for (int y = 0; y < rgba->h; ++y) {
+            const auto* row = static_cast<const std::uint8_t*>(rgba->pixels) + static_cast<size_t>(y) * rgba->pitch;
+            out.bytes.insert(out.bytes.end(), row, row + static_cast<size_t>(rgba->w) * 4);
+        }
+        SDL_DestroySurface(rgba);
+        outputs.push_back(std::move(out));
+        return true;
+    }
 
 protected:
     rime::AssetType Type() const override { return rime::AssetType::Texture; }
+    bool Compressible() const override { return false; }
     bool Check(const std::vector<std::uint8_t>& bytes, std::string& error) const override {
         if (!StartsWith(bytes, "\x89PNG\r\n\x1a\n")) {
             error = "not a PNG";
@@ -72,6 +109,7 @@ public:
 
 protected:
     rime::AssetType Type() const override { return rime::AssetType::Music; }
+    bool Compressible() const override { return false; }
     bool Check(const std::vector<std::uint8_t>& bytes, std::string& error) const override {
         if (StartsWith(bytes, "OggS")) return true;
         error = "not OGG (music streams OGG Vorbis only)";

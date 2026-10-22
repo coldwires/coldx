@@ -5,6 +5,8 @@
 
 #include <SDL3/SDL.h>
 
+#include <lz4/lz4hc.h>
+
 #include "rime_bytes.h"
 
 namespace coldx::rime {
@@ -56,7 +58,7 @@ std::uint32_t Crc32(const void* data, std::size_t size) {
     return crc ^ 0xFFFFFFFFu;
 }
 
-bool PackageWriter::Add(std::string_view name, AssetType type, std::vector<std::uint8_t> bytes) {
+bool PackageWriter::Add(std::string_view name, AssetType type, std::vector<std::uint8_t> bytes, bool compress) {
     std::string normal = NormalizeName(name);
     const std::uint64_t hash = HashName(seed_, normal);
     for (const Pending& p : entries_) {
@@ -71,7 +73,7 @@ bool PackageWriter::Add(std::string_view name, AssetType type, std::vector<std::
             return false;
         }
     }
-    entries_.push_back({hash, std::move(normal), type, std::move(bytes)});
+    entries_.push_back({hash, std::move(normal), type, std::move(bytes), compress});
     return true;
 }
 
@@ -93,19 +95,35 @@ std::vector<std::uint8_t> PackageWriter::Finish() const {
     detail::Put64(h + 16, seed_);
     detail::Put64(h + 24, tableOffset);
 
+    std::vector<std::uint8_t> packed;
     for (size_t i = 0; i < sorted.size(); ++i) {
         const Pending& p = *sorted[i];
+        // LZ4 at its highest level: packing is done once, loading many times, and the
+        // decoder is as fast whatever level the data was compressed at.
+        const std::vector<std::uint8_t>* stored = &p.bytes;
+        std::uint8_t flags = 0;
+        if (p.compress && !p.bytes.empty() && p.bytes.size() <= static_cast<size_t>(LZ4_MAX_INPUT_SIZE)) {
+            const int bound = LZ4_compressBound(static_cast<int>(p.bytes.size()));
+            packed.resize(static_cast<size_t>(bound));
+            const int size = LZ4_compress_HC(reinterpret_cast<const char*>(p.bytes.data()), reinterpret_cast<char*>(packed.data()),
+                                             static_cast<int>(p.bytes.size()), bound, LZ4HC_CLEVEL_MAX);
+            if (size > 0 && static_cast<size_t>(size) <= p.bytes.size() - p.bytes.size() / 20) {
+                packed.resize(static_cast<size_t>(size));
+                stored = &packed;
+                flags = Compressed;
+            }
+        }
         std::uint8_t* e = out.data() + tableOffset + EntrySize * i;
         detail::Put64(e, p.hash);
         e[8] = static_cast<std::uint8_t>(p.type);
-        e[9] = 0;
-        detail::Put32(e + 12, Crc32(p.bytes.data(), p.bytes.size()));
+        e[9] = flags;
+        detail::Put32(e + 12, Crc32(stored->data(), stored->size()));
         detail::Put64(e + 16, dataOffset);
-        detail::Put64(e + 24, p.bytes.size());
+        detail::Put64(e + 24, stored->size());
         detail::Put64(e + 32, p.bytes.size());
-        const std::uint64_t end = detail::AlignUp(dataOffset + p.bytes.size());
+        const std::uint64_t end = detail::AlignUp(dataOffset + stored->size());
         out.resize(static_cast<size_t>(end), 0);
-        std::copy(p.bytes.begin(), p.bytes.end(), out.begin() + static_cast<std::ptrdiff_t>(dataOffset));
+        std::copy(stored->begin(), stored->end(), out.begin() + static_cast<std::ptrdiff_t>(dataOffset));
         dataOffset = end;
     }
     return out;

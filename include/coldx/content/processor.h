@@ -23,6 +23,8 @@ struct Output {
     std::string name;
     rime::AssetType type = rime::AssetType::Data;
     std::vector<std::uint8_t> bytes;
+    // Compress if that saves space. Turn off for data that never shrinks, to save build time.
+    bool compress = true;
 };
 
 // The "key = value" lines under a section of the project file.
@@ -50,7 +52,9 @@ public:
 };
 
 // texture (PNG), sound (WAV, OGG), music (OGG), font (TTF, OTF) and data (anything). Each
-// checks its sources and stores them as they are.
+// checks its sources and stores them as they are, compressed when that helps.
+// texture takes "format = raw" to store decoded pixels instead, which
+// load without a PNG decode.
 std::vector<std::unique_ptr<Processor>> BuiltInProcessors();
 
 } // namespace coldx::content

@@ -44,7 +44,7 @@ struct Hasher {
 
 std::uint64_t CacheKey(const Processor& p, const detail::Section& section, const Source& source) {
     Hasher h;
-    h.Add("coldxc cache 1");
+    h.Add("coldxc cache 2");
     h.Add(p.Name());
     const int version = p.Version();
     h.Add(&version, sizeof(version));
@@ -54,8 +54,8 @@ std::uint64_t CacheKey(const Processor& p, const detail::Section& section, const
     return h.h;
 }
 
-// Cache files: "CXC1", then per output a u32 name length, the name, a u8 type, a u64
-// size and the bytes. Anything that does not parse is treated as no cache.
+// Cache files: "CXC2", then per output a u32 name length, the name, a u8 type, a u8
+// compress flag, a u64 size and the bytes. Anything that does not parse is treated as no cache.
 void PutU32(std::string& out, std::uint32_t v) {
     for (int i = 0; i < 4; ++i) out += static_cast<char>(v >> (8 * i));
 }
@@ -65,7 +65,7 @@ void PutU64(std::string& out, std::uint64_t v) {
 
 bool LoadCache(const fs::path& file, std::vector<Output>& outputs) {
     std::vector<std::uint8_t> b;
-    if (!ReadFile(file, b) || b.size() < 4 || std::string(b.begin(), b.begin() + 4) != "CXC1") return false;
+    if (!ReadFile(file, b) || b.size() < 4 || std::string(b.begin(), b.begin() + 4) != "CXC2") return false;
     size_t at = 4;
     auto take = [&](size_t n, std::uint64_t& v) {
         if (b.size() - at < n) return false;
@@ -76,13 +76,14 @@ bool LoadCache(const fs::path& file, std::vector<Output>& outputs) {
     };
     std::vector<Output> read;
     while (at < b.size()) {
-        std::uint64_t nameLength = 0, type = 0, size = 0;
+        std::uint64_t nameLength = 0, type = 0, compress = 0, size = 0;
         if (!take(4, nameLength) || b.size() - at < nameLength) return false;
         Output o;
         o.name.assign(b.begin() + static_cast<std::ptrdiff_t>(at), b.begin() + static_cast<std::ptrdiff_t>(at + nameLength));
         at += static_cast<size_t>(nameLength);
-        if (!take(1, type) || !take(8, size) || b.size() - at < size) return false;
+        if (!take(1, type) || !take(1, compress) || !take(8, size) || b.size() - at < size) return false;
         o.type = static_cast<rime::AssetType>(type);
+        o.compress = compress != 0;
         o.bytes.assign(b.begin() + static_cast<std::ptrdiff_t>(at), b.begin() + static_cast<std::ptrdiff_t>(at + size));
         at += static_cast<size_t>(size);
         read.push_back(std::move(o));
@@ -92,11 +93,12 @@ bool LoadCache(const fs::path& file, std::vector<Output>& outputs) {
 }
 
 void SaveCache(const fs::path& file, const std::vector<Output>& outputs) {
-    std::string out = "CXC1";
+    std::string out = "CXC2";
     for (const Output& o : outputs) {
         PutU32(out, static_cast<std::uint32_t>(o.name.size()));
         out += o.name;
         out += static_cast<char>(o.type);
+        out += static_cast<char>(o.compress ? 1 : 0);
         PutU64(out, o.bytes.size());
         out.append(o.bytes.begin(), o.bytes.end());
     }
@@ -222,7 +224,7 @@ BuildResult Build(const BuildOptions& options, const std::vector<const Processor
             if (options.verbose) std::printf("  processed  %s\n", file.c_str());
         }
         for (Output& o : outputs) {
-            if (!writer.Add(o.name, o.type, std::move(o.bytes)))
+            if (!writer.Add(o.name, o.type, std::move(o.bytes), o.compress))
                 result.errors.push_back(file + ": its output \"" + o.name + "\" is already in the package");
         }
     }
