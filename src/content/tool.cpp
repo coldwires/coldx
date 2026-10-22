@@ -2,6 +2,12 @@
 
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+
+#include "project.h"
+#include "protect_build.h"
 
 namespace coldx::content {
 
@@ -11,18 +17,26 @@ void Usage() {
     std::printf(
         "coldxc: builds a .rime package from a content project.\n"
         "\n"
-        "  coldxc --project content/content.coldx --output build/content.rime [--cache DIR] [--verbose]\n"
+        "  coldxc --project content/content.coldx --output build/content.rime [options]\n"
+        "  coldxc --new-key FILE\n"
+        "  coldxc --project content/content.coldx --identify FILE\n"
         "\n"
-        "  --project   the content project file; names in the package are relative to its folder\n"
-        "  --output    the package to write; left untouched when nothing changed\n"
-        "  --cache     a folder for processed results, so unchanged sources are not processed again\n"
-        "  --verbose   one line per source\n");
+        "  --project      the content project file; names in the package are relative to its folder\n"
+        "  --output       the package to write; left untouched when nothing changed\n"
+        "  --cache        a folder for processed results, so unchanged sources are not processed again\n"
+        "  --key-file     encrypt every entry with the key in FILE\n"
+        "  --build-id     mark the package (and the game, with --game-source) with a fingerprint of ID\n"
+        "  --game-source  write the C++ file that gives the game its key and fingerprint\n"
+        "  --new-key      write a new random key to FILE\n"
+        "  --identify     print the fingerprint found in a game or package built from --project\n"
+        "  --verbose      one line per source\n");
 }
 
 } // namespace
 
 int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra) {
     BuildOptions options;
+    std::string newKey, identify;
     for (int i = 1; i < argc; ++i) {
         const char* a = argv[i];
         const bool hasValue = i + 1 < argc;
@@ -32,6 +46,16 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
             options.output = argv[++i];
         } else if (!std::strcmp(a, "--cache") && hasValue) {
             options.cacheDirectory = argv[++i];
+        } else if (!std::strcmp(a, "--key-file") && hasValue) {
+            options.keyFile = argv[++i];
+        } else if (!std::strcmp(a, "--build-id") && hasValue) {
+            options.buildId = argv[++i];
+        } else if (!std::strcmp(a, "--game-source") && hasValue) {
+            options.gameSource = argv[++i];
+        } else if (!std::strcmp(a, "--new-key") && hasValue) {
+            newKey = argv[++i];
+        } else if (!std::strcmp(a, "--identify") && hasValue) {
+            identify = argv[++i];
         } else if (!std::strcmp(a, "--verbose")) {
             options.verbose = true;
         } else if (!std::strcmp(a, "--help") || !std::strcmp(a, "-h")) {
@@ -42,6 +66,30 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
             Usage();
             return 2;
         }
+    }
+    if (!newKey.empty()) {
+        std::string error;
+        if (!detail::WriteNewKey(newKey, error)) {
+            std::fprintf(stderr, "coldxc: %s\n", error.c_str());
+            return 1;
+        }
+        std::printf("coldxc: wrote a new key to %s\n", newKey.c_str());
+        return 0;
+    }
+    if (!identify.empty()) {
+        if (options.project.empty()) {
+            Usage();
+            return 2;
+        }
+        std::ifstream file(std::filesystem::path(std::u8string(options.project.begin(), options.project.end())), std::ios::binary);
+        const std::string text((std::istreambuf_iterator<char>(file)), {});
+        detail::Project project;
+        std::vector<std::string> errors;
+        if (text.empty() || !detail::ParseProject(text, project, errors)) {
+            std::fprintf(stderr, "coldxc: cannot read the project %s\n", options.project.c_str());
+            return 1;
+        }
+        return detail::Identify(identify, rime::HashName(0, project.seed)) ? 0 : 1;
     }
     if (options.project.empty() || options.output.empty()) {
         Usage();
@@ -59,8 +107,11 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
         std::fprintf(stderr, "coldxc: %s not written\n", options.output.c_str());
         return 1;
     }
-    std::printf("coldxc: %s: %zu entries from %zu sources (%zu processed, %zu cached)%s\n", options.output.c_str(), r.entries,
-                r.sources, r.processed, r.cached, r.written ? "" : ", unchanged");
+    std::printf("coldxc: %s: %zu entries from %zu sources (%zu processed, %zu cached)%s%s\n", options.output.c_str(), r.entries,
+                r.sources, r.processed, r.cached, r.written ? "" : ", unchanged", options.keyFile.empty() ? "" : ", encrypted");
+    if (!options.buildId.empty())
+        std::printf("coldxc: build id \"%s\" is fingerprint 0x%016llx\n", options.buildId.c_str(),
+                    static_cast<unsigned long long>(r.fingerprint));
     return 0;
 }
 

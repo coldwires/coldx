@@ -42,6 +42,7 @@ def source_files(base):
 MODULES = {
     "core": (0, [], ["SDL3", "stb", "dr_libs", "lz4"]),
     "content": (1, ["core"], ["SDL3"]),
+    "protect": (1, [], []),
 }
 
 

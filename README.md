@@ -290,6 +290,24 @@ then cannot use `dynamic_cast` or `typeid` on its own types. Symbols go to a `.p
 the executable: keep it for crash reports, do not ship it. The flags are listed in
 `cmake/coldx_harden.cmake`.
 
+```
+coldxc --new-key game.key          # once; keep it out of public repositories
+```
+
+```cmake
+coldx_add_content(my_game PROJECT content/content.coldx
+    KEY_FILE game.key              # encrypt the package; the game gets the key itself
+    BUILD_ID "beta-tester-07")     # fingerprint the package and the game
+```
+
+```
+coldxc --project content/content.coldx --identify suspicious.exe
+```
+
+`COLDX_HIDDEN("text")` (link `coldx::protect`) keeps a string out of the executable as
+text. None of this stops a determined reader of the game: the key and the strings are in
+the client. It stops casual extraction and makes leaked builds traceable.
+
 ## Console window
 
 On Windows, debug builds open a console window for log output and release builds do not.

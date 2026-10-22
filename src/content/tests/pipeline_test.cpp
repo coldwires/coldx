@@ -14,6 +14,7 @@
 
 #include "check.h"
 #include "project.h"
+#include "protect_build.h"
 
 using namespace coldx;
 using namespace coldx::content;
@@ -230,6 +231,86 @@ void Failures(const fs::path& dir) {
     CHECK(RunTool(1, noArgs) == 2);
 }
 
+// Keys, encryption through Build, fingerprints and the generated game source.
+void Protection(const fs::path& dir) {
+    const fs::path keyFile = dir / "p" / "game.key";
+    fs::create_directories(keyFile.parent_path());
+    std::string error;
+    CHECK(cdetail::WriteNewKey(keyFile.string(), error));
+    CHECK(!cdetail::WriteNewKey(keyFile.string(), error) && error.find("exists") != std::string::npos);
+    rime::Key key{};
+    CHECK(cdetail::ReadKeyFile(keyFile.string(), key, error));
+    rime::Key second{};
+    const fs::path otherKey = dir / "p" / "other.key";
+    CHECK(cdetail::WriteNewKey(otherKey.string(), error) && cdetail::ReadKeyFile(otherKey.string(), second, error));
+    CHECK(key != second);  // random, not fixed
+    Write(dir / "p" / "short.key", "abcd\n");
+    CHECK(!cdetail::ReadKeyFile((dir / "p" / "short.key").string(), key, error) && error.find("64 hex digits") != std::string::npos);
+    Write(dir / "p" / "bad.key", std::string(63, 'a') + "z\n");
+    CHECK(!cdetail::ReadKeyFile((dir / "p" / "bad.key").string(), key, error));
+    CHECK(cdetail::ReadKeyFile(keyFile.string(), key, error));
+
+    Write(dir / "p" / "content" / "content.coldx", "seed = protected\n[data] *.txt\n");
+    Write(dir / "p" / "content" / "secret.txt", "THE PLAINTEXT SECRET");
+    Built tools;
+    BuildOptions o;
+    o.project = (dir / "p" / "content" / "content.coldx").string();
+    o.output = (dir / "p" / "out" / "content.rime").string();
+    o.keyFile = keyFile.string();
+    o.buildId = "tester-07";
+    o.gameSource = (dir / "p" / "out" / "game.cpp").string();
+    BuildResult r = Build(o, tools.list);
+    CHECK(r.ok && r.fingerprint == cdetail::FingerprintOf("tester-07"));
+    CHECK(Read(o.output).find("PLAINTEXT") == std::string::npos);
+    const std::string source = Read(o.gameSource);
+    CHECK(source.find("SetDefaultKey") != std::string::npos && source.find("f[16]") != std::string::npos);
+    // The key is in the source only scattered: its hex never appears in order.
+    char hex[3];
+    std::string keyHex;
+    for (std::uint8_t b : key) {
+        std::snprintf(hex, sizeof(hex), "%02x", b);
+        keyHex += std::string("0x") + hex + ", ";
+    }
+    CHECK(source.find(keyHex.substr(0, 24)) == std::string::npos);
+    // A build id without a key: a source with the fingerprint and no key.
+    BuildOptions marked = o;
+    marked.keyFile.clear();
+    marked.output = (dir / "p" / "out" / "plain.rime").string();
+    marked.gameSource = (dir / "p" / "out" / "plain.cpp").string();
+    CHECK(Build(marked, tools.list).ok);
+    CHECK(Read(marked.gameSource).find("SetDefaultKey") == std::string::npos && Read(marked.gameSource).find("f[16]") != std::string::npos);
+
+    // The game: with the key, without it, with another.
+    Driver game;
+    game.load = [&] {
+        ContentManager& c = game.Content();
+        c.SetLooseFiles(LooseFiles::Never);
+        CHECK(c.Mount(o.output));
+        CHECK(!c.ReadBytes("secret.txt"));
+        c.SetKey(second);
+        CHECK(!c.ReadBytes("secret.txt"));
+        c.SetKey(key);
+        auto secret = c.ReadBytes("secret.txt");
+        CHECK(secret && std::string(secret->begin(), secret->end()) == "THE PLAINTEXT SECRET");
+    };
+    CHECK(game.Run() == 0);
+
+    // Identify: the masked fingerprint in the header, and the marker in any file.
+    const std::uint64_t seed = rime::HashName(0, "protected");
+    CHECK(cdetail::Identify(o.output, seed));
+    cdetail::Identify(o.output, seed + 1);  // another project's seed: a meaningless value, but it reads safely
+    std::string blob = "padding";
+    const std::uint64_t marker = cdetail::FingerprintMarker(seed), value = cdetail::MaskFingerprint(seed, r.fingerprint);
+    for (int i = 0; i < 8; ++i) blob += static_cast<char>(marker >> (8 * i));
+    for (int i = 0; i < 8; ++i) blob += static_cast<char>(value >> (8 * i));
+    blob += "tail";
+    Write(dir / "p" / "game.exe", blob);
+    CHECK(cdetail::Identify((dir / "p" / "game.exe").string(), seed));
+    Write(dir / "p" / "clean.exe", "nothing here");
+    CHECK(!cdetail::Identify((dir / "p" / "clean.exe").string(), seed));
+    CHECK(cdetail::MaskFingerprint(seed, cdetail::MaskFingerprint(seed, 42)) == 42);
+}
+
 } // namespace
 
 int main() {
@@ -240,6 +321,7 @@ int main() {
     fs::remove_all(dir);
     EndToEnd(dir);
     Failures(dir);
+    Protection(dir);
     fs::remove_all(dir);
     return CheckResult();
 }

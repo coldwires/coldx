@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <coldx/core/rime.h>
 #include <coldx/core/sprite_font.h>
 
 namespace coldx {
@@ -61,6 +62,15 @@ public:
     // False, logged, if it cannot be read.
     bool Mount(const std::string& path);
     void SetLooseFiles(LooseFiles mode) { loose_ = mode; }
+
+    // The key encrypted packages were built with (coldxc --key-file). coldx_add_content's
+    // KEY_FILE sets it for every ContentManager through SetDefaultKey, from a source file it
+    // generates into the game, so most games never call these.
+    void SetKey(const rime::Key& key) {
+        key_ = key;
+        hasKey_ = true;
+    }
+    static void SetDefaultKey(const rime::Key& key);
 
     // The cached T for name, loading it first if needed. Missing content logs what was
     // tried and returns an empty T, uncached, so a later Load tries again. Content that is
@@ -145,6 +155,8 @@ private:
     std::string root_ = "content";
     LooseFiles loose_ = LooseFiles::Auto;
     bool triedDefault_ = false;
+    rime::Key key_{};
+    bool hasKey_ = false;
     std::vector<std::unique_ptr<detail::Package>> packages_;  // newest last
     std::unordered_map<const void*, Loader> loaders_;
     std::unordered_map<std::string, std::shared_ptr<void>> cache_;

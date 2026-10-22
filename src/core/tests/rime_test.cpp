@@ -13,6 +13,7 @@
 #include <SDL3/SDL.h>
 
 #include "check.h"
+#include "chacha20.h"
 #include "rime_bytes.h"
 #include "rime_package.h"
 
@@ -190,6 +191,90 @@ void Compression() {
     CHECK(bad && !bad->Read(*bad->Find("level.txt"), out));
 }
 
+std::vector<std::uint8_t> Hex(const char* hex) {
+    std::vector<std::uint8_t> out;
+    for (const char* c = hex; c[0] && c[1]; c += 2) {
+        while (*c == ' ') ++c;
+        out.push_back(static_cast<std::uint8_t>(std::stoi(std::string(c, 2), nullptr, 16)));
+    }
+    return out;
+}
+
+// ChaCha20 against RFC 8439, then encrypted packages: readable with the key, refused
+// without it or with another, and nothing of the plaintext left in the file.
+void Encryption() {
+    std::uint8_t key[32];
+    for (int i = 0; i < 32; ++i) key[i] = static_cast<std::uint8_t>(i);
+    {   // Section 2.3.2: the block function, as keystream XORed into zeros.
+        const std::uint8_t nonce[12] = {0, 0, 0, 9, 0, 0, 0, 0x4a, 0, 0, 0, 0};
+        std::vector<std::uint8_t> block(64, 0);
+        detail::ChaCha20(key, nonce, 1, block.data(), block.size());
+        CHECK(block == Hex("10f1e7e4d13b5915500fdd1fa32071c4c7d1f4c733c068030422aa9ac3d46c4e"
+                           "d2826446079faa0914c2d705d98b02a2b5129cd1de164eb9cbd083e8a2503c4e"));
+    }
+    {   // Section 2.4.2: a 114-byte message across two blocks.
+        const std::uint8_t nonce[12] = {0, 0, 0, 0, 0, 0, 0, 0x4a, 0, 0, 0, 0};
+        const std::string text = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, "
+                                 "sunscreen would be it.";
+        std::vector<std::uint8_t> data(text.begin(), text.end());
+        detail::ChaCha20(key, nonce, 1, data.data(), data.size());
+        CHECK(data == Hex("6e2e359a2568f98041ba0728dd0d6981e97e7aec1d4360c20a27afccfd9fae0b"
+                          "f91b65c5524733ab8f593dabcd62b3571639d624e65152ab8f530c359f0861d8"
+                          "07ca0dbf500d6a6156a38e088a22b65e52bc514d16ccf806818ce91ab7793736"
+                          "5af90bbf74a35be6b40b8eedf2785e42874d"));
+        detail::ChaCha20(key, nonce, 1, data.data(), data.size());
+        CHECK(std::string(data.begin(), data.end()) == text);  // the same call decrypts
+    }
+
+    rime::Key k{}, other{};
+    for (int i = 0; i < 32; ++i) {
+        k[i] = static_cast<std::uint8_t>(i * 7 + 1);
+        other[i] = static_cast<std::uint8_t>(i * 7 + 2);
+    }
+    CHECK(rime::KeyCheck(k) != rime::KeyCheck(other) && rime::KeyCheck(k) != 0);
+    const std::string secret = "THE SECRET LEVEL IS BEHIND THE WATERFALL";
+    std::vector<std::uint8_t> repeated;
+    for (int i = 0; i < 200; ++i) repeated.insert(repeated.end(), secret.begin(), secret.end());
+    rime::PackageWriter w(11);
+    w.SetKey(k);
+    w.Add("secret.txt", rime::AssetType::Data, Bytes(secret));
+    w.Add("repeated.txt", rime::AssetType::Data, repeated);  // compressed, then encrypted
+    const std::vector<std::uint8_t> p = w.Finish();
+    const std::string file(p.begin(), p.end());
+    CHECK(file.find("SECRET") == std::string::npos && file.find("WATERFALL") == std::string::npos);
+    CHECK(detail::Get64(&p[32]) == rime::KeyCheck(k));
+
+    auto package = detail::Package::FromMemory(p, "encrypted");
+    CHECK(package != nullptr);
+    if (!package) return;
+    std::vector<std::uint8_t> out;
+    const auto* a = package->Find("secret.txt");
+    const auto* b = package->Find("repeated.txt");
+    CHECK(a && b && (a->flags & rime::Encrypted) && (b->flags & rime::Encrypted) && (b->flags & rime::Compressed));
+    CHECK(package->Read(*a, out, &k) && out == Bytes(secret));
+    CHECK(package->Read(*b, out, &k) && out == repeated);
+    CHECK(!package->Read(*a, out));          // no key
+    CHECK(!package->Read(*a, out, &other));  // another key
+
+    // The same name with other content gets another nonce: the two ciphertexts do not
+    // XOR to the XOR of the plaintexts, as they would under a reused nonce.
+    rime::PackageWriter w2(11);
+    w2.SetKey(k);
+    std::string changed = secret;
+    changed[0] = 'X';
+    w2.Add("secret.txt", rime::AssetType::Data, Bytes(changed));
+    const std::vector<std::uint8_t> p2 = w2.Finish();
+    auto second = detail::Package::FromMemory(p2, "second");
+    const auto* a2 = second ? second->Find("secret.txt") : nullptr;
+    CHECK(a2 && a2->crc != a->crc);
+    if (a2) {
+        int sameXor = 0;
+        for (size_t i = 1; i < secret.size(); ++i)
+            sameXor += (p[static_cast<size_t>(a->offset) + i] ^ p2[static_cast<size_t>(a2->offset) + i]) == 0 ? 1 : 0;
+        CHECK(sameXor < 5);  // equal plaintext bytes after the first would match under a reused nonce
+    }
+}
+
 struct Level {
     std::string text;
 };
@@ -296,6 +381,7 @@ int main() {
     Format();
     Malformed();
     Compression();
+    Encryption();
     const fs::path dir = fs::temp_directory_path() / "coldx_rime_test";
     fs::remove_all(dir);
     Loading(dir);

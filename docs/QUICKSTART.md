@@ -146,7 +146,11 @@ sections like `[texture] sprites/*.png`, `[sound] sounds/*.wav`, `[music] music/
 `[font] fonts/*.ttf`, `[data] levels/*.lvl`; `from = ../shared` under a section takes its
 files from another folder; `format = raw` under `[texture]` skips PNG decoding at load) and
 `coldx_add_content(my_game PROJECT content/content.coldx)`
-in CMake (link nothing extra). The README's Content section has more.
+in CMake (link nothing extra). The README's Content section has more. Protection:
+`KEY_FILE game.key` (from `coldxc --new-key game.key`) encrypts the package and
+`BUILD_ID "name"` fingerprints it, both as `coldx_add_content` arguments;
+`coldx_harden(my_game)` for release flags; `COLDX_HIDDEN("text")` from
+`<coldx/protect/hidden.h>` for strings.
 
 **Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,
 `Texture2D::FromPixels(Graphics(), w, h, const Color*)`, `SetData(const Color*)`,

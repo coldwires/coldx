@@ -14,6 +14,14 @@ struct BuildOptions {
     // A folder for processed results, so an unchanged source is not processed again.
     // Empty: no cache.
     std::string cacheDirectory;
+    // Encrypts every entry with the key in this file (64 hex digits). Empty: no encryption.
+    std::string keyFile;
+    // Marks the package, and the game through gameSource, with a fingerprint of this id,
+    // so a copy found elsewhere can be traced to the build it came from. Empty: none.
+    std::string buildId;
+    // Where to write the C++ source the game compiles in to get the key and the
+    // fingerprint (coldx_add_content does this). Empty: not written.
+    std::string gameSource;
     bool verbose = false;
 };
 
@@ -24,6 +32,7 @@ struct BuildResult {
     std::size_t processed = 0;  // sources run through their processor this time
     std::size_t cached = 0;     // sources whose cached result was reused
     bool written = false;       // false when the package came out the same as the file there
+    std::uint64_t fingerprint = 0;  // of buildId, unmasked; what coldxc --identify prints
     std::vector<std::string> errors;
 };
 
@@ -42,7 +51,9 @@ BuildResult Build(const BuildOptions& options, const std::vector<const Processor
 //         return coldx::content::RunTool(argc, argv, std::move(mine));
 //     }
 //
-// Returns 0 on success, 1 on a failed build, 2 on bad arguments.
+// Also: --new-key FILE writes a random key; --identify FILE prints the fingerprint in a
+// game or package built from --project. Returns 0 on success, 1 on a failed build, 2 on
+// bad arguments.
 int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra = {});
 
 } // namespace coldx::content

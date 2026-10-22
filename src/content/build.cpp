@@ -8,6 +8,7 @@
 #include <map>
 
 #include "project.h"
+#include "protect_build.h"
 
 namespace coldx::content {
 
@@ -192,7 +193,25 @@ BuildResult Build(const BuildOptions& options, const std::vector<const Processor
         std::printf("coldx.content: no seed set; set seed = <your game> so this package's name hashes are its own\n");
 
     if (!options.cacheDirectory.empty()) fs::create_directories(Utf8Path(options.cacheDirectory), ec);
-    rime::PackageWriter writer(rime::HashName(0, project.seed));
+    const std::uint64_t seed = rime::HashName(0, project.seed);
+    rime::PackageWriter writer(seed);
+    rime::Key key{};
+    const bool encrypt = !options.keyFile.empty();
+    if (encrypt) {
+        std::string error;
+        if (!detail::ReadKeyFile(options.keyFile, key, error)) return fail(error);
+        writer.SetKey(key);
+    }
+    if (!options.buildId.empty()) {
+        result.fingerprint = detail::FingerprintOf(options.buildId);
+        writer.SetFingerprint(detail::MaskFingerprint(seed, result.fingerprint));
+    }
+    if (!options.gameSource.empty()) {
+        std::string error;
+        if (!detail::WriteGameSource(options.gameSource, seed, encrypt ? &key : nullptr,
+                                     options.buildId.empty() ? nullptr : &result.fingerprint, error))
+            return fail(error);
+    }
     for (const Pick& pick : sources) {
         const std::string& file = pick.name;
         const detail::Section* section = pick.section;
@@ -206,9 +225,9 @@ BuildResult Build(const BuildOptions& options, const std::vector<const Processor
         std::vector<Output> outputs;
         fs::path cacheFile;
         if (!options.cacheDirectory.empty()) {
-            char key[17];
-            std::snprintf(key, sizeof(key), "%016llx", static_cast<unsigned long long>(CacheKey(processor, *section, source)));
-            cacheFile = Utf8Path(options.cacheDirectory) / key;
+            char name[17];
+            std::snprintf(name, sizeof(name), "%016llx", static_cast<unsigned long long>(CacheKey(processor, *section, source)));
+            cacheFile = Utf8Path(options.cacheDirectory) / name;
         }
         if (!cacheFile.empty() && LoadCache(cacheFile, outputs)) {
             ++result.cached;

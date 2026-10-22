@@ -1,0 +1,4 @@
+# Packed encrypted and fingerprinted by tests/protected_game/CMakeLists.txt.
+seed = coldx protected test
+[texture] sheet.png
+[data] notes.txt

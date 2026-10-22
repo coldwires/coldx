@@ -7,6 +7,7 @@
 
 #include <lz4/lz4hc.h>
 
+#include "chacha20.h"
 #include "rime_bytes.h"
 
 namespace coldx::rime {
@@ -58,6 +59,15 @@ std::uint32_t Crc32(const void* data, std::size_t size) {
     return crc ^ 0xFFFFFFFFu;
 }
 
+std::uint64_t KeyCheck(const Key& key) {
+    std::uint8_t nonce[12];
+    std::fill(std::begin(nonce), std::end(nonce), std::uint8_t{0xFF});
+    std::uint8_t block[8] = {};
+    detail::ChaCha20(key.data(), nonce, 0, block, sizeof(block));
+    const std::uint64_t check = detail::Get64(block);
+    return check != 0 ? check : 1;
+}
+
 bool PackageWriter::Add(std::string_view name, AssetType type, std::vector<std::uint8_t> bytes, bool compress) {
     std::string normal = NormalizeName(name);
     const std::uint64_t hash = HashName(seed_, normal);
@@ -94,8 +104,10 @@ std::vector<std::uint8_t> PackageWriter::Finish() const {
     detail::Put32(h + 12, static_cast<std::uint32_t>(sorted.size()));
     detail::Put64(h + 16, seed_);
     detail::Put64(h + 24, tableOffset);
+    detail::Put64(h + 32, encrypt_ ? KeyCheck(key_) : 0);
+    detail::Put64(h + 40, fingerprint_);
 
-    std::vector<std::uint8_t> packed;
+    std::vector<std::uint8_t> packed, sealed;
     for (size_t i = 0; i < sorted.size(); ++i) {
         const Pending& p = *sorted[i];
         // LZ4 at its highest level: packing is done once, loading many times, and the
@@ -113,11 +125,21 @@ std::vector<std::uint8_t> PackageWriter::Finish() const {
                 flags = Compressed;
             }
         }
+        const std::uint32_t crc = Crc32(stored->data(), stored->size());
+        if (encrypt_) {
+            std::uint8_t nonce[12];
+            detail::Put64(nonce, p.hash);
+            detail::Put32(nonce + 8, crc);
+            sealed = *stored;
+            detail::ChaCha20(key_.data(), nonce, 0, sealed.data(), sealed.size());
+            stored = &sealed;
+            flags |= Encrypted;
+        }
         std::uint8_t* e = out.data() + tableOffset + EntrySize * i;
         detail::Put64(e, p.hash);
         e[8] = static_cast<std::uint8_t>(p.type);
         e[9] = flags;
-        detail::Put32(e + 12, Crc32(stored->data(), stored->size()));
+        detail::Put32(e + 12, crc);
         detail::Put64(e + 16, dataOffset);
         detail::Put64(e + 24, stored->size());
         detail::Put64(e + 32, p.bytes.size());

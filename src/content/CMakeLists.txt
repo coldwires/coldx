@@ -2,6 +2,7 @@ add_library(coldx_content STATIC
     build.cpp
     processors.cpp
     project.cpp
+    protect_build.cpp
     tool.cpp
 )
 add_library(coldx::content ALIAS coldx_content)
