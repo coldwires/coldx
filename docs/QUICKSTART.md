@@ -135,8 +135,13 @@ inside `Draw`.
 **ContentManager.** `Content().Load<Texture2D>("sprites/player")` reads
 `content/sprites/player.png`; also `Load<SoundEffect>` (.wav, .ogg), `Load<Music>` (.ogg),
 `LoadFont("name", pixelHeight)` (.ttf). Cached by name; `Unload()` drops the cache.
-`SetRootDirectory`. Your own types: `Content().RegisterLoader<Level>({".lvl"}, [](const std::string& path) { ... return Level{...}; });`
-then `Content().Load<Level>("levels/one")`.
+`SetRootDirectory`. Your own types: `Content().RegisterDataLoader<Level>({".lvl"}, [](const std::vector<std::uint8_t>& bytes, const std::string& name) { ... return Level{...}; });`
+then `Content().Load<Level>("levels/one")`. `ReadBytes("levels/one.lvl")` gives a file's
+bytes without a loader. Packed content: a `content.rime` beside the executable is mounted
+on first load and searched before loose files; `Mount("patch.rime")` adds more, newest
+first. Release builds read loose files only while no package is mounted
+(`SetLooseFiles(LooseFiles::Always)` to allow them). `RegisterLoader` (a path) reads
+loose files only.
 
 **Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,
 `Texture2D::FromPixels(Graphics(), w, h, const Color*)`, `SetData(const Color*)`,

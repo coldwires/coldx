@@ -149,22 +149,20 @@ RenderTarget2D RenderTarget2D::Create(GraphicsDevice& graphics, int width, int h
     return result;
 }
 
-Texture2D Texture2D::FromFile(GraphicsDevice& graphics, const std::string& path) {
-    const std::string full = detail::ResolveContentPath(path);
-
-    SDL_Surface* loaded = SDL_LoadPNG(full.c_str());
+// Takes ownership of loaded, converts it to premultiplied RGBA and uploads it.
+static Texture2D FromSurface(GraphicsDevice& graphics, SDL_Surface* loaded, const std::string& name) {
     if (!loaded) {
-        SDL_Log("coldx.core: could not load %s: %s", full.c_str(), SDL_GetError());
+        SDL_Log("coldx.core: could not load %s: %s", name.c_str(), SDL_GetError());
         return {};
     }
     SDL_Surface* rgba = SDL_ConvertSurface(loaded, SDL_PIXELFORMAT_RGBA32);
     SDL_DestroySurface(loaded);
     if (!rgba) {
-        SDL_Log("coldx.core: could not convert %s to RGBA: %s", full.c_str(), SDL_GetError());
+        SDL_Log("coldx.core: could not convert %s to RGBA: %s", name.c_str(), SDL_GetError());
         return {};
     }
     if (!SDL_PremultiplySurfaceAlpha(rgba, false)) {
-        SDL_Log("coldx.core: could not premultiply %s: %s", full.c_str(), SDL_GetError());
+        SDL_Log("coldx.core: could not premultiply %s: %s", name.c_str(), SDL_GetError());
         SDL_DestroySurface(rgba);
         return {};
     }
@@ -176,9 +174,19 @@ Texture2D Texture2D::FromFile(GraphicsDevice& graphics, const std::string& path)
                    static_cast<const Uint8*>(rgba->pixels) + static_cast<size_t>(y) * rgba->pitch,
                    static_cast<size_t>(rgba->w) * 4);
     }
-    Texture2D result = FromPixels(graphics, rgba->w, rgba->h, pixels.get());
+    Texture2D result = Texture2D::FromPixels(graphics, rgba->w, rgba->h, pixels.get());
     SDL_DestroySurface(rgba);
     return result;
+}
+
+Texture2D Texture2D::FromFile(GraphicsDevice& graphics, const std::string& path) {
+    const std::string full = detail::ResolveContentPath(path);
+    return FromSurface(graphics, SDL_LoadPNG(full.c_str()), full);
+}
+
+Texture2D Texture2D::FromMemory(GraphicsDevice& graphics, const void* png, std::size_t size, const std::string& name) {
+    SDL_IOStream* io = png ? SDL_IOFromConstMem(png, size) : nullptr;
+    return FromSurface(graphics, io ? SDL_LoadPNG_IO(io, true) : nullptr, name);
 }
 
 void Texture2D::SetData(const Color* pixels) {

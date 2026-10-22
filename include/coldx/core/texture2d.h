@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -33,6 +34,8 @@ public:
     // Loads a PNG and premultiplies its alpha. A relative path is taken from the folder the
     // executable is in, not the working directory. Empty on failure, with the reason logged.
     static Texture2D FromFile(GraphicsDevice& graphics, const std::string& path);
+    // A PNG already in memory, premultiplied as FromFile does. name is for log lines.
+    static Texture2D FromMemory(GraphicsDevice& graphics, const void* png, std::size_t size, const std::string& name = "memory");
 
     // width * height pixels, rows top to bottom, already premultiplied.
     static Texture2D FromPixels(GraphicsDevice& graphics, int width, int height, const Color* pixels);
