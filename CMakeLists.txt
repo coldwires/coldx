@@ -14,6 +14,14 @@ else()
 endif()
 set(COLDX_TEST_GPU_DRIVERS "${default_drivers}" CACHE STRING "GPU backends the render tests run on")
 
+include(cmake/coldx_harden.cmake)
+# Hardened release builds keep the build machine's folders out of source paths compiled
+# into the code (SDL's error checks name their files), SDL's included.
+if(COLDX_HARDEN AND MSVC)
+    file(TO_NATIVE_PATH "${PROJECT_SOURCE_DIR}/" coldx_source_prefix)
+    add_compile_options("$<$<CONFIG:Release>:/d1trimfile:${coldx_source_prefix}>")
+endif()
+
 # SDL builds from the vendored source as a static library and nothing else.
 set(SDL_SHARED OFF CACHE BOOL "")
 set(SDL_STATIC ON CACHE BOOL "")
@@ -35,6 +43,9 @@ endfunction()
 # Makes target a windowed game: no console on Windows, which coldx opens itself when
 # asked (see GameSettings::console). The entry point stays main() on every platform.
 function(coldx_game target)
+    if(COLDX_HARDEN)
+        coldx_harden(${target})
+    endif()
     if(WIN32)
         set_target_properties(${target} PROPERTIES WIN32_EXECUTABLE TRUE)
         if(MSVC)

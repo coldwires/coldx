@@ -41,6 +41,9 @@ target_include_directories(coldx_core
 )
 target_link_libraries(coldx_core PRIVATE SDL3::SDL3-static)
 coldx_set_warnings(coldx_core)
+if(COLDX_HARDEN)
+    coldx_harden(coldx_core)
+endif()
 
 # Third-party implementations: their warnings are not ours to fix.
 set_source_files_properties(audio_codecs_impl.cpp stb_truetype_impl.cpp PROPERTIES

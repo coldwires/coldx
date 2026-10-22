@@ -5,7 +5,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <typeindex>
 #include <unordered_map>
 #include <vector>
 
@@ -17,6 +16,14 @@ class GraphicsDevice;
 
 namespace detail {
 class Package;
+
+// A number per type, without RTTI: the address of a variable each T has its own copy of.
+// Not const, so the linker never folds two of them into one.
+template <class T>
+const void* TypeKey() {
+    static char key;
+    return &key;
+}
 }
 
 // When ContentManager reads loose files from RootDirectory.
@@ -60,11 +67,11 @@ public:
     // found but does not decode is cached as whatever its loader returned (an empty T).
     template <class T>
     T Load(const std::string& name) {
-        const auto key = Key(typeid(T), name);
+        const auto key = Key(detail::TypeKey<T>(), name);
         if (auto found = cache_.find(key); found != cache_.end()) return *static_cast<const T*>(found->second.get());
-        auto loader = loaders_.find(std::type_index(typeid(T)));
+        auto loader = loaders_.find(detail::TypeKey<T>());
         if (loader == loaders_.end()) {
-            NoLoader(typeid(T).name(), name);
+            NoLoader(name);
             return T{};
         }
         std::shared_ptr<void> loaded = Find(loader->second, name);
@@ -93,7 +100,7 @@ public:
         loader.fromBytes = [load = std::move(load)](const std::vector<std::uint8_t>& bytes, const std::string& name) {
             return std::static_pointer_cast<void>(std::make_shared<T>(load(bytes, name)));
         };
-        loaders_[std::type_index(typeid(T))] = std::move(loader);
+        loaders_[detail::TypeKey<T>()] = std::move(loader);
     }
 
     // Teaches Load<T> a new type from a file path. Loose files only: packed content has no
@@ -105,10 +112,13 @@ public:
         loader.fromPath = [load = std::move(load)](const std::string& path) {
             return std::static_pointer_cast<void>(std::make_shared<T>(load(path)));
         };
-        loaders_[std::type_index(typeid(T))] = std::move(loader);
+        loaders_[detail::TypeKey<T>()] = std::move(loader);
     }
 
-    bool IsLoaded(const std::type_info& type, const std::string& name) const;
+    template <class T>
+    bool IsLoaded(const std::string& name) const {
+        return cache_.count(Key(detail::TypeKey<T>(), name)) != 0;
+    }
 
     // Drops everything cached. Copies the game still holds stay valid. Packages stay mounted.
     void Unload();
@@ -128,15 +138,15 @@ private:
     bool FindBytes(const std::vector<std::string>& candidates, std::vector<std::uint8_t>& bytes, std::string& found);
     bool LooseAllowed();
     void MountDefault();
-    std::string Key(const std::type_info& type, const std::string& name) const;
-    void NoLoader(const char* type, const std::string& name) const;
+    std::string Key(const void* type, const std::string& name) const;
+    void NoLoader(const std::string& name) const;
 
     GraphicsDevice& graphics_;
     std::string root_ = "content";
     LooseFiles loose_ = LooseFiles::Auto;
     bool triedDefault_ = false;
     std::vector<std::unique_ptr<detail::Package>> packages_;  // newest last
-    std::unordered_map<std::type_index, Loader> loaders_;
+    std::unordered_map<const void*, Loader> loaders_;
     std::unordered_map<std::string, std::shared_ptr<void>> cache_;
 };
 
