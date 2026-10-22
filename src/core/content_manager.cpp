@@ -38,9 +38,26 @@ bool ReadFile(const std::string& path, std::vector<std::uint8_t>& out) {
     return true;
 }
 
+// SetDefaultKey may run before main, from a generated source's static initializer, so this
+// lives in a function rather than a namespace-scope variable with its own initialization.
+struct DefaultKey {
+    rime::Key key{};
+    bool set = false;
+};
+DefaultKey& Default() {
+    static DefaultKey d;
+    return d;
+}
+
 } // namespace
 
+void ContentManager::SetDefaultKey(const rime::Key& key) {
+    Default().key = key;
+    Default().set = true;
+}
+
 ContentManager::ContentManager(GraphicsDevice& graphics) : graphics_(graphics) {
+    if (Default().set) SetKey(Default().key);
     RegisterDataLoader<Texture2D>({".png"}, [this](const std::vector<std::uint8_t>& bytes, const std::string& name) {
         return Texture2D::FromMemory(graphics_, bytes.data(), bytes.size(), name);
     });
@@ -102,7 +119,7 @@ bool ContentManager::FindBytes(const std::vector<std::string>& candidates, std::
         for (const std::string& name : candidates) {
             if (const detail::Package::Entry* entry = (*package)->Find(name)) {
                 found = name;
-                return (*package)->Read(*entry, bytes);
+                return (*package)->Read(*entry, bytes, hasKey_ ? &key_ : nullptr);
             }
         }
     }

@@ -56,6 +56,10 @@
 - The `content` module and `coldxc`: content projects, processors (built-in and a game's
   own), a build cache, `coldx_add_content`. The `demo` sample loads from a package.
 - LZ4 compression of package entries where it helps; `[texture] format = raw`.
+- Package encryption (ChaCha20) with `coldxc --key-file`, `--new-key` and
+  `coldx_add_content(... KEY_FILE)`; `ContentManager::SetKey`, `SetDefaultKey`.
+- Build fingerprints: `--build-id`, `BUILD_ID`, `COLDX_BUILD_ID`, `coldxc --identify`.
+- The `protect` module: `COLDX_HIDDEN`.
 - `COLDX_HARDEN` and `coldx_harden` for release builds; coldx no longer uses RTTI.
   `ContentManager::IsLoaded` is now `IsLoaded<T>(name)`.
 - `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its

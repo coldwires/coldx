@@ -1,0 +1,8 @@
+add_executable(coldx_protect_hidden_test hidden_test.cpp)
+target_link_libraries(coldx_protect_hidden_test PRIVATE coldx::protect)
+target_include_directories(coldx_protect_hidden_test PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+coldx_set_warnings(coldx_protect_hidden_test)
+if(COLDX_HARDEN)
+    coldx_harden(coldx_protect_hidden_test)
+endif()
+add_test(NAME protect.hidden COMMAND coldx_protect_hidden_test $<TARGET_FILE:coldx_protect_hidden_test>)

@@ -34,9 +34,12 @@ public:
 
     // The entry for a content name, or null. The name is normalized here.
     const Entry* Find(const std::string& name) const;
-    // The entry's bytes, decompressed. False, logged, on a read error, a CRC mismatch or
-    // data that does not decompress to its recorded size.
-    bool Read(const Entry& entry, std::vector<std::uint8_t>& out) const;
+    // The entry's bytes, decrypted with key (null: none) and decompressed. False, logged, on
+    // a read error, a missing or wrong key, a CRC mismatch or data that does not
+    // decompress to its recorded size.
+    bool Read(const Entry& entry, std::vector<std::uint8_t>& out, const rime::Key* key = nullptr) const;
+    // 0 for a package with no encrypted entries.
+    std::uint64_t KeyCheck() const { return keyCheck_; }
 
     const std::string& Label() const { return label_; }
     std::size_t Count() const { return entries_.size(); }
@@ -50,6 +53,7 @@ private:
     SDL_IOStream* file_ = nullptr;
     std::vector<std::uint8_t> memory_;  // used instead of file_ when non-empty
     std::uint64_t seed_ = 0;
+    std::uint64_t keyCheck_ = 0;
     std::vector<Entry> entries_;  // sorted by hash
 };
 

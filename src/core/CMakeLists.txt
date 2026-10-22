@@ -2,6 +2,7 @@ add_library(coldx_core STATIC
     audio.cpp
     audio_codecs.cpp
     audio_codecs_impl.cpp
+    chacha20.cpp
     content_manager.cpp
     content_path.cpp
     debug_options.cpp

@@ -46,7 +46,8 @@ the debug options.
   `Texture2D::FromMemory`.
 - `ContentManager` (`Game::Content()`): `Load<T>(name)` with a cache, `LoadFont(name, size)`,
   `ReadBytes`, `RegisterDataLoader<T>` (packed and loose), `RegisterLoader<T>` (loose
-  only), `Mount` (`.rime`), `SetLooseFiles` (`LooseFiles`), `Unload`, `SetRootDirectory`.
+  only), `Mount` (`.rime`), `SetLooseFiles` (`LooseFiles`), `SetKey`, `SetDefaultKey`,
+  `Unload`, `SetRootDirectory`.
 - `rime.h`: the `.rime` format, `NormalizeName`, `HashName`, `Crc32`, `PackageWriter`.
 - `Storage`: per-user folder named by `GameSettings::company`/`name`; whole-file
   `ReadFile`, atomic `WriteFile`, `Exists`, `Remove`.
@@ -77,7 +78,7 @@ the debug options.
 - `content_manager.cpp`: finding content by name and extension in packages, then loose
   files; built-in loaders; the cache.
 - `rime.cpp` (format, hash, writer), `rime_package.*` (reading and checking a package),
-  `rime_bytes.h` (little-endian fields).
+  `rime_bytes.h` (little-endian fields). `chacha20.*`: the cipher for encrypted entries.
   `Load<T>` and `RegisterLoader<T>` are templates in the header, type-erased into it.
 - `content_path.*`: relative content paths resolve against the executable's folder.
 - `input.*`: the input hub. Live state follows SDL events; `BeginUpdate` copies it to

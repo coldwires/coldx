@@ -6,6 +6,7 @@
 #include <SDL3/SDL.h>
 #include <lz4/lz4.h>
 
+#include "chacha20.h"
 #include "rime_bytes.h"
 
 namespace coldx::detail {
@@ -66,6 +67,7 @@ bool Package::Parse(std::uint64_t fileSize) {
     if (Get32(h + 8) != 0) return fail("uses package features this version does not have");
     const std::uint32_t count = Get32(h + 12);
     seed_ = Get64(h + 16);
+    keyCheck_ = Get64(h + 32);
     const std::uint64_t table = Get64(h + 24);
     if (table > fileSize || count > (fileSize - table) / rime::EntrySize) return fail("entry table outside the file");
 
@@ -103,15 +105,30 @@ const Package::Entry* Package::Find(const std::string& name) const {
     return it != entries_.end() && it->hash == hash ? &*it : nullptr;
 }
 
-bool Package::Read(const Entry& entry, std::vector<std::uint8_t>& out) const {
-    if (entry.flags & ~rime::Compressed) {
-        SDL_Log("coldx.core: %s: an entry is encrypted or uses a feature this version cannot read", label_.c_str());
+bool Package::Read(const Entry& entry, std::vector<std::uint8_t>& out, const rime::Key* key) const {
+    if (entry.flags & ~(rime::Compressed | rime::Encrypted)) {
+        SDL_Log("coldx.core: %s: an entry uses a feature this version cannot read", label_.c_str());
+        return false;
+    }
+    const bool encrypted = (entry.flags & rime::Encrypted) != 0;
+    if (encrypted && !key) {
+        SDL_Log("coldx.core: %s: encrypted, and no key is set (ContentManager::SetKey)", label_.c_str());
+        return false;
+    }
+    if (encrypted && rime::KeyCheck(*key) != keyCheck_) {
+        SDL_Log("coldx.core: %s: encrypted with a different key from the one set", label_.c_str());
         return false;
     }
     std::vector<std::uint8_t> stored(static_cast<size_t>(entry.size));
     if (!ReadAt(entry.offset, stored.data(), stored.size())) {
         SDL_Log("coldx.core: %s: read failed", label_.c_str());
         return false;
+    }
+    if (encrypted) {
+        std::uint8_t nonce[12];
+        Put64(nonce, entry.hash);
+        Put32(nonce + 8, entry.crc);
+        ChaCha20(key->data(), nonce, 0, stored.data(), stored.size());
     }
     if (rime::Crc32(stored.data(), stored.size()) != entry.crc) {
         SDL_Log("coldx.core: %s: an entry is damaged (CRC mismatch)", label_.c_str());

@@ -39,6 +39,7 @@ behaviour; `not started` has no code.
 | # | Feature | State |
 |---|---|---|
 | 32 | `COLDX_HARDEN`, `coldx_harden`: no RTTI, whole-program optimization, no build-machine details (MSVC) | done |
+| 33 | Encrypted packages (`KEY_FILE`), fingerprints (`BUILD_ID`, `coldxc --identify`) | done |
 
 ## Shaders
 
@@ -53,7 +54,7 @@ behaviour; `not started` has no code.
 | 20 | `content` and the `coldxc` tool: projects, built-in and custom processors, cache, `coldx_add_content` | done |
 | 21 | `physics` | not planned in coldx: games build it above coldx |
 | 22 | `net` | not planned in coldx: games build it above coldx |
-| 23 | `protect` | not started |
+| 23 | `protect`: `COLDX_HIDDEN`; with package encryption (ChaCha20), build fingerprints and `coldxc --identify` | done; watermarks in images and sound not built |
 
 ## Platforms
 

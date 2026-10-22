@@ -7,7 +7,7 @@ game's own), the processed-source cache, and the `coldxc` command line.
 **Third-party:** SDL3
 **Public headers:** `include/coldx/content/`
 **Library target:** `coldx::content`
-**Size:** ~0.9k lines
+**Size:** ~1.4k lines
 
 The format and reading packages are core's (`coldx/core/rime.h`, `ContentManager::Mount`),
 so a game that only loads packages does not link this module. Tools link it.
@@ -22,8 +22,9 @@ so a game that only loads packages does not link this module. Tools link it.
   was rewritten, errors naming file and line.
 - `RunTool(argc, argv, extra processors)`: the `coldxc` command line; a game's own tool
   calls it with its processors.
-- CMake: `coldx_add_content(target PROJECT content.coldx [OUTPUT name.rime] [TOOL tool])`
-  in `cmake/coldx_content.cmake`.
+- CMake: `coldx_add_content(target PROJECT content.coldx [OUTPUT name.rime] [TOOL tool]
+  [KEY_FILE file] [BUILD_ID id])` in `cmake/coldx_content.cmake`. `BuildOptions` has
+  `keyFile`, `buildId`, `gameSource`.
 
 ## Files
 
@@ -34,6 +35,8 @@ so a game that only loads packages does not link this module. Tools link it.
   Compression is the writer's (`rime::PackageWriter`), per entry, when it helps.
 - `build.cpp`: assigning files to sections (`from` moves a section's base folder), the
   cache, the package, and writing it only when it changed.
+- `protect_build.*`: key files, fingerprints (hash, mask, marker), the source generated
+  into a game (`--game-source`) and `--identify`.
 - `tool.cpp`: `RunTool`. `tools/coldxc/main.cpp` is `RunTool` with nothing added.
 
 ## Invariants

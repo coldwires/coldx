@@ -68,13 +68,16 @@ coldx_compile_shaders(coldx_builtin_shaders
 
 add_subdirectory(src/core)
 add_subdirectory(src/content)
+add_subdirectory(src/protect)
 add_subdirectory(tools/coldxc)
 
 if(COLDX_BUILD_TESTS)
     enable_testing()
     add_subdirectory(src/core/tests)
     add_subdirectory(src/content/tests)
+    add_subdirectory(src/protect/tests)
     add_subdirectory(tests/framework)
+    add_subdirectory(tests/protected_game)
     find_package(Python3 COMPONENTS Interpreter)
     if(Python3_FOUND)
         add_test(NAME check COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/check.py)

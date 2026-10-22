@@ -14,7 +14,7 @@ surface and its invariants; read it before changing the module.
 | Layer | Modules | May depend on |
 |---|---|---|
 | 0 | `core` | nothing in coldx |
-| 1 | `content`; `protect` (planned) | `core` |
+| 1 | `content`, `protect` | `core` |
 | 2 | `tools/coldxc` content tool | `content`, `core` |
 
 Networking and physics are not planned as coldx modules: games build them above coldx,
