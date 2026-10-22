@@ -17,7 +17,7 @@ behaviour; `not started` has no code.
 | 8 | `SpriteBatch`: position, destination, source, tint | done |
 | 9 | `SpriteBatch`: sort modes, blend and sampler states, transform, rotation, origin, scale, flip, depth | done |
 | 10 | `SpriteFont` from a TTF at runtime; `DrawString`, `MeasureString` | done |
-| 25 | `SpriteFont` from baked content | not started (needs the content pipeline) |
+| 25 | `SpriteFont` from packed content: the TTF is packed and baked at load, at any size (ADR 0012) | done |
 | 11 | Keyboard, with `WasPressed`/`WasReleased` | done |
 | 12 | Mouse, gamepad (4 players, hot-plug, dead zones, rumble, name, type, face labels) | done |
 | 13 | Audio: `SoundEffect`, `SoundEffectInstance`, streaming `Music`, `MediaPlayer` with crossfade and fade out | done |
@@ -44,9 +44,9 @@ behaviour; `not started` has no code.
 
 | # | Module | State |
 |---|---|---|
-| 20 | `content` and the `coldxc` tool | not started |
-| 21 | `physics` | not started |
-| 22 | `net` | not started |
+| 20 | `content` and the `coldxc` tool: projects, built-in and custom processors, cache, `coldx_add_content` | done |
+| 21 | `physics` | not planned in coldx: games build it above coldx |
+| 22 | `net` | not planned in coldx: games build it above coldx |
 | 23 | `protect` | not started |
 
 ## Platforms

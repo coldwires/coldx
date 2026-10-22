@@ -184,10 +184,36 @@ jump = Content().Load<SoundEffect>("sounds/jump");        // .wav or .ogg
 font = Content().LoadFont("fonts/main", 18.0f);           // .ttf, baked at 18 px
 ```
 
-The `ContentManager` loads files from `content/` beside the executable, finds the
-extension itself, and caches by name. Games teach it their own types with
-`RegisterLoader`. `Texture2D`, `SpriteFont` and the audio types are handles: a copy shares
-the loaded data, which is freed when the last copy and the cache let go.
+The `ContentManager` finds the extension itself and caches by name. It reads a
+`content.rime` package beside the executable if there is one, then loose files from
+`content/`. Games teach it their own types with `RegisterDataLoader`. `Texture2D`,
+`SpriteFont` and the audio types are handles: a copy shares the loaded data, which is
+freed when the last copy and the cache let go.
+
+### Packing content
+
+A content project lists what goes in the package:
+
+```
+# content/content.coldx
+seed = my game
+[texture] sprites/*.png
+[sound]   sounds/**/*.wav
+[music]   music/*.ogg
+[font]    fonts/*.ttf
+[data]    levels/*.lvl
+```
+
+```cmake
+coldx_add_content(my_game PROJECT content/content.coldx)
+```
+
+`coldxc` builds `content.rime` beside the game whenever a file in the folder changes, and
+leaves it alone when nothing did. Names in the package are hashed, never stored. The same
+`Load` calls work packed and loose; release builds stop reading loose files once a
+package is mounted. A game adds its own asset types with a `coldx::content::Processor`
+and a tool of its own that calls `coldx::content::RunTool` with it (see
+`include/coldx/content/build.h`).
 
 ## Textures and colors
 
@@ -302,10 +328,10 @@ They run once per GPU backend
     include/coldx/       public headers
     src/<module>/        implementation, MODULE.md, tests/
     shaders/             HLSL sources, the shared include, compiled headers
-    cmake/               shader compilation
+    cmake/               shader compilation, coldx_add_content
     samples/             each sample is a separate game target
-    tests/               shared test helpers
-    tools/               check.py
+    tests/               shared test helpers, the framework stress tests
+    tools/               coldxc, check.py
     docs/                architecture, status, flows, decisions
     third_party/         vendored dependencies, versions in VERSIONS.md
 

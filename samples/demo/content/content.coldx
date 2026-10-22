@@ -1,0 +1,14 @@
+# The demo's content, packed into content.rime beside demo.exe by coldx_add_content.
+seed = coldx demo
+
+[texture] sheet.png
+[sound] *.wav
+
+[music] loop.ogg
+from = ../../hello_audio/content
+
+# The font travels with its license (SIL Open Font License).
+[font] LiberationSans-Regular.ttf
+from = ../../../third_party/fonts/liberation
+[data] LICENSE
+from = ../../../third_party/fonts/liberation

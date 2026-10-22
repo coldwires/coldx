@@ -63,6 +63,21 @@ Covered by `core.audio`.
 
 Covered by `core.font.*`.
 
+## Packing content
+
+1. `cmake/coldx_content.cmake` `coldx_add_content` - a custom command runs `coldxc` when
+   any file under the project's folder, or a section's `from` folder, changes.
+2. `src/content/tool.cpp` `RunTool` - reads the arguments, adds the built-in processors.
+3. `src/content/build.cpp` `Build` - parses the project (`project.cpp`), gives each file
+   to the one section whose patterns match it, and runs it through that section's
+   processor (`processors.cpp`), or takes the result from the cache.
+4. `rime::PackageWriter` (`src/core/rime.cpp`) - hashes each output's name with the
+   package seed, sorts the entries, writes the header, table and data.
+5. `Build` writes the file only if its bytes changed; the CMake step then copies it beside
+   the game.
+
+Covered by `content.pipeline`.
+
 ## Loading content by name
 
 1. `include/coldx/core/content_manager.h` `ContentManager::Load<T>` - returns the cached

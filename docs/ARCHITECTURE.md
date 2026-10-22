@@ -14,8 +14,11 @@ surface and its invariants; read it before changing the module.
 | Layer | Modules | May depend on |
 |---|---|---|
 | 0 | `core` | nothing in coldx |
-| 1 | `content`, `physics`, `net`, `protect` (planned) | `core` |
-| 2 | `coldxc` content tool (planned) | `content`, `core` |
+| 1 | `content`; `protect` (planned) | `core` |
+| 2 | `tools/coldxc` content tool | `content`, `core` |
+
+Networking and physics are not planned as coldx modules: games build them above coldx,
+as FNA games do.
 
 A module depends only on lower layers. Two modules in the same layer never depend on each
 other. When a lower layer needs to tell a higher one something, it does so through a
