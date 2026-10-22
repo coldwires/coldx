@@ -1,0 +1,2 @@
+# Content is data: packed byte for byte, so it must check out the same on every machine.
+**/content/** -text
