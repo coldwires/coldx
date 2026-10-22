@@ -320,7 +320,8 @@ watermark = on             # lowest bits of non-silent samples
 
 `coldxc --project content/content.coldx --identify ripped.png` names the build a file came
 from (add `--key-file` for an encrypted game). The marks change nothing a player can see
-or hear, survive a lossless re-save, and do not survive resizing or lossy re-encoding.
+or hear. They survive a lossless re-save, a crop of about 64x64 pixels or more, and a
+trimmed sound; they do not survive resizing or lossy re-encoding.
 
 `COLDX_HIDDEN("text")` (link `coldx::protect`) keeps a string out of the executable as
 text. None of this stops a determined reader of the game: the key and the strings are in

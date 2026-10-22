@@ -13,15 +13,21 @@
 // PNG, all invisible:
 //   chunk        a private block, its name derived from the secret
 //   rows         the PNG filter chosen for each row: 2 bits a row
-//   transparent  the colour stored in fully transparent pixels
+//   transparent  the colour stored in fully transparent pixels; each such pixel names
+//                which payload byte it holds and checks itself, so any crop reads
 //   pixels       the lowest bit of a colour channel (rgb) or alpha 254/255 on opaque
-//                pixels (alpha, for palette art), at positions scattered by the secret
+//                pixels (alpha, for palette art), at 80 places in every 32x32 tile,
+//                shuffled by the secret
 // WAV (16-bit PCM for the sample layer):
 //   chunk        a private block
-//   samples      the lowest bit of non-silent samples, scattered by the secret
+//   samples      the lowest bit of non-silent samples, at 80 places in every 2048
 //
-// The first layers go when a file is re-saved by an editor; the pixel and sample layers
-// survive a lossless re-save, not resizing or lossy re-encoding.
+// Because every tile (block) carries the whole payload at the same places, any crop of
+// at least about 64x64 pixels, or any stretch of a few blocks of sound, holds two or more
+// copies; the reader tries every alignment and accepts one only with two copies of every
+// bit, 90% agreement and the 16-bit check, so it never names a build by chance. The chunk
+// and row layers go when a file is re-saved by an editor; the others survive a lossless
+// re-save and cropping or trimming, not resizing or lossy re-encoding.
 namespace coldx::content::detail {
 
 enum class PixelMark {

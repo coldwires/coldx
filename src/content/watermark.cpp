@@ -14,6 +14,8 @@ namespace coldx::content::detail {
 namespace {
 
 constexpr std::size_t PayloadSize = 80;  // bits: the fingerprint, then a 16-bit check
+constexpr std::size_t Tile = 32;         // pixels: every Tile x Tile window holds the payload
+constexpr std::size_t Block = 2048;      // samples: every Block samples hold the payload
 
 // Pseudo-random bits from the secret, the same every time, one stream per purpose, so the
 // marks look like noise and their places cannot be known without the secret.
@@ -36,6 +38,15 @@ private:
     std::uint64_t index_ = ~std::uint64_t{0};
     std::uint64_t word_ = 0;
 };
+
+std::uint64_t Mix(std::uint64_t h) {
+    h ^= h >> 33;
+    h *= 0xFF51AFD7ED558CCDull;
+    h ^= h >> 33;
+    h *= 0xC4CEB9FE1A85EC53ull;
+    h ^= h >> 33;
+    return h;
+}
 
 std::uint16_t Check(std::uint64_t secret, std::uint64_t fingerprint) {
     std::string bytes(8, '\0');
@@ -65,59 +76,72 @@ std::array<std::uint8_t, PayloadSize / 8> BytesOf(const Payload& bits) {
 class Tally {
 public:
     void Add(std::size_t index, int bit) {
-        observations_.push_back({index % PayloadSize, static_cast<std::uint8_t>(bit & 1)});
-        ones_[index % PayloadSize] += bit & 1;
+        ones_[index % PayloadSize] += static_cast<std::size_t>(bit & 1);
         seen_[index % PayloadSize] += 1;
     }
 
-    Finding Decide(const char* layer, std::uint64_t secret) const {
+    // A layer whose alignment was searched for asks for several copies of every bit and
+    // near-total agreement, so a chance alignment can never pass; the 16-bit check comes on
+    // top.
+    Finding Decide(const char* layer, std::uint64_t secret, std::size_t minCopies = 1, double minAgreement = 0.0) const {
         Finding f;
         f.layer = layer;
-        f.total = observations_.size();
-        for (std::size_t n : seen_)
-            if (n == 0) return f;
+        for (std::size_t i = 0; i < PayloadSize; ++i) f.total += seen_[i];
         Payload bits{};
-        for (std::size_t i = 0; i < PayloadSize; ++i) bits[i] = ones_[i] * 2 > seen_[i] ? 1 : 0;
+        for (std::size_t i = 0; i < PayloadSize; ++i) {
+            if (seen_[i] < minCopies || seen_[i] == 0) return f;
+            bits[i] = ones_[i] * 2 > seen_[i] ? 1 : 0;
+            f.agree += bits[i] ? ones_[i] : seen_[i] - ones_[i];
+        }
         Stream white(secret, "payload");
         std::uint64_t fingerprint = 0;
         std::uint16_t check = 0;
         for (std::size_t i = 0; i < 64; ++i) fingerprint |= std::uint64_t(bits[i] ^ white.Bit(i)) << i;
         for (std::size_t i = 0; i < 16; ++i) check = static_cast<std::uint16_t>(check | ((bits[64 + i] ^ white.Bit(64 + i)) << i));
-        for (const auto& [index, bit] : observations_) f.agree += bits[index] == bit ? 1 : 0;
-        f.found = Check(secret, fingerprint) == check;
         f.fingerprint = fingerprint;
+        f.found = Check(secret, fingerprint) == check && static_cast<double>(f.agree) >= minAgreement * static_cast<double>(f.total);
         return f;
     }
 
 private:
-    std::vector<std::pair<std::size_t, std::uint8_t>> observations_;
     std::array<std::size_t, PayloadSize> ones_{}, seen_{};
 };
 
-// count positions out of candidates, a different order for every secret: a start and a
-// step coprime with the number of candidates, so no position repeats.
-class Positions {
+// The 80 places one period (a tile of pixels, a block of samples) marks, chosen by a
+// shuffle keyed with the secret: place i carries payload bit i. Every period uses the same
+// places, which is what lets a crop or a trimmed clip be read: any window one period long
+// holds each place exactly once, wherever it starts.
+class Layout {
 public:
-    Positions(std::size_t candidates, std::size_t count, std::uint64_t secret, const char* purpose) : n_(candidates), count_(count) {
-        if (n_ == 0) return;
+    Layout(std::size_t period, std::uint64_t secret, const char* purpose) : slot_(period, -1) {
+        std::vector<std::size_t> order(period);
+        std::iota(order.begin(), order.end(), std::size_t{0});
         Stream s(secret, purpose);
-        start_ = s.Word(0) % n_;
-        step_ = n_ > 1 ? 1 + s.Word(1) % (n_ - 1) : 1;
-        while (std::gcd(step_, n_) != 1) step_ = step_ + 1 < n_ ? step_ + 1 : 1;
+        for (std::size_t i = 0; i < PayloadSize; ++i) {  // the first 80 steps of a Fisher-Yates shuffle
+            std::swap(order[i], order[i + s.Word(i) % (period - i)]);
+            place_[i] = order[i];
+            slot_[order[i]] = static_cast<int>(i);
+        }
     }
-    std::size_t Count() const { return count_; }
-    std::size_t operator[](std::size_t k) const { return (start_ + k * step_) % n_; }
+    int Slot(std::size_t inPeriod) const { return slot_[inPeriod]; }
+    std::size_t Place(std::size_t bit) const { return place_[bit]; }
 
 private:
-    std::size_t n_, count_, start_ = 0, step_ = 1;
+    std::vector<int> slot_;
+    std::array<std::size_t, PayloadSize> place_{};
 };
 
-// How many places a layer marks: everything when there is little room, else a quarter (or
-// less), enough for many copies of the payload.
-std::size_t MarkCount(std::size_t candidates, std::size_t divisor) {
-    if (candidates <= 2 * PayloadSize) return candidates;
-    return std::clamp(candidates / divisor, 2 * PayloadSize, PayloadSize * 64);
-}
+// Per payload bit, the noise that whitens it and (pixels) the channel it lives in.
+struct Whitening {
+    std::array<std::uint8_t, PayloadSize> noise{}, channel{};
+    Whitening(std::uint64_t secret, const char* noisePurpose, const char* channelPurpose) {
+        Stream n(secret, noisePurpose), c(secret, channelPurpose);
+        for (std::size_t i = 0; i < PayloadSize; ++i) {
+            noise[i] = static_cast<std::uint8_t>(n.Bit(i));
+            channel[i] = static_cast<std::uint8_t>(c.Byte(i) % 3);
+        }
+    }
+};
 
 std::uint32_t Get32BE(const std::uint8_t* p) {
     return (std::uint32_t{p[0]} << 24) | (std::uint32_t{p[1]} << 16) | (std::uint32_t{p[2]} << 8) | p[3];
@@ -206,15 +230,26 @@ bool DecodeRgba(const std::vector<std::uint8_t>& png, std::vector<std::uint8_t>&
     return true;
 }
 
-std::vector<std::size_t> PixelCandidates(const std::vector<std::uint8_t>& rgba, PixelMark mode) {
-    std::vector<std::size_t> out;
-    for (std::size_t p = 0; p < rgba.size() / 4; ++p) {
-        const std::uint8_t a = rgba[p * 4 + 3];
-        // Both tests ignore the bit being written, so marking never changes who qualifies.
-        if (mode == PixelMark::Rgb ? a > 0 : (a & 0xFE) == 254) out.push_back(p);
-    }
-    return out;
+// Both tests ignore the bit being written, so marking never changes which pixels qualify.
+bool Candidate(std::uint8_t alpha, PixelMark mode) {
+    return mode == PixelMark::Rgb ? alpha > 0 : (alpha & 0xFE) == 254;
 }
+
+// The transparent-pixel layer: each fully transparent pixel describes itself, so it reads
+// from any crop without alignment. R names which payload byte it holds, G holds it, B is
+// an 8-bit check of both; all three whitened.
+struct ClearCode {
+    std::uint8_t r = 0, g = 0, b = 0;
+    std::array<std::array<std::uint8_t, 256>, PayloadSize / 8> check{};
+    explicit ClearCode(std::uint64_t secret) {
+        Stream s(secret, "transparent");
+        r = s.Byte(0);
+        g = s.Byte(1);
+        b = s.Byte(2);
+        for (std::size_t i = 0; i < check.size(); ++i)
+            for (int v = 0; v < 256; ++v) check[i][static_cast<size_t>(v)] = static_cast<std::uint8_t>(Mix(secret ^ (i << 8) ^ static_cast<std::uint64_t>(v)));
+    }
+};
 
 } // namespace
 
@@ -235,22 +270,29 @@ bool MarkPng(const std::vector<std::uint8_t>& png, std::uint64_t secret, std::ui
     const Payload bits = PayloadOf(secret, fingerprint);
     const auto bytes = BytesOf(bits);
 
-    // Pixels: the lowest bit of a channel, or alpha 254/255.
-    const std::vector<std::size_t> candidates = PixelCandidates(rgba, mode);
-    const Positions places(candidates.size(), MarkCount(candidates.size(), 4), secret, "pixel places");
-    Stream noise(secret, "pixel bits"), channels(secret, "pixel channels");
-    for (std::size_t k = 0; k < places.Count(); ++k) {
-        const std::size_t p = candidates[places[k]];
-        const int bit = bits[k % PayloadSize] ^ noise.Bit(k);
-        std::uint8_t& v = mode == PixelMark::Rgb ? rgba[p * 4 + channels.Byte(k) % 3] : rgba[p * 4 + 3];
-        v = static_cast<std::uint8_t>((v & 0xFE) | bit);
+    // Pixels: in every tile, the lowest bit of a channel (or alpha 254/255) at the 80 places.
+    const Layout layout(Tile * Tile, secret, "pixel places");
+    const Whitening white(secret, "pixel bits", "pixel channels");
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            const int slot = layout.Slot(static_cast<size_t>(y) % Tile * Tile + static_cast<size_t>(x) % Tile);
+            const std::size_t p = static_cast<size_t>(y) * w + static_cast<size_t>(x);
+            if (slot < 0 || !Candidate(rgba[p * 4 + 3], mode)) continue;
+            const auto i = static_cast<std::size_t>(slot);
+            std::uint8_t& v = mode == PixelMark::Rgb ? rgba[p * 4 + white.channel[i]] : rgba[p * 4 + 3];
+            v = static_cast<std::uint8_t>((v & 0xFE) | (bits[i] ^ white.noise[i]));
+        }
     }
     // Fully transparent pixels: their colour, which nothing ever shows.
-    Stream clear(secret, "transparent");
-    std::size_t q = 0;
-    for (std::size_t p = 0; p < rgba.size() / 4; ++p) {
+    const ClearCode clear(secret);
+    Stream pick(secret, "transparent pick");
+    for (std::size_t p = 0, q = 0; p < rgba.size() / 4; ++p) {
         if (rgba[p * 4 + 3] != 0) continue;
-        for (int c = 0; c < 3; ++c, ++q) rgba[p * 4 + static_cast<size_t>(c)] = static_cast<std::uint8_t>(bytes[q % bytes.size()] ^ clear.Byte(q));
+        const std::size_t index = q++ % bytes.size();
+        const std::uint8_t r = static_cast<std::uint8_t>(index * 25 + pick.Byte(p) % 25);
+        rgba[p * 4] = static_cast<std::uint8_t>(r ^ clear.r);
+        rgba[p * 4 + 1] = static_cast<std::uint8_t>(bytes[index] ^ clear.g);
+        rgba[p * 4 + 2] = static_cast<std::uint8_t>(clear.check[index][bytes[index]] ^ clear.b);
     }
 
     // Rows: filtered with filter 1 to 4 as the payload says.
@@ -325,30 +367,49 @@ std::vector<Finding> ReadPng(const std::vector<std::uint8_t>& png, std::uint64_t
     std::vector<std::uint8_t> rgba;
     int w = 0, h = 0;
     if (!DecodeRgba(png, rgba, w, h)) return found;
-    {   // transparent pixels
+    {   // transparent pixels: each checks itself, wherever it is
         Tally t;
-        Stream clear(secret, "transparent");
-        std::size_t q = 0;
+        const ClearCode clear(secret);
         for (std::size_t p = 0; p < rgba.size() / 4; ++p) {
             if (rgba[p * 4 + 3] != 0) continue;
-            for (int c = 0; c < 3; ++c, ++q) {
-                const int v = rgba[p * 4 + static_cast<size_t>(c)] ^ clear.Byte(q);
-                for (int b = 0; b < 8; ++b) t.Add((q % (PayloadSize / 8)) * 8 + static_cast<size_t>(b), (v >> b) & 1);
+            const int r = rgba[p * 4] ^ clear.r;
+            if (r >= 250) continue;
+            const std::size_t index = static_cast<std::size_t>(r) / 25;
+            const std::uint8_t value = static_cast<std::uint8_t>(rgba[p * 4 + 1] ^ clear.g);
+            if ((rgba[p * 4 + 2] ^ clear.b) != clear.check[index][value]) continue;
+            for (int b = 0; b < 8; ++b) t.Add(index * 8 + static_cast<size_t>(b), (value >> b) & 1);
+        }
+        found.push_back(t.Decide("transparent pixels", secret, 1, 0.9));
+    }
+    // Pixel bits: the image may be a crop, so every alignment of the tiles is tried; the
+    // one that decodes with several copies and near-total agreement wins.
+    const Layout layout(Tile * Tile, secret, "pixel places");
+    const Whitening white(secret, "pixel bits", "pixel channels");
+    for (PixelMark mode : {PixelMark::Rgb, PixelMark::Alpha}) {
+        Finding best;
+        best.layer = mode == PixelMark::Rgb ? "pixel bits (rgb)" : "pixel bits (alpha)";
+        for (std::size_t oy = 0; oy < Tile && !(best.found && best.agree == best.total); ++oy) {
+            for (std::size_t ox = 0; ox < Tile; ++ox) {
+                Tally t;
+                for (std::size_t i = 0; i < PayloadSize; ++i) {
+                    const std::size_t place = layout.Place(i);
+                    const std::size_t sx = (place % Tile + Tile - ox) % Tile, sy = (place / Tile + Tile - oy) % Tile;
+                    for (std::size_t y = sy; y < static_cast<size_t>(h); y += Tile) {
+                        for (std::size_t x = sx; x < static_cast<size_t>(w); x += Tile) {
+                            const std::size_t p = y * static_cast<size_t>(w) + x;
+                            if (!Candidate(rgba[p * 4 + 3], mode)) continue;
+                            const std::uint8_t v = mode == PixelMark::Rgb ? rgba[p * 4 + white.channel[i]] : rgba[p * 4 + 3];
+                            t.Add(i, (v & 1) ^ white.noise[i]);
+                        }
+                    }
+                }
+                Finding f = t.Decide(best.layer.c_str(), secret, 2, 0.9);
+                const bool better = f.found && (!best.found || f.agree * best.total > best.agree * f.total);
+                if (better || (!best.found && f.total > best.total)) best = f;
+                if (best.found && best.agree == best.total) break;
             }
         }
-        found.push_back(t.Decide("transparent pixels", secret));
-    }
-    for (PixelMark mode : {PixelMark::Rgb, PixelMark::Alpha}) {
-        Tally t;
-        const std::vector<std::size_t> candidates = PixelCandidates(rgba, mode);
-        const Positions places(candidates.size(), MarkCount(candidates.size(), 4), secret, "pixel places");
-        Stream noise(secret, "pixel bits"), channels(secret, "pixel channels");
-        for (std::size_t k = 0; k < places.Count(); ++k) {
-            const std::size_t p = candidates[places[k]];
-            const std::uint8_t v = mode == PixelMark::Rgb ? rgba[p * 4 + channels.Byte(k) % 3] : rgba[p * 4 + 3];
-            t.Add(k, (v & 1) ^ noise.Bit(k));
-        }
-        found.push_back(t.Decide(mode == PixelMark::Rgb ? "pixel bits (rgb)" : "pixel bits (alpha)", secret));
+        found.push_back(best);
     }
     return found;
 }
@@ -390,15 +451,10 @@ std::string WavChunkName(std::uint64_t secret) {
     return name;
 }
 
-std::vector<std::size_t> SampleCandidates(const std::vector<std::uint8_t>& b, const WavFile& wav) {
-    std::vector<std::size_t> out;
-    for (std::size_t i = 0; i < wav.size / 2; ++i) {
-        // Ignoring the bit being written, as with pixels; quiet samples stay untouched, so
-        // silence stays exactly silent.
-        const int sample = static_cast<std::int16_t>(Get16LE(&b[wav.data + i * 2]) & 0xFFFE);
-        if (std::abs(sample) >= 64) out.push_back(i);
-    }
-    return out;
+// Ignoring the bit being written, as with pixels; quiet samples stay untouched, so silence
+// stays exactly silent.
+bool Loud(const std::vector<std::uint8_t>& b, std::size_t at) {
+    return std::abs(static_cast<int>(static_cast<std::int16_t>(Get16LE(&b[at]) & 0xFFFE))) >= 64;
 }
 
 } // namespace
@@ -413,12 +469,14 @@ bool MarkWav(const std::vector<std::uint8_t>& wav, std::uint64_t secret, std::ui
     out = wav;
     const Payload bits = PayloadOf(secret, fingerprint);
     if (file.pcm16) {
-        const std::vector<std::size_t> candidates = SampleCandidates(out, file);
-        const Positions places(candidates.size(), MarkCount(candidates.size(), 16), secret, "sample places");
-        Stream noise(secret, "sample bits");
-        for (std::size_t k = 0; k < places.Count(); ++k) {
-            std::uint8_t& low = out[file.data + candidates[places[k]] * 2];
-            low = static_cast<std::uint8_t>((low & 0xFE) | (bits[k % PayloadSize] ^ noise.Bit(k)));
+        const Layout layout(Block, secret, "sample places");
+        const Whitening white(secret, "sample bits", "sample channels");
+        for (std::size_t s = 0; s < file.size / 2; ++s) {
+            const int slot = layout.Slot(s % Block);
+            const std::size_t at = file.data + s * 2;
+            if (slot < 0 || !Loud(out, at)) continue;
+            const auto i = static_cast<std::size_t>(slot);
+            out[at] = static_cast<std::uint8_t>((out[at] & 0xFE) | (bits[i] ^ white.noise[i]));
         }
     }
     // The private chunk at the end, where players skip chunks they do not know.
@@ -452,12 +510,27 @@ std::vector<Finding> ReadWav(const std::vector<std::uint8_t>& wav, std::uint64_t
         found.push_back(t.Decide("chunk", secret));
     }
     if (file.pcm16) {
-        Tally t;
-        const std::vector<std::size_t> candidates = SampleCandidates(wav, file);
-        const Positions places(candidates.size(), MarkCount(candidates.size(), 16), secret, "sample places");
-        Stream noise(secret, "sample bits");
-        for (std::size_t k = 0; k < places.Count(); ++k) t.Add(k, (wav[file.data + candidates[places[k]] * 2] & 1) ^ noise.Bit(k));
-        found.push_back(t.Decide("sample bits", secret));
+        // The clip may be trimmed: every alignment of the blocks is tried, over at most the
+        // first million samples, which hold hundreds of copies.
+        const Layout layout(Block, secret, "sample places");
+        const Whitening white(secret, "sample bits", "sample channels");
+        const std::size_t samples = std::min<std::size_t>(file.size / 2, std::size_t{1} << 20);
+        Finding best;
+        best.layer = "sample bits";
+        for (std::size_t offset = 0; offset < Block; ++offset) {
+            Tally t;
+            for (std::size_t i = 0; i < PayloadSize; ++i) {
+                for (std::size_t s = (layout.Place(i) + Block - offset) % Block; s < samples; s += Block) {
+                    const std::size_t at = file.data + s * 2;
+                    if (Loud(wav, at)) t.Add(i, (wav[at] & 1) ^ white.noise[i]);
+                }
+            }
+            Finding f = t.Decide("sample bits", secret, 2, 0.9);
+            const bool better = f.found && (!best.found || f.agree * best.total > best.agree * f.total);
+            if (better || (!best.found && f.total > best.total)) best = f;
+            if (best.found && best.agree == best.total) break;
+        }
+        found.push_back(best);
     }
     return found;
 }
