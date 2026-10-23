@@ -4,7 +4,7 @@ A C++20 framework for 2D games in the style of XNA, on SDL3 and its GPU API. A g
 subclasses `Game` and overrides `Initialize`, `LoadContent`, `Update` and `Draw`.
 
 `docs/QUICKSTART.md` has a complete game, the whole API on one page, and what differs
-from XNA. Start there. `samples/demo` is a small game that uses most of coldx at once.
+from XNA. Start there. `samples/demo` is a small game that uses all of coldx at once.
 
 ```cpp
 #include <coldx/coldx.h>

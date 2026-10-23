@@ -1,8 +1,12 @@
-# The demo's content, packed into content.rime beside demo.exe by coldx_add_content.
+# The demo's content, packed into content.rime beside demo.exe by coldx_add_content
+# (see CMakeLists.txt): encrypted with a key made in the build folder, fingerprinted with
+# the build id, and the sheet watermarked in its alpha channel.
 seed = coldx demo
 
 [texture] sheet.png
+watermark = alpha
 [sound] *.wav
+[data] credits.txt levels/*.wave
 
 [music] loop.ogg
 from = ../../hello_audio/content

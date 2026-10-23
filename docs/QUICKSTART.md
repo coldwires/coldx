@@ -75,8 +75,12 @@ int main() {
 }
 ```
 
-`samples/demo` goes further, and is pixel-perfect: components, packed content, sound,
-music, a sprite sheet drawn by tile name, screen shake, and a saved best score.
+`samples/demo` is a whole small game that uses all of coldx, pixel-perfect: the title
+menu, play, pause, high score name entry, credits; components, a render target shown
+through effects, pixel-exact collisions from `GetData`, encrypted and fingerprinted
+content, gamepad prompts, typed text and saved scores. The top of its `main.cpp` lists
+which file shows each part. A scripted run through every screen is a test
+(`samples/demo/tests/demo_run.txt`): a model for testing a game of your own.
 
 A game's CMake file:
 

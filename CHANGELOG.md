@@ -55,6 +55,12 @@
   textures, sounds and music.
 - The `content` module and `coldxc`: content projects, processors (built-in and a game's
   own), a build cache, `coldx_add_content`. The `demo` sample loads from a package.
+- The `demo` sample uses the whole library: title menu, pause, high score name entry with
+  `TextInput`, credits from packed text, a render target shown through the grayscale
+  effect, a flash on hits and a wave on the title, pixel-exact collisions, a radar
+  texture rewritten each frame, an engine hum made with `FromSamples`, gamepad prompts
+  and rumble, screenshots, and encrypted, fingerprinted, watermarked content. A scripted
+  run through every screen is the `samples.demo` test.
 - `Effect`: custom fragment shaders for `SpriteBatch` with named parameters and extra
   textures. `SpriteBatch::Begin` takes one before the transform (calls that passed a
   transform now pass `Effect()` first). `[effect]` in content projects,

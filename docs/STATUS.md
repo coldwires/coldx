@@ -28,7 +28,7 @@ behaviour; `not started` has no code.
 | 17 | Math: `Point`, `Matrix`, `MathHelper` | done |
 | 18 | Custom shaders when drawing: `Effect` (fragment shaders, named parameters, extra textures), `SpriteBatch::Begin` takes one; `[effect]`, `coldx_compile_effects`; grayscale, flash and wave examples | done |
 | 24 | `Log` for games | done |
-| 29 | `demo` sample: components, content, input, audio, text, many sprites | done |
+| 29 | `demo` sample: the whole library in one game (menus, effects, render target, collisions from readback, encrypted content, name entry, high scores), with a scripted test run | done |
 | 26 | `Storage`: per-user folder, atomic writes | done |
 | 27 | Typed text input (UTF-8, IME composition), clipboard, key names on the current layout | done |
 | 31 | Virtual resolution: fixed back buffer scaled into the window (Fit, Integer, Stretch), mouse mapped | done |
