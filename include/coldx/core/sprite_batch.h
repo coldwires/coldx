@@ -42,6 +42,10 @@ constexpr bool HasFlag(SpriteEffects value, SpriteEffects flag) {
 // changes allow. Coordinates are pixels of the current target, (0, 0) top left, y down,
 // then put through the transform given to Begin.
 //
+// With the clamp samplers a sprite samples only its own source rectangle, at any scale or
+// position: atlas tiles need no padding against their neighbours. The wrap samplers tile
+// past the rectangle, as they should.
+//
 // Can be constructed before Run, e.g. as a member of the game class; GPU resources are
 // created on first use. Begin and End only work inside Draw.
 class SpriteBatch {

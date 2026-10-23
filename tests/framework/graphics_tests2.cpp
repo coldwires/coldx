@@ -119,10 +119,11 @@ Result TextureEdges() {
         problems += " no capture;";
     }
     if (pointBleed) problems += Format(" %d bleeding pixels with point sampling;", pointBleed);
+    if (linearBleed) problems += Format(" %d bleeding pixels with linear filtering;", linearBleed);
     r.status = rc == 0 && problems.empty() ? Status::Pass : Status::Fail;
     r.notes = notes + Format("refusal took %.0f ms. Atlas cell drawn 4x: point sampling at whole pixels, %d bled pixels; "
-                             "linear filtering at a half pixel, %d edge pixels pick up the neighbouring cell. That is "
-                             "how XNA and FNA behave too: pad atlas cells or use PointClamp.",
+                             "linear filtering at a half pixel, %d pick up the neighbouring cell (XNA and FNA bleed "
+                             "here; coldx keeps sampling inside each source rectangle).",
                              tooBigSeconds * 1000, pointBleed, linearBleed) +
               (problems.empty() ? "" : " Problems:" + problems);
     for (const std::string& f : {npot, tiny, clear, capture}) std::filesystem::remove(f);

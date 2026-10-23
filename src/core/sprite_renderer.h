@@ -21,8 +21,11 @@ struct SpriteVertex {
     float x, y;
     float u, v;
     Color color;
+    // The source rectangle's UV limits (min u, min v, max u, max v); the fragment shader
+    // clamps sampling to them so atlas neighbours never bleed in.
+    float bounds[4];
 };
-static_assert(sizeof(SpriteVertex) == 20);
+static_assert(sizeof(SpriteVertex) == 36);
 
 // One sprite as the GPU sees it: four corners, top-left, top-right, bottom-left,
 // bottom-right.

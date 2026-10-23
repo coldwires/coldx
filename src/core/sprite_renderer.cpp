@@ -110,10 +110,11 @@ SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
     buffer.pitch = sizeof(SpriteVertex);
     buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
 
-    SDL_GPUVertexAttribute attributes[3]{};
+    SDL_GPUVertexAttribute attributes[4]{};
     attributes[0] = {0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(SpriteVertex, x)};
     attributes[1] = {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(SpriteVertex, u)};
     attributes[2] = {2, 0, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, offsetof(SpriteVertex, color)};
+    attributes[3] = {3, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(SpriteVertex, bounds)};
 
     SDL_GPUColorTargetDescription target{};
     target.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -125,7 +126,7 @@ SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
     info.vertex_input_state.vertex_buffer_descriptions = &buffer;
     info.vertex_input_state.num_vertex_buffers = 1;
     info.vertex_input_state.vertex_attributes = attributes;
-    info.vertex_input_state.num_vertex_attributes = 3;
+    info.vertex_input_state.num_vertex_attributes = 4;
     info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
     info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
     info.target_info.color_target_descriptions = &target;

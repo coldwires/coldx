@@ -269,6 +269,9 @@ shaders while drawing (not yet). These are the game's own, or come from librarie
 - Colors are premultiplied everywhere. Half-transparent white is `Color::White * 0.5f`,
   not `Color(255, 255, 255, 128)`. PNGs are premultiplied on load; use
   `BlendState::NonPremultiplied` only for pixels you made straight-alpha yourself.
+- A sprite drawn from part of a texture never shows the texels around that part, with
+  `PointClamp` or `LinearClamp`, at any scale: atlases need no padding (XNA and FNA bleed
+  neighbouring texels in here).
 - `SpriteBatch::Begin` takes sort, blend, sampler, then the transform. There is no
   `Effect` parameter yet, and no depth-stencil or rasterizer state.
 - A `SpriteFont` is a TTF baked at one pixel size, loaded at runtime. For another size,

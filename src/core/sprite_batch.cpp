@@ -65,13 +65,32 @@ void SpriteBatch::Impl::Add(const Texture2D& texture, float x, float y, float w,
     const float ly[4] = {-oy, -oy, h - oy, h - oy};
     const float us[4] = {u0, u1, u0, u1};
     const float vs[4] = {v0, v0, v1, v1};
+
+    // Sampling stays inside the source rectangle (and the texture): just inside its edge
+    // texels with point sampling, half a texel in with linear, so neither rounding on a
+    // shrunk sprite nor filtering reaches a neighbour in an atlas. Each sub-rectangle draws
+    // as if it were a texture of its own. Wrap modes tile past the edge on purpose: no limit.
+    float bounds[4] = {-1e9f, -1e9f, 1e9f, 1e9f};
+    if (sampler == SamplerState::PointClamp || sampler == SamplerState::LinearClamp) {
+        const float inset = sampler == SamplerState::PointClamp ? 1.0f / 256.0f : 0.5f;
+        auto limits = [inset](float start, float length, float size, float& lo, float& hi) {
+            const float a = std::max(0.0f, std::min(start, start + length));
+            const float b = std::min(size, std::max(start, start + length));
+            lo = (a + inset) / size;
+            hi = (b - inset) / size;
+            if (lo > hi) lo = hi = (a + b) * 0.5f / size;  // narrower than the inset: its centre
+        };
+        limits(static_cast<float>(source.x), static_cast<float>(source.width), tw, bounds[0], bounds[2]);
+        limits(static_cast<float>(source.y), static_cast<float>(source.height), th, bounds[1], bounds[3]);
+    }
     QueuedSprite sprite{};
     sprite.quad.texture = handle;
     sprite.depth = depth;
     const float c = rotation != 0.0f ? std::cos(rotation) : 1.0f;
     const float s = rotation != 0.0f ? std::sin(rotation) : 0.0f;
     for (int i = 0; i < 4; ++i) {
-        sprite.quad.vertices[i] = {x + lx[i] * c - ly[i] * s, y + lx[i] * s + ly[i] * c, us[i], vs[i], color};
+        sprite.quad.vertices[i] = {x + lx[i] * c - ly[i] * s, y + lx[i] * s + ly[i] * c, us[i], vs[i], color,
+                                   {bounds[0], bounds[1], bounds[2], bounds[3]}};
     }
     queue.push_back(sprite);
     if (sortMode == SpriteSortMode::Immediate) Flush();
