@@ -274,6 +274,92 @@ void RenderTargets() {
     Block(f, 16, 0, 4, 4, Black);  // a fresh target is transparent
 }
 
+// Nearest-neighbour sprites from an atlas must never show the texel next to their source
+// rectangle, at any position or scale: the demo's ship picked up its sheet's magenta
+// outline when moving at 1.5x. A green tile between two magenta columns, drawn at 1.5x and
+// 2.25x at many sub-pixel positions: no magenta anywhere.
+void AtlasEdges() {
+    const Color M(255, 0, 255);
+    Scene scene(480, 120);
+    scene.load = [&](Scene& s) {
+        std::vector<Color> atlas;
+        for (int y = 0; y < 6; ++y)
+            for (int x = 0; x < 34; ++x) atlas.push_back(x == 0 || x == 33 ? M : G);
+        s.AddTexture(34, 6, atlas);
+    };
+    scene.draw = [](Scene& s) {
+        s.Graphics().Clear(Black);
+        SpriteBatch& b = s.batch;
+        b.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
+        for (int i = 0; i < 60; ++i) {
+            const float x = 2.0f + static_cast<float>(i % 8) * 58.0f + static_cast<float>(i) * 0.0731f;
+            const float y = 2.0f + static_cast<float>(i / 8) * 14.0f + static_cast<float>(i) * 0.0419f;
+            const float scale = i % 2 ? 1.5f : 2.25f;
+            b.Draw(s.textures[0], Vector2(x, y), Rectangle(1, 0, 32, 6), Color::White, 0.0f, Vector2(), scale, SpriteEffects::None, 0);
+        }
+        b.End();
+    };
+    const Frame f = RunAndCapture(scene, "sprite_atlas_edges");
+    int magenta = 0, green = 0;
+    for (int y = 0; y < f.Height(); ++y) {
+        for (int x = 0; x < f.Width(); ++x) {
+            const Color c = f.At(x, y);
+            magenta += c.r > 0 ? 1 : 0;
+            green += c.g > 0 ? 1 : 0;
+        }
+    }
+    std::printf("atlas edges: %d green pixels, %d showing the neighbouring texel\n", green, magenta);
+    CHECK(green > 10000);
+    CHECK(magenta == 0);
+}
+
+// The demo's starfield: a 32x32 atlas tile shrunk to a few pixels (scale 0.03 to 0.27),
+// origin at its centre, additive. The texels around the tile are magenta; a shrunk sprite
+// must still only show its own texels, with point or linear sampling.
+void ShrunkSprites() {
+    const Color M(255, 0, 255);
+    for (SamplerState sampler : {SamplerState::PointClamp, SamplerState::LinearClamp}) {
+        Scene scene(480, 120);
+        scene.load = [&](Scene& s) {
+            std::vector<Color> atlas;
+            for (int y = 0; y < 34; ++y)
+                for (int x = 0; x < 34; ++x) {
+                    const bool edge = x == 0 || y == 0 || x == 33 || y == 33;
+                    const int dx = x - 17, dy = y - 17;
+                    const bool dot = dx * dx + dy * dy < 40;
+                    atlas.push_back(edge ? M : (dot ? W : Color(0, 0, 0, 0)));
+                }
+            s.AddTexture(34, 34, atlas);
+        };
+        scene.draw = [sampler](Scene& s) {
+            s.Graphics().Clear(Black);
+            SpriteBatch& b = s.batch;
+            b.Begin(SpriteSortMode::Deferred, BlendState::Additive, sampler);
+            for (int i = 0; i < 300; ++i) {
+                const float x = 6.0f + static_cast<float>(i % 30) * 15.7f + static_cast<float>(i) * 0.031f;
+                const float y = 6.0f + static_cast<float>(i / 30) * 11.3f + static_cast<float>(i) * 0.017f;
+                const float scale = 0.03f + 0.24f * static_cast<float>(i % 17) / 16.0f;
+                b.Draw(s.textures[0], Vector2(x, y), Rectangle(1, 1, 32, 32), Color::White, 0.0f, Vector2(16, 16), scale,
+                       SpriteEffects::None, 0);
+            }
+            b.End();
+        };
+        const Frame f = RunAndCapture(scene, sampler == SamplerState::PointClamp ? "sprite_shrunk_point" : "sprite_shrunk_linear");
+        int magenta = 0, lit = 0;
+        for (int y = 0; y < f.Height(); ++y) {
+            for (int x = 0; x < f.Width(); ++x) {
+                const Color c = f.At(x, y);
+                lit += c.g > 0 ? 1 : 0;
+                magenta += c.r > c.g + 8 ? 1 : 0;
+            }
+        }
+        std::printf("shrunk sprites, %s: %d lit pixels, %d tinted by the neighbouring texels\n",
+                    sampler == SamplerState::PointClamp ? "point" : "linear", lit, magenta);
+        CHECK(lit > 100);
+        CHECK(magenta == 0);
+    }
+}
+
 } // namespace
 
 int main() {
@@ -281,5 +367,7 @@ int main() {
     Blends();
     SortModes();
     RenderTargets();
+    AtlasEdges();
+    ShrunkSprites();
     return CheckResult();
 }
