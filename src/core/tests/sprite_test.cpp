@@ -400,6 +400,43 @@ void PixelSnap() {
     CHECK(differ > 0);
 }
 
+// GameSettings::pixelArt: a batch begun with every default draws exactly as one told
+// PointClamp and pixel snapping; an explicit sampler still wins.
+void PixelArtDefaults() {
+    auto run = [](bool pixelArt, const char* name) {
+        Scene scene(96, 32);
+        scene.Settings().pixelArt = pixelArt;
+        scene.load = [](Scene& s) {
+            std::vector<Color> art;
+            for (int i = 0; i < 16; ++i) art.push_back(i % 3 == 0 ? R : (i % 3 == 1 ? G : B));
+            s.AddTexture(4, 4, art);
+        };
+        scene.draw = [pixelArt](Scene& s) {
+            s.Graphics().Clear(Black);
+            SpriteBatch& b = s.batch;
+            CHECK(b.PixelSnap() == pixelArt);
+            if (pixelArt) {
+                b.Begin();  // every default
+            } else {
+                b.SetPixelSnap(true);
+                b.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
+            }
+            b.Draw(s.textures[0], Vector2(5.4f, 7.6f), std::nullopt, Color::White, 0.0f, Vector2(), 3.0f, SpriteEffects::None, 0);
+            b.Draw(s.textures[0], Vector2(40.5f, 3.2f), std::nullopt, Color::White, 0.0f, Vector2(), 5.0f, SpriteEffects::None, 0);
+            b.End();
+            if (!pixelArt) b.SetPixelSnap(false);
+        };
+        return RunAndCapture(scene, name);
+    };
+    const Frame automatic = run(true, "sprite_pixelart_on");
+    const Frame manual = run(false, "sprite_pixelart_manual");
+    int same = 0;
+    for (int y = 0; y < 32; ++y)
+        for (int x = 0; x < 96; ++x) same += automatic.At(x, y) == manual.At(x, y) ? 1 : 0;
+    std::printf("pixelArt defaults: %d of %d pixels match explicit PointClamp and snapping\n", same, 96 * 32);
+    CHECK(same == 96 * 32);
+}
+
 } // namespace
 
 int main() {
@@ -410,5 +447,6 @@ int main() {
     AtlasEdges();
     ShrunkSprites();
     PixelSnap();
+    PixelArtDefaults();
     return CheckResult();
 }

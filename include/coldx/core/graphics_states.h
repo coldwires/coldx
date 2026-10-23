@@ -14,6 +14,9 @@ enum class BlendState {
 // How a texture is read between texel centers and past its edges. Point keeps pixel art
 // sharp when scaled; Linear smooths it. Wrap repeats the texture outside 0..1.
 enum class SamplerState {
+    // SpriteBatch::Begin's default: PointClamp in a game with GameSettings::pixelArt,
+    // LinearClamp otherwise (as in XNA).
+    Default,
     PointClamp,
     LinearClamp,
     PointWrap,

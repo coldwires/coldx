@@ -15,7 +15,7 @@ behaviour; `not started` has no code.
 | 6 | `RenderTarget2D`, `GraphicsDevice::SetRenderTarget` | done |
 | 7 | `Texture2D`: PNG, raw pixels, `SetData`, `GetData`, `SaveAsPng`; `GetBackBufferData` | done |
 | 8 | `SpriteBatch`: position, destination, source, tint | done |
-| 9 | `SpriteBatch`: sort modes, blend and sampler states, transform, rotation, origin, scale, flip, depth; pixel snapping; sampling held inside each source rectangle | done |
+| 9 | `SpriteBatch`: sort modes, blend and sampler states, transform, rotation, origin, scale, flip, depth; pixel snapping; `GameSettings::pixelArt`; sampling held inside each source rectangle | done |
 | 10 | `SpriteFont` from a TTF at runtime, smooth or sharp; `DrawString`, `MeasureString` | done |
 | 25 | `SpriteFont` from packed content: the TTF is packed and baked at load, at any size (ADR 0012) | done |
 | 11 | Keyboard, with `WasPressed`/`WasReleased` | done |

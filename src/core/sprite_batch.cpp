@@ -1,3 +1,4 @@
+#include <coldx/core/graphics_device.h>
 #include <coldx/core/sprite_batch.h>
 
 #include <algorithm>
@@ -32,7 +33,8 @@ struct SpriteBatch::Impl {
     BlendState blend = BlendState::AlphaBlend;
     SamplerState sampler = SamplerState::LinearClamp;
     Matrix transform;
-    bool snap = false;
+    std::optional<bool> snapChoice;  // SetPixelSnap's; unset follows the game's pixelArt
+    bool snap = false;               // in force since Begin
 
     explicit Impl(GraphicsDevice& g) : graphics(g) {}
 
@@ -133,11 +135,12 @@ SpriteBatch::SpriteBatch(GraphicsDevice& graphics) : impl_(std::make_unique<Impl
 SpriteBatch::~SpriteBatch() = default;
 
 void SpriteBatch::SetPixelSnap(bool snap) {
+    impl_->snapChoice = snap;
     impl_->snap = snap;
 }
 
 bool SpriteBatch::PixelSnap() const {
-    return impl_->snap;
+    return impl_->snapChoice.value_or(impl_->graphics.PixelArt());
 }
 
 void SpriteBatch::Begin(SpriteSortMode sortMode, BlendState blend, SamplerState sampler, const Matrix& transform) {
@@ -147,7 +150,9 @@ void SpriteBatch::Begin(SpriteSortMode sortMode, BlendState blend, SamplerState 
     b.queue.clear();
     b.sortMode = sortMode;
     b.blend = blend;
+    if (sampler == SamplerState::Default) sampler = b.graphics.PixelArt() ? SamplerState::PointClamp : SamplerState::LinearClamp;
     b.sampler = sampler;
+    b.snap = b.snapChoice.value_or(b.graphics.PixelArt());
     b.transform = transform;
 }
 

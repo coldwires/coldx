@@ -138,7 +138,10 @@ SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
 }
 
 SDL_GPUSampler* SpriteRenderer::Impl::Sampler(SamplerState sampler) {
-    const int index = static_cast<int>(sampler);
+    // SpriteBatch resolves Default before drawing; the real samplers follow it in the enum.
+    static_assert(static_cast<int>(SamplerState::LinearWrap) - static_cast<int>(SamplerState::PointClamp) + 1 == SamplerCount);
+    if (sampler == SamplerState::Default) sampler = SamplerState::LinearClamp;
+    const int index = static_cast<int>(sampler) - static_cast<int>(SamplerState::PointClamp);
     if (!samplers[index]) {
         const SDL_GPUSamplerCreateInfo info = SamplerFor(sampler);
         samplers[index] = SDL_CreateGPUSampler(Device(), &info);

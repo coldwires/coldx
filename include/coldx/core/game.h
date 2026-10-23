@@ -52,6 +52,12 @@ struct GameSettings {
     float fullscreenRefreshRate = 0.0f;
     bool vsync = true;
 
+    // One switch for a pixel-art game: integer scaling and sharp scaling for the virtual
+    // resolution (scaleMode and smoothScaling are then ignored), and every SpriteBatch
+    // defaulting to SamplerState::PointClamp and pixel snapping. A batch can still choose
+    // otherwise per Begin, or with SetPixelSnap. Set a virtual resolution too.
+    bool pixelArt = false;
+
     // A fixed size to draw at, scaled into the window: the back buffer is this size, and
     // mouse positions are in its pixels. 0 x 0: the back buffer is the window's pixel size.
     int virtualWidth = 0;

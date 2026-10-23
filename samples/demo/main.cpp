@@ -4,10 +4,10 @@
 // after a game over, M toggles the music, F11 fullscreen, Escape quits. The best score is
 // saved with Storage.
 //
-// Pixel-perfect, the way a pixel-art game on coldx should be: a fixed 640x360 back buffer
-// scaled by whole numbers into the window (2x at 1280x720, 4x at 2560x1440), point
-// sampling, sprites at 1x and never rotated, pixel snapping so moving sprites step cleanly,
-// sharp text, and screen shake by whole pixels.
+// Pixel-perfect, the way a pixel-art game on coldx should be: Settings().pixelArt and a
+// fixed 640x360 back buffer give integer scaling into the window (2x at 1280x720, 4x at
+// 2560x1440), point sampling and pixel snapping in every SpriteBatch. On top: sprites at
+// 1x and never rotated, a pixel font drawn sharp, and screen shake by whole pixels.
 //
 // Shows: components (a starfield of hundreds of pixel stars, the falling objects, the HUD),
 // ContentManager (sheet, sounds, music, font by name, all from content.rime), additive
@@ -69,7 +69,6 @@ public:
     void Initialize() override {
         stars_.resize(400);
         for (Star& s : stars_) Respawn(s, Uniform(0.0f, Height));
-        batch_.SetPixelSnap(true);
     }
 
     void Update(const GameTime& time) override {
@@ -80,7 +79,7 @@ public:
     }
 
     void Draw(const GameTime&) override {
-        batch_.Begin(SpriteSortMode::Deferred, BlendState::Additive, SamplerState::PointClamp);
+        batch_.Begin(SpriteSortMode::Deferred, BlendState::Additive);
         for (const Star& s : stars_)
             batch_.Draw(world_.pixel, Rectangle(static_cast<int>(s.x), static_cast<int>(std::floor(s.y)), s.size, s.size),
                         Color::White * s.brightness);
@@ -111,8 +110,6 @@ private:
 class Fallers : public DrawableGameComponent {
 public:
     Fallers(Game& game, World& world) : DrawableGameComponent(game), world_(world) { SetDrawOrder(1); }
-
-    void Initialize() override { batch_.SetPixelSnap(true); }
 
     void Reset() { items_.clear(); }
 
@@ -151,7 +148,7 @@ public:
 
     void Draw(const GameTime&) override {
         // Sprites at 1x, origin at the tile's centre: the snapping puts each on whole pixels.
-        batch_.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp, world_.ShakeTransform());
+        batch_.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::Default, world_.ShakeTransform());
         for (const Item& it : items_) {
             const char* tile = it.kind == Kind::Meteor ? "meteor" : (it.kind == Kind::Gem ? "gem" : "star");
             batch_.Draw(world_.sheet, it.position, sheet::Get(tile), Color::White, 0.0f, Vector2(16, 16), 1.0f,
@@ -182,8 +179,6 @@ class Hud : public DrawableGameComponent {
 public:
     Hud(Game& game, World& world) : DrawableGameComponent(game), world_(world) { SetDrawOrder(10); }
 
-    void Initialize() override { batch_.SetPixelSnap(true); }
-
     void Update(const GameTime& time) override {
         ++frames_;
         elapsed_ += time.Delta();
@@ -196,7 +191,7 @@ public:
 
     void Draw(const GameTime&) override {
         char line[128];
-        batch_.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
+        batch_.Begin();
         std::snprintf(line, sizeof(line), "Score %d   Best %d", world_.score, world_.best);
         batch_.DrawString(world_.font, line, Vector2(8, 6), Color::White);
         for (int i = 0; i < world_.lives; ++i)
@@ -228,9 +223,9 @@ public:
         Settings().company = "coldx";
         Settings().resizable = true;
         // The game is 640x360; the window shows it at whole multiples, bars filling the rest.
+        Settings().pixelArt = true;
         Settings().virtualWidth = Width;
         Settings().virtualHeight = Height;
-        Settings().scaleMode = ScaleMode::Integer;
         Components().Emplace<Starfield>(*this, world_);
         fallers_ = &Components().Emplace<Fallers>(*this, world_);
         Components().Emplace<Hud>(*this, world_);
@@ -241,8 +236,10 @@ protected:
         world_.sheet = Content().Load<Texture2D>("sheet");
         const Color white = Color::White;
         world_.pixel = Texture2D::FromPixels(Graphics(), 1, 1, &white);
-        world_.font = Content().LoadFont("LiberationSans-Regular", 12.0f, FontSmoothing::Sharp);
-        world_.big = Content().LoadFont("LiberationSans-Regular", 24.0f, FontSmoothing::Sharp);
+        // Silkscreen is drawn on a grid of 125 font units, 8 to the em; 10.24 px (ascender
+        // to descender) puts one of its pixels on one screen pixel, 20.48 on two.
+        world_.font = Content().LoadFont("silkscreen/Silkscreen-Regular", 10.24f, FontSmoothing::Sharp);
+        world_.big = Content().LoadFont("silkscreen/Silkscreen-Regular", 20.48f, FontSmoothing::Sharp);
         world_.pickup = Content().Load<SoundEffect>("pickup");
         world_.hit = Content().Load<SoundEffect>("hit");
         if (auto saved = Storage::ReadFile("best.txt")) world_.best = std::atoi(saved->c_str());
