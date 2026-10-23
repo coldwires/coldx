@@ -32,6 +32,7 @@ struct SpriteBatch::Impl {
     BlendState blend = BlendState::AlphaBlend;
     SamplerState sampler = SamplerState::LinearClamp;
     Matrix transform;
+    bool snap = false;
 
     explicit Impl(GraphicsDevice& g) : graphics(g) {}
 
@@ -86,6 +87,11 @@ void SpriteBatch::Impl::Add(const Texture2D& texture, float x, float y, float w,
     QueuedSprite sprite{};
     sprite.quad.texture = handle;
     sprite.depth = depth;
+    if (snap && rotation == 0.0f) {
+        // Move the whole quad so its top-left corner lands on a whole pixel.
+        x += std::round(x - ox) - (x - ox);
+        y += std::round(y - oy) - (y - oy);
+    }
     const float c = rotation != 0.0f ? std::cos(rotation) : 1.0f;
     const float s = rotation != 0.0f ? std::sin(rotation) : 0.0f;
     for (int i = 0; i < 4; ++i) {
@@ -125,6 +131,14 @@ void SpriteBatch::Impl::Flush() {
 SpriteBatch::SpriteBatch(GraphicsDevice& graphics) : impl_(std::make_unique<Impl>(graphics)) {}
 
 SpriteBatch::~SpriteBatch() = default;
+
+void SpriteBatch::SetPixelSnap(bool snap) {
+    impl_->snap = snap;
+}
+
+bool SpriteBatch::PixelSnap() const {
+    return impl_->snap;
+}
 
 void SpriteBatch::Begin(SpriteSortMode sortMode, BlendState blend, SamplerState sampler, const Matrix& transform) {
     Impl& b = *impl_;

@@ -75,8 +75,8 @@ int main() {
 }
 ```
 
-`samples/demo` goes further: components, content by name, sound, music, a sprite
-sheet drawn by tile name, screen shake through the batch transform, and a saved best score.
+`samples/demo` goes further, and is pixel-perfect: components, packed content, sound,
+music, a sprite sheet drawn by tile name, screen shake, and a saved best score.
 
 A game's CMake file:
 
@@ -99,6 +99,32 @@ Content lives in a `content` folder; `coldx_add_content` packs it into `content.
 beside the executable on every build ("Packing content"). A game can also just copy its
 `content` folder beside the executable and load loose files, as
 `samples/quickstart/CMakeLists.txt` does for its font.
+
+## Pixel-perfect 2D
+
+coldx games are expected to be pixel-perfect: every texel of the art lands on whole
+screen pixels, the same size everywhere, and nothing blurs or shimmers. The recipe, all
+of which `samples/demo` uses:
+
+```cpp
+Settings().virtualWidth = 640;                 // draw at a fixed size...
+Settings().virtualHeight = 360;
+Settings().scaleMode = ScaleMode::Integer;     // ...scaled by whole numbers into the window
+batch.SetPixelSnap(true);                      // sprites and text on whole pixels
+batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
+batch.Draw(sheet, position, tile, Color::White, 0.0f, Vector2(16, 16), 1.0f,   // scale 1, 2, 3...
+           SpriteEffects::None, 0.0f);
+font = Content().LoadFont("myfont", 12, FontSmoothing::Sharp);   // no grey edges
+```
+
+- Draw at whole scales (1, 2, 3); 1.5x makes some texels one pixel wide and others two.
+- `SamplerState::PointClamp` everywhere; the default `LinearClamp` blurs.
+- Rotation other than by flips makes pixel art jagged; draw rotated frames instead.
+- Keep a camera or shake transform on whole pixels: `Matrix::CreateTranslation(std::round(x),
+  std::round(y))`. Snapping happens before the transform.
+- Atlases need no padding: a sprite never samples outside its source rectangle.
+- A pixel font (designed on a pixel grid) at its design size, or a multiple, looks best
+  with `FontSmoothing::Sharp`; an ordinary font made sharp is legible but rough.
 
 ## The API
 
@@ -148,7 +174,8 @@ inside `Draw`.
 
 **ContentManager.** `Content().Load<Texture2D>("sprites/player")` finds
 `sprites/player.png`; also `Load<SoundEffect>` (.wav, .ogg), `Load<Music>` (.ogg),
-`LoadFont("name", pixelHeight)` (.ttf, any size). A name is the file's path inside the
+`LoadFont("name", pixelHeight)` (.ttf, any size; `LoadFont(name, size,
+FontSmoothing::Sharp)` for crisp edges). A name is the file's path inside the
 content folder without its extension: `content/fonts/main.ttf` is `LoadFont("fonts/main",
 18)`, `content/coin.png` is `Load<Texture2D>("coin")`. A texture and a sound may share a
 name (`coin.png`, `coin.wav`): each type looks for its own extensions. Cached by name;
@@ -175,7 +202,8 @@ inside `Draw` it does not see that frame's drawing yet. A screenshot: draw into 
 
 **SpriteBatch.** `SpriteBatch batch{Graphics()};` as a member.
 `Begin(SpriteSortMode, BlendState, SamplerState, Matrix transform)`, all defaulted;
-`End()`.
+`End()`. `SetPixelSnap(true)` puts unrotated sprites and text on whole pixels (lasts
+until changed).
 `Draw(texture, Vector2 position, Color)`;
 `Draw(texture, Vector2 position, std::optional<Rectangle> source, Color)`;
 `Draw(texture, Vector2 position, source, Color, float rotation, Vector2 origin, float or Vector2 scale, SpriteEffects, float layerDepth)`;
@@ -190,7 +218,8 @@ inside `Draw` it does not see that frame's drawing yet. A screenshot: draw into 
 - `SpriteEffects`: `None`, `FlipHorizontally`, `FlipVertically`, combine with `|`.
 
 **SpriteFont.** `SpriteFont::FromFile(Graphics(), "content/font.ttf", pixelHeight)`,
-`FromMemory(Graphics(), data, size, pixelHeight)`, `MeasureString(text)` returns `Vector2`,
+`FromMemory(Graphics(), data, size, pixelHeight)`, both with an optional
+`FontSmoothing::Smooth` (default) or `Sharp` (every pixel fully on or off); `MeasureString(text)` returns `Vector2`,
 `LineSpacing()`/`SetLineSpacing`, `Spacing()`/`SetSpacing`,
 `DefaultCharacter()`/`SetDefaultCharacter` (`?` by default, `std::nullopt` to skip),
 `HasCharacter(char32_t)`. Text is UTF-8; ASCII and Latin-1 are baked.

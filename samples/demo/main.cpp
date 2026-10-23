@@ -4,14 +4,20 @@
 // after a game over, M toggles the music, F11 fullscreen, Escape quits. The best score is
 // saved with Storage.
 //
-// Shows: components (a starfield of thousands of sprites, the falling objects, the HUD),
-// ContentManager (sheet, sounds, music, font by name), additive blending for sparks, a
-// SpriteBatch transform for screen shake, keyboard, mouse and gamepad input, sound effects
-// with pitch, streaming music, a resizable window.
+// Pixel-perfect, the way a pixel-art game on coldx should be: a fixed 640x360 back buffer
+// scaled by whole numbers into the window (2x at 1280x720, 4x at 2560x1440), point
+// sampling, sprites at 1x and never rotated, pixel snapping so moving sprites step cleanly,
+// sharp text, and screen shake by whole pixels.
+//
+// Shows: components (a starfield of hundreds of pixel stars, the falling objects, the HUD),
+// ContentManager (sheet, sounds, music, font by name, all from content.rime), additive
+// blending for the stars, a SpriteBatch transform for screen shake, keyboard, mouse and
+// gamepad input, sound effects with pitch, streaming music, a resizable window.
 
 #include <coldx/coldx.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <random>
@@ -23,6 +29,9 @@ using namespace coldx;
 
 namespace {
 
+constexpr int Width = 640;
+constexpr int Height = 360;
+
 std::mt19937 random(12345);
 
 float Uniform(float lo, float hi) {
@@ -32,6 +41,7 @@ float Uniform(float lo, float hi) {
 // The parts of the game the components share.
 struct World {
     Texture2D sheet;
+    Texture2D pixel;  // 1x1 white, for the stars
     SpriteFont font;
     SpriteFont big;
     SoundEffect pickup;
@@ -43,55 +53,52 @@ struct World {
     float shake = 0.0f;  // seconds of screen shake left
     bool over = false;
 
+    // Shake moves everything by whole pixels: a fractional camera would undo the snapping.
     Matrix ShakeTransform() const {
         if (shake <= 0.0f) return Matrix::Identity();
-        const float strength = 8.0f * shake;
-        return Matrix::CreateTranslation(Uniform(-strength, strength), Uniform(-strength, strength));
+        const float strength = 6.0f * shake;
+        return Matrix::CreateTranslation(std::round(Uniform(-strength, strength)), std::round(Uniform(-strength, strength)));
     }
 };
 
-// Thousands of drifting background stars: many sprites, one texture, one GPU draw.
+// A pixel starfield: each star a 1x1 or 2x2 dot, brighter and faster nearer.
 class Starfield : public DrawableGameComponent {
 public:
     Starfield(Game& game, World& world) : DrawableGameComponent(game), world_(world) { SetDrawOrder(0); }
 
     void Initialize() override {
-        stars_.resize(3000);
-        for (Star& s : stars_) Respawn(s, Uniform(0.0f, 1.0f));
+        stars_.resize(400);
+        for (Star& s : stars_) Respawn(s, Uniform(0.0f, Height));
+        batch_.SetPixelSnap(true);
     }
 
     void Update(const GameTime& time) override {
-        const float h = static_cast<float>(Graphics().BackBufferHeight());
         for (Star& s : stars_) {
-            s.y += s.speed * time.Delta() / h;
-            if (s.y > 1.0f) Respawn(s, 0.0f);
+            s.y += s.speed * time.Delta();
+            if (s.y > Height) Respawn(s, -2.0f);
         }
     }
 
     void Draw(const GameTime&) override {
-        const float w = static_cast<float>(Graphics().BackBufferWidth());
-        const float h = static_cast<float>(Graphics().BackBufferHeight());
-        const Rectangle spark = sheet::Get("spark");
-        batch_.Begin(SpriteSortMode::Deferred, BlendState::Additive, SamplerState::LinearClamp);
-        for (const Star& s : stars_) {
-            const Color tint = Color::White * s.brightness;
-            batch_.Draw(world_.sheet, Vector2(s.x * w, s.y * h), spark, tint, 0.0f, Vector2(16, 16), s.size,
-                        SpriteEffects::None, 0.0f);
-        }
+        batch_.Begin(SpriteSortMode::Deferred, BlendState::Additive, SamplerState::PointClamp);
+        for (const Star& s : stars_)
+            batch_.Draw(world_.pixel, Rectangle(static_cast<int>(s.x), static_cast<int>(std::floor(s.y)), s.size, s.size),
+                        Color::White * s.brightness);
         batch_.End();
     }
 
 private:
     struct Star {
-        float x, y, speed, size, brightness;
+        float x, y, speed, brightness;
+        int size;
     };
 
     void Respawn(Star& s, float y) {
-        s.x = Uniform(0.0f, 1.0f);
+        s.x = std::floor(Uniform(0.0f, Width));
         s.y = y;
-        s.speed = Uniform(10.0f, 80.0f);
-        s.size = s.speed / 300.0f;
-        s.brightness = s.speed / 100.0f;
+        s.speed = Uniform(5.0f, 40.0f);
+        s.size = s.speed > 30.0f ? 2 : 1;
+        s.brightness = 0.2f + s.speed / 50.0f;
     }
 
     World& world_;
@@ -105,30 +112,26 @@ class Fallers : public DrawableGameComponent {
 public:
     Fallers(Game& game, World& world) : DrawableGameComponent(game), world_(world) { SetDrawOrder(1); }
 
+    void Initialize() override { batch_.SetPixelSnap(true); }
+
     void Reset() { items_.clear(); }
 
     void Update(const GameTime& time) override {
         if (world_.over) return;
         const float dt = time.Delta();
-        const float w = static_cast<float>(Graphics().BackBufferWidth());
-        const float h = static_cast<float>(Graphics().BackBufferHeight());
         spawnIn_ -= dt;
         if (spawnIn_ <= 0.0f) {
             spawnIn_ = std::max(0.15f, 0.8f - world_.score * 0.01f);
             const float roll = Uniform(0.0f, 1.0f);
             const Kind kind = roll < 0.25f ? Kind::Meteor : (roll < 0.35f ? Kind::Gem : Kind::Star);
-            items_.push_back({kind, Vector2(Uniform(20.0f, w - 20.0f), -20.0f), Uniform(150.0f, 250.0f) + world_.score * 3.0f,
-                              0.0f, Uniform(-3.0f, 3.0f)});
+            items_.push_back({kind, Vector2(Uniform(16.0f, Width - 16.0f), -16.0f), Uniform(75.0f, 125.0f) + world_.score * 1.5f});
         }
-        for (Item& it : items_) {
-            it.position.y += it.speed * dt;
-            it.angle += it.spin * dt;
-        }
-        // Catch or crash: anything within 24 px of the ship.
+        for (Item& it : items_) it.position.y += it.speed * dt;
+        // Catch or crash: anything within 16 px of the ship.
         for (Item& it : items_) {
             const Vector2 d = it.position - world_.player;
-            if (d.x * d.x + d.y * d.y > 24.0f * 24.0f) continue;
-            it.position.y = h + 100.0f;  // gone
+            if (d.x * d.x + d.y * d.y > 16.0f * 16.0f) continue;
+            it.position.y = Height + 100.0f;  // gone
             if (it.kind == Kind::Meteor) {
                 world_.hit.Play(0.9f);
                 world_.shake = 0.4f;
@@ -143,18 +146,19 @@ public:
                 world_.pickup.Play(0.6f, std::min(1.0f, (points == 5 ? 0.5f : 0.0f) + world_.score * 0.005f));
             }
         }
-        std::erase_if(items_, [h](const Item& it) { return it.position.y > h + 40.0f; });
+        std::erase_if(items_, [](const Item& it) { return it.position.y > Height + 20.0f; });
     }
 
     void Draw(const GameTime&) override {
+        // Sprites at 1x, origin at the tile's centre: the snapping puts each on whole pixels.
         batch_.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp, world_.ShakeTransform());
         for (const Item& it : items_) {
             const char* tile = it.kind == Kind::Meteor ? "meteor" : (it.kind == Kind::Gem ? "gem" : "star");
-            batch_.Draw(world_.sheet, it.position, sheet::Get(tile), Color::White, it.angle, Vector2(16, 16), 1.5f,
+            batch_.Draw(world_.sheet, it.position, sheet::Get(tile), Color::White, 0.0f, Vector2(16, 16), 1.0f,
                         SpriteEffects::None, 0.0f);
         }
         if (!world_.over)
-            batch_.Draw(world_.sheet, world_.player, sheet::Get("ship"), Color::White, 0.0f, Vector2(16, 16), 1.5f,
+            batch_.Draw(world_.sheet, world_.player, sheet::Get("ship"), Color::White, 0.0f, Vector2(16, 16), 1.0f,
                         SpriteEffects::None, 0.0f);
         batch_.End();
     }
@@ -164,7 +168,7 @@ private:
     struct Item {
         Kind kind;
         Vector2 position;
-        float speed, angle, spin;
+        float speed;
     };
 
     World& world_;
@@ -178,6 +182,8 @@ class Hud : public DrawableGameComponent {
 public:
     Hud(Game& game, World& world) : DrawableGameComponent(game), world_(world) { SetDrawOrder(10); }
 
+    void Initialize() override { batch_.SetPixelSnap(true); }
+
     void Update(const GameTime& time) override {
         ++frames_;
         elapsed_ += time.Delta();
@@ -189,20 +195,18 @@ public:
     }
 
     void Draw(const GameTime&) override {
-        const float w = static_cast<float>(Graphics().BackBufferWidth());
-        const float h = static_cast<float>(Graphics().BackBufferHeight());
         char line[128];
         batch_.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
         std::snprintf(line, sizeof(line), "Score %d   Best %d", world_.score, world_.best);
-        batch_.DrawString(world_.font, line, Vector2(20, 16), Color::White);
+        batch_.DrawString(world_.font, line, Vector2(8, 6), Color::White);
         for (int i = 0; i < world_.lives; ++i)
-            batch_.Draw(world_.sheet, Vector2(w - 44.0f - i * 36.0f, 12), sheet::Get("heart"), Color::White);
-        std::snprintf(line, sizeof(line), "%.0f fps   arrows/WASD/stick/mouse   M music   F11 fullscreen", fps_);
-        batch_.DrawString(world_.font, line, Vector2(20, h - 36), Color::White * 0.6f);
+            batch_.Draw(world_.sheet, Vector2(Width - 36.0f - i * 30.0f, 2), sheet::Get("heart"), Color::White);
+        std::snprintf(line, sizeof(line), "%.0f fps  arrows/WASD/stick/mouse  M music  F11 fullscreen", fps_);
+        batch_.DrawString(world_.font, line, Vector2(8, Height - 18), Color::White * 0.6f);
         if (world_.over) {
             const char* over = "Game over - R to play again";
             const Vector2 size = world_.big.MeasureString(over);
-            batch_.DrawString(world_.big, over, Vector2((w - size.x) / 2, (h - size.y) / 2), Color(255, 210, 120));
+            batch_.DrawString(world_.big, over, Vector2((Width - size.x) / 2, (Height - size.y) / 2), Color(255, 210, 120));
         }
         batch_.End();
     }
@@ -223,6 +227,10 @@ public:
         Settings().title = "coldx demo";
         Settings().company = "coldx";
         Settings().resizable = true;
+        // The game is 640x360; the window shows it at whole multiples, bars filling the rest.
+        Settings().virtualWidth = Width;
+        Settings().virtualHeight = Height;
+        Settings().scaleMode = ScaleMode::Integer;
         Components().Emplace<Starfield>(*this, world_);
         fallers_ = &Components().Emplace<Fallers>(*this, world_);
         Components().Emplace<Hud>(*this, world_);
@@ -231,8 +239,10 @@ public:
 protected:
     void LoadContent() override {
         world_.sheet = Content().Load<Texture2D>("sheet");
-        world_.font = Content().LoadFont("LiberationSans-Regular", 18.0f);
-        world_.big = Content().LoadFont("LiberationSans-Regular", 40.0f);
+        const Color white = Color::White;
+        world_.pixel = Texture2D::FromPixels(Graphics(), 1, 1, &white);
+        world_.font = Content().LoadFont("LiberationSans-Regular", 12.0f, FontSmoothing::Sharp);
+        world_.big = Content().LoadFont("LiberationSans-Regular", 24.0f, FontSmoothing::Sharp);
         world_.pickup = Content().Load<SoundEffect>("pickup");
         world_.hit = Content().Load<SoundEffect>("hit");
         if (auto saved = Storage::ReadFile("best.txt")) world_.best = std::atoi(saved->c_str());
@@ -268,17 +278,12 @@ protected:
         Graphics().Clear(Color(8, 10, 20));
     }
 
-    void OnResize(int width, int height) override {
-        world_.player.x = std::min(world_.player.x, static_cast<float>(width) - 20.0f);
-        world_.player.y = static_cast<float>(height) - 60.0f;
-    }
-
 private:
     void Restart() {
         world_.score = 0;
         world_.lives = 3;
         world_.over = false;
-        world_.player = Vector2(Graphics().BackBufferWidth() / 2.0f, Graphics().BackBufferHeight() - 60.0f);
+        world_.player = Vector2(Width / 2.0f, Height - 30.0f);
         fallers_->Reset();
     }
 
@@ -288,10 +293,11 @@ private:
         if (keys.IsKeyDown(Key::Left) || keys.IsKeyDown(Key::A)) move.x -= 1;
         if (keys.IsKeyDown(Key::Right) || keys.IsKeyDown(Key::D)) move.x += 1;
         move.x += GamePad::GetState(0).leftStick.x;
-        world_.player.x += move.x * 420.0f * dt;
+        world_.player.x += move.x * 210.0f * dt;
+        // The mouse is in the game's 640x360 pixels, whatever the window's size.
         const MouseState mouse = Mouse::GetState();
         if (mouse.left) world_.player.x += (mouse.x - world_.player.x) * std::min(1.0f, 12.0f * dt);
-        world_.player.x = std::clamp(world_.player.x, 20.0f, Graphics().BackBufferWidth() - 20.0f);
+        world_.player.x = std::clamp(world_.player.x, 16.0f, Width - 16.0f);
     }
 
     World world_;

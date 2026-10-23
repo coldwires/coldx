@@ -121,7 +121,7 @@ SpriteFont& SpriteFont::operator=(const SpriteFont&) = default;
 SpriteFont::SpriteFont(SpriteFont&&) noexcept = default;
 SpriteFont& SpriteFont::operator=(SpriteFont&&) noexcept = default;
 
-SpriteFont SpriteFont::FromFile(GraphicsDevice& graphics, const std::string& path, float pixelHeight) {
+SpriteFont SpriteFont::FromFile(GraphicsDevice& graphics, const std::string& path, float pixelHeight, FontSmoothing smoothing) {
     const std::string full = detail::ResolveContentPath(path);
     size_t size = 0;
     void* data = SDL_LoadFile(full.c_str(), &size);
@@ -129,13 +129,14 @@ SpriteFont SpriteFont::FromFile(GraphicsDevice& graphics, const std::string& pat
         SDL_Log("coldx.core: could not load font %s: %s", full.c_str(), SDL_GetError());
         return {};
     }
-    SpriteFont font = FromMemory(graphics, data, size, pixelHeight);
+    SpriteFont font = FromMemory(graphics, data, size, pixelHeight, smoothing);
     SDL_free(data);
     if (font.IsEmpty()) SDL_Log("coldx.core: font %s was not usable", full.c_str());
     return font;
 }
 
-SpriteFont SpriteFont::FromMemory(GraphicsDevice& graphics, const void* data, std::size_t size, float pixelHeight) {
+SpriteFont SpriteFont::FromMemory(GraphicsDevice& graphics, const void* data, std::size_t size, float pixelHeight,
+                                  FontSmoothing smoothing) {
     if (!data || size == 0 || pixelHeight <= 0.0f) {
         SDL_Log("coldx.core: SpriteFont: no data, or pixel height %.1f", pixelHeight);
         return {};
@@ -196,10 +197,12 @@ SpriteFont SpriteFont::FromMemory(GraphicsDevice& graphics, const void* data, st
         }
     }
 
-    // White, with coverage as alpha: premultiplied, so tinting multiplies cleanly.
+    // White, with coverage as alpha: premultiplied, so tinting multiplies cleanly. Sharp
+    // turns each pixel fully on or off at half coverage.
     std::vector<Color> pixels(coverage.size());
     for (size_t i = 0; i < coverage.size(); ++i) {
-        const std::uint8_t c = coverage[i];
+        std::uint8_t c = coverage[i];
+        if (smoothing == FontSmoothing::Sharp) c = c >= 128 ? 255 : 0;
         pixels[i] = Color(c, c, c, c);
     }
     impl->atlas = Texture2D::FromPixels(graphics, atlasSize, atlasSize, pixels.data());

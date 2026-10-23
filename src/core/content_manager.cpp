@@ -182,15 +182,15 @@ void ContentManager::NoLoader(const std::string& name) const {
             name.c_str());
 }
 
-SpriteFont ContentManager::LoadFont(const std::string& name, float pixelHeight) {
+SpriteFont ContentManager::LoadFont(const std::string& name, float pixelHeight, FontSmoothing smoothing) {
     char size[32];
-    std::snprintf(size, sizeof(size), "@%g", pixelHeight);
+    std::snprintf(size, sizeof(size), "@%g%s", pixelHeight, smoothing == FontSmoothing::Sharp ? "s" : "");
     const std::string key = Key(detail::TypeKey<SpriteFont>(), name + size);
     if (auto found = cache_.find(key); found != cache_.end()) return *static_cast<const SpriteFont*>(found->second.get());
     std::vector<std::uint8_t> bytes;
     std::string found;
     if (!FindBytes(Candidates(name, {".ttf", ".otf"}), bytes, found)) return {};
-    SpriteFont font = SpriteFont::FromMemory(graphics_, bytes.data(), bytes.size(), pixelHeight);
+    SpriteFont font = SpriteFont::FromMemory(graphics_, bytes.data(), bytes.size(), pixelHeight, smoothing);
     if (font.IsEmpty()) return font;
     cache_[key] = std::make_shared<SpriteFont>(font);
     return font;

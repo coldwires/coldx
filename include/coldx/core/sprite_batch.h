@@ -59,6 +59,15 @@ public:
                SamplerState sampler = SamplerState::LinearClamp, const Matrix& transform = Matrix::Identity());
     void End();
 
+    // Pixel art: with snapping on, every unrotated sprite and every glyph is moved to the
+    // nearest whole pixel before drawing, so a sprite moving at fractional speeds steps
+    // cleanly instead of shimmering, and its texels map 1:1 (or 2:1, 3:1) onto pixels.
+    // Positions are snapped in sprite coordinates, before the Begin transform: keep a camera
+    // transform on whole pixels too. Rotated sprites are left alone. Off by default, as in
+    // XNA; it lasts across Begin and End until changed.
+    void SetPixelSnap(bool snap);
+    bool PixelSnap() const;
+
     // color tints the texture and is premultiplied like it. Color::White draws the texture
     // unchanged; Color::White * 0.5f draws it half transparent.
     //

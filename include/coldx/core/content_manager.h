@@ -90,8 +90,9 @@ public:
         return *static_cast<const T*>(loaded.get());
     }
 
-    // A font baked at pixelHeight from name (.ttf or .otf). Each size is cached separately.
-    SpriteFont LoadFont(const std::string& name, float pixelHeight);
+    // A font baked at pixelHeight from name (.ttf or .otf). Each size and smoothing is cached
+    // separately.
+    SpriteFont LoadFont(const std::string& name, float pixelHeight, FontSmoothing smoothing = FontSmoothing::Smooth);
 
     // The bytes of name exactly as stored, extension included: for a game's own files
     // (levels, dialogue, settings) without writing a loader. Not cached. Empty, logged,
