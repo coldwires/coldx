@@ -2,6 +2,10 @@
 
 #include <SDL3/SDL.h>
 
+#include <coldx/core/effect.h>
+#include <coldx/core/effect_format.h>
+
+#include "effect_access.h"
 #include "graphics_access.h"
 #include "shader_blob.h"
 #include "sprite_frag.h"
@@ -12,7 +16,6 @@ namespace coldx::detail {
 namespace {
 
 constexpr Uint32 InitialCapacity = 2048;
-constexpr int BlendCount = 4;
 constexpr int SamplerCount = 4;
 
 SDL_GPUColorTargetBlendState BlendFor(BlendState blend) {
@@ -57,7 +60,7 @@ struct SpriteRenderer::Impl {
     std::shared_ptr<DeviceToken> token;
     SDL_GPUShader* vertexShader = nullptr;
     SDL_GPUShader* fragmentShader = nullptr;
-    SDL_GPUGraphicsPipeline* pipelines[BlendCount] = {};
+    SDL_GPUGraphicsPipeline* pipelines[BlendStateCount] = {};
     SDL_GPUSampler* samplers[SamplerCount] = {};
     SDL_GPUBuffer* vertexBuffer = nullptr;
     SDL_GPUBuffer* indexBuffer = nullptr;
@@ -94,17 +97,8 @@ struct SpriteRenderer::Impl {
     bool EnsureCapacity(Uint32 quadCount);
 };
 
-// Pipelines differ only in blend state, so they are made on first use of each.
-SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
-    const int index = static_cast<int>(blend);
-    if (pipelines[index]) return pipelines[index];
-    SDL_GPUDevice* device = Device();
-
-    if (!vertexShader) vertexShader = CreateShader(device, shaders::sprite_vert, ShaderStage::Vertex, "sprite.vert");
-    if (!fragmentShader)
-        fragmentShader = CreateShader(device, shaders::sprite_frag, ShaderStage::Fragment, "sprite.frag");
-    if (!vertexShader || !fragmentShader) return nullptr;
-
+SDL_GPUGraphicsPipeline* CreateSpritePipeline(SDL_GPUDevice* device, SDL_GPUShader* vertexShader, SDL_GPUShader* fragmentShader,
+                                              BlendState blend) {
     SDL_GPUVertexBufferDescription buffer{};
     buffer.slot = 0;
     buffer.pitch = sizeof(SpriteVertex);
@@ -132,8 +126,22 @@ SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
     info.target_info.color_target_descriptions = &target;
     info.target_info.num_color_targets = 1;
 
-    pipelines[index] = SDL_CreateGPUGraphicsPipeline(device, &info);
-    if (!pipelines[index]) SDL_Log("coldx.core: SpriteBatch: SDL_CreateGPUGraphicsPipeline failed: %s", SDL_GetError());
+    SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(device, &info);
+    if (!pipeline) SDL_Log("coldx.core: SpriteBatch: SDL_CreateGPUGraphicsPipeline failed: %s", SDL_GetError());
+    return pipeline;
+}
+
+// Pipelines differ only in blend state, so they are made on first use of each.
+SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
+    const int index = static_cast<int>(blend);
+    if (pipelines[index]) return pipelines[index];
+    SDL_GPUDevice* device = Device();
+
+    if (!vertexShader) vertexShader = CreateShader(device, shaders::sprite_vert, ShaderStage::Vertex, "sprite.vert");
+    if (!fragmentShader)
+        fragmentShader = CreateShader(device, shaders::sprite_frag, ShaderStage::Fragment, "sprite.frag");
+    if (!vertexShader || !fragmentShader) return nullptr;
+    pipelines[index] = CreateSpritePipeline(device, vertexShader, fragmentShader, blend);
     return pipelines[index];
 }
 
@@ -220,7 +228,7 @@ SpriteRenderer::SpriteRenderer() : impl_(std::make_unique<Impl>()) {}
 SpriteRenderer::~SpriteRenderer() = default;
 
 bool SpriteRenderer::Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std::uint32_t count, BlendState blend,
-                          SamplerState samplerState, const Matrix& transform) {
+                          SamplerState samplerState, const Effect& effect, const Matrix& transform) {
     Impl& r = *impl_;
     if (count == 0) return true;
 
@@ -240,7 +248,9 @@ bool SpriteRenderer::Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std
     }
     if (r.failed) return false;
 
-    SDL_GPUGraphicsPipeline* pipeline = r.Pipeline(blend);
+    // An effect that fails is logged once by the effect, and the built-in shader draws.
+    SDL_GPUGraphicsPipeline* custom = effect ? EffectAccess::Pipeline(effect, graphics, blend) : nullptr;
+    SDL_GPUGraphicsPipeline* pipeline = custom ? custom : r.Pipeline(blend);
     SDL_GPUSampler* sampler = r.Sampler(samplerState);
     if (!pipeline || !sampler || !r.EnsureCapacity(count)) {
         // Logged already. Stop retrying every frame.
@@ -269,6 +279,14 @@ bool SpriteRenderer::Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std
     const float h = static_cast<float>(GraphicsAccess::CurrentTargetHeight(graphics));
     const Matrix toClip = transform * Matrix::CreateOrthographicOffCenter(0.0f, w, h, 0.0f, 0.0f, 1.0f);
     SDL_PushGPUVertexUniformData(commands, 0, toClip.m, sizeof(toClip.m));
+    // The effect's parameters as they are now: SDL copies them into the command buffer.
+    std::size_t slots = 1;
+    if (custom) {
+        const std::vector<std::uint8_t>& uniforms = EffectAccess::Uniforms(effect);
+        if (!uniforms.empty())
+            SDL_PushGPUFragmentUniformData(commands, 0, uniforms.data(), static_cast<Uint32>(uniforms.size()));
+        slots = EffectAccess::TextureCount(effect);
+    }
 
     SDL_GPUColorTargetInfo colorTarget{};
     colorTarget.texture = target;
@@ -286,8 +304,10 @@ bool SpriteRenderer::Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std
         SDL_GPUTexture* texture = quads[first].texture;
         std::uint32_t end = first + 1;
         while (end < count && quads[end].texture == texture) ++end;
-        SDL_GPUTextureSamplerBinding binding{texture, sampler};
-        SDL_BindGPUFragmentSamplers(pass, 0, &binding, 1);
+        SDL_GPUTextureSamplerBinding bindings[effect_format::MaxTextures];
+        bindings[0] = {texture, sampler};
+        for (std::size_t slot = 1; slot < slots; ++slot) bindings[slot] = {EffectAccess::Texture(effect, slot, texture), sampler};
+        SDL_BindGPUFragmentSamplers(pass, 0, bindings, static_cast<Uint32>(slots));
         SDL_DrawGPUIndexedPrimitives(pass, (end - first) * 6, 1, first * 6, 0, 0);
         first = end;
     }

@@ -37,7 +37,8 @@ enum class LooseFiles {
 };
 
 // Loads content by name, caches it, and hands out copies. Built in: Texture2D (.png),
-// SoundEffect (.wav, .ogg), Music (.ogg), and fonts through LoadFont. Games add their own
+// SoundEffect (.wav, .ogg), Music (.ogg), Effect (.fx, compiled by coldxc's [effect]), and
+// fonts through LoadFont. Games add their own
 // types with RegisterDataLoader (packed and loose content) or RegisterLoader (loose files).
 //
 // Names are relative to RootDirectory and may leave out the extension:

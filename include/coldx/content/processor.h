@@ -35,8 +35,8 @@ struct Output {
 // The "key = value" lines under a section of the project file.
 using Settings = std::map<std::string, std::string>;
 
-// Turns a source into package entries. The built-in ones are texture, sound, music, font
-// and data. A game adds its own by subclassing and passing it to RunTool or Build; its
+// Turns a source into package entries. The built-in ones are texture, sound, music, font,
+// data and effect. A game adds its own by subclassing and passing it to RunTool or Build; its
 // section in the project file is [Name()].
 class Processor {
 public:
@@ -58,7 +58,8 @@ public:
 
 // texture (PNG), sound (WAV, OGG), music (OGG), font (TTF, OTF) and data (anything). Each
 // checks its sources and stores them as they are, compressed when that helps.
-// texture takes "format = raw" to store decoded pixels instead, which
+// effect (HLSL) compiles each source into an Effect, with dxc and
+// spirv-cross from the Vulkan SDK. texture takes "format = raw" to store decoded pixels instead, which
 // load without a PNG decode. texture takes "watermark = rgb" or "alpha", and sound
 // "watermark = on" (WAV), to mark each file with the project's mark or the build's
 // fingerprint.

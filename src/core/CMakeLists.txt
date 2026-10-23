@@ -6,6 +6,8 @@ add_library(coldx_core STATIC
     content_manager.cpp
     content_path.cpp
     debug_options.cpp
+    effect.cpp
+    effect_format.cpp
     game.cpp
     game_component.cpp
     gamepad.cpp

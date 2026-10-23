@@ -71,6 +71,20 @@ add_subdirectory(src/content)
 add_subdirectory(src/protect)
 add_subdirectory(tools/coldxc)
 
+# Regenerates the committed headers of the example effects and the effects the tests use:
+#   cmake --build build --target coldx_example_effects coldx_test_effects
+coldx_compile_effects(coldx_example_effects
+    OUTPUT_DIR ${PROJECT_SOURCE_DIR}/shaders/examples/compiled
+    SOURCES
+        shaders/examples/grayscale.hlsl
+        shaders/examples/flash.hlsl
+        shaders/examples/wave.hlsl
+)
+coldx_compile_effects(coldx_test_effects
+    OUTPUT_DIR ${PROJECT_SOURCE_DIR}/tests/effects/compiled
+    SOURCES tests/effects/params.hlsl
+)
+
 if(COLDX_BUILD_TESTS)
     enable_testing()
     add_subdirectory(src/core/tests)

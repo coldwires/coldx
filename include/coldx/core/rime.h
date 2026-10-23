@@ -56,7 +56,7 @@ enum class AssetType : std::uint8_t {
     Sound = 2,
     Music = 3,
     Font = 4,
-    Effect = 5,  // reserved
+    Effect = 5,  // a compiled Effect (coldx/core/effect_format.h)
     FirstCustom = 128,
 };
 

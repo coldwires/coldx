@@ -32,6 +32,7 @@ struct SpriteBatch::Impl {
     SpriteSortMode sortMode = SpriteSortMode::Deferred;
     BlendState blend = BlendState::AlphaBlend;
     SamplerState sampler = SamplerState::LinearClamp;
+    Effect effect;
     Matrix transform;
     std::optional<bool> snapChoice;  // SetPixelSnap's; unset follows the game's pixelArt
     bool snap = false;               // in force since Begin
@@ -126,7 +127,7 @@ void SpriteBatch::Impl::Flush() {
     ordered.clear();
     ordered.reserve(queue.size());
     for (const QueuedSprite& q : queue) ordered.push_back(q.quad);
-    renderer.Draw(graphics, ordered.data(), static_cast<std::uint32_t>(ordered.size()), blend, sampler, transform);
+    renderer.Draw(graphics, ordered.data(), static_cast<std::uint32_t>(ordered.size()), blend, sampler, effect, transform);
     queue.clear();
 }
 
@@ -143,7 +144,8 @@ bool SpriteBatch::PixelSnap() const {
     return impl_->snapChoice.value_or(impl_->graphics.PixelArt());
 }
 
-void SpriteBatch::Begin(SpriteSortMode sortMode, BlendState blend, SamplerState sampler, const Matrix& transform) {
+void SpriteBatch::Begin(SpriteSortMode sortMode, BlendState blend, SamplerState sampler, const Effect& effect,
+                        const Matrix& transform) {
     Impl& b = *impl_;
     if (b.begun) SDL_Log("coldx.core: SpriteBatch::Begin called twice without End");
     b.begun = true;
@@ -153,6 +155,7 @@ void SpriteBatch::Begin(SpriteSortMode sortMode, BlendState blend, SamplerState 
     if (sampler == SamplerState::Default) sampler = b.graphics.PixelArt() ? SamplerState::PointClamp : SamplerState::LinearClamp;
     b.sampler = sampler;
     b.snap = b.snapChoice.value_or(b.graphics.PixelArt());
+    b.effect = effect;
     b.transform = transform;
 }
 
@@ -163,6 +166,7 @@ void SpriteBatch::End() {
         return;
     }
     b.Flush();
+    b.effect = Effect();  // not kept alive past the batch
     b.begun = false;
 }
 

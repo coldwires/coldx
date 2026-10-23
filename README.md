@@ -70,7 +70,7 @@ Games include headers from `include/coldx/` only. Everything under `src/` is pri
 optional:
 
 ```cpp
-batch.Begin(SpriteSortMode::BackToFront, BlendState::AlphaBlend, SamplerState::PointClamp,
+batch.Begin(SpriteSortMode::BackToFront, BlendState::AlphaBlend, SamplerState::PointClamp, Effect(),
             Matrix::CreateTranslation(-cameraX, -cameraY));
 batch.Draw(texture, position, source, Color::White, rotation, origin, scale,
            SpriteEffects::FlipHorizontally, layerDepth);
@@ -274,7 +274,10 @@ Building `my_shaders` writes `glow_frag.h`. Rebuilding with unchanged sources gi
 byte-identical headers, so committed ones only change when a shader does. coldx's own
 shaders are regenerated with `cmake --build build --target coldx_builtin_shaders`.
 
-Using a custom shader when drawing is not available yet. `SpriteBatch` uses its built-in pair.
+To draw sprites with a shader of your own, write an `Effect`: a fragment shader against
+`CX_SPRITE_EFFECT()`, compiled by coldxc from an `[effect]` section in a content project or
+by `coldx_compile_effects` into a header. `docs/QUICKSTART.md` ("Custom shaders") has the
+whole of it, and `shaders/examples/` has grayscale, flash and wave effects to start from.
 
 ## Release builds
 
@@ -386,7 +389,7 @@ They run once per GPU backend
 
     include/coldx/       public headers
     src/<module>/        implementation, tests/
-    shaders/             HLSL sources, the shared include, compiled headers
+    shaders/             HLSL sources, the shared include, compiled headers, example effects
     cmake/               shader compilation, coldx_add_content
     samples/             each sample is a separate game target
     tests/               shared test helpers, the framework stress tests

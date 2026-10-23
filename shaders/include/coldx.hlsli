@@ -36,4 +36,29 @@
 #define CX_VERTEX_UNIFORMS(name, slot) cbuffer name : register(b##slot, space1)
 #define CX_FRAGMENT_UNIFORMS(name, slot) cbuffer name : register(b##slot, space3)
 
+// A SpriteBatch fragment shader: SpriteBatch's own, and every Effect. Declares the sprite's
+// texture at slot 0 and CxSpriteInput, what SpriteBatch's vertex shader hands on:
+//
+//     CX_SPRITE_EFFECT();
+//     CX_FRAGMENT_UNIFORMS(Params, 0) { float Amount; };
+//     float4 main(CxSpriteInput input) : SV_Target0 { return CX_SAMPLE(input) * input.color; }
+//
+// input.color is the Draw call's tint, premultiplied; input.position.xy the pixel being
+// drawn, in the current target. Extra textures start at slot 1.
+//
+// CX_SAMPLE reads the sprite's texture at its own UV; CX_SAMPLE_AT at any UV. Both hold the
+// UV inside the sprite's source rectangle, so a sprite from an atlas never shows its
+// neighbours, through filtering or through an effect moving the UV (the wrap samplers get
+// limits that never bind).
+#define CX_SPRITE_EFFECT() \
+    CX_FRAGMENT_TEXTURE(cxSpriteTexture, cxSpriteSampler, 0); \
+    struct CxSpriteInput { \
+        float4 position : SV_Position; \
+        float2 uv : TEXCOORD0; \
+        float4 color : TEXCOORD1; \
+        nointerpolation float4 bounds : TEXCOORD2; \
+    }
+#define CX_SAMPLE_AT(input, at) cxSpriteTexture.Sample(cxSpriteSampler, clamp((at), (input).bounds.xy, (input).bounds.zw))
+#define CX_SAMPLE(input) CX_SAMPLE_AT(input, (input).uv)
+
 #endif

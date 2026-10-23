@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include <coldx/core/color.h>
+#include <coldx/core/effect.h>
 #include <coldx/core/graphics_states.h>
 #include <coldx/core/matrix.h>
 #include <coldx/core/rectangle.h>
@@ -56,9 +57,12 @@ public:
     SpriteBatch& operator=(const SpriteBatch&) = delete;
 
     // SamplerState::Default is PointClamp in a pixel-art game (GameSettings::pixelArt),
-    // LinearClamp otherwise.
+    // LinearClamp otherwise. An empty effect draws with the built-in shader; a custom one
+    // reads its parameters when the batch draws (see Effect). XNA's order: the effect comes
+    // before the transform.
     void Begin(SpriteSortMode sortMode = SpriteSortMode::Deferred, BlendState blend = BlendState::AlphaBlend,
-               SamplerState sampler = SamplerState::Default, const Matrix& transform = Matrix::Identity());
+               SamplerState sampler = SamplerState::Default, const Effect& effect = Effect(),
+               const Matrix& transform = Matrix::Identity());
     void End();
 
     // Pixel art: with snapping on, every unrotated sprite and every glyph is moved to the
