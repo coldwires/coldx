@@ -1,7 +1,9 @@
 # coldx quickstart
 
-Everything needed to write a game, on one page. The API follows XNA closely; where it
-differs, "Different from XNA" says how.
+Everything needed to write a game, on one page: read this and nothing else. The API
+follows XNA closely; where it differs, "Different from XNA" says how. Then "Packing
+content" for a game's content folder, "Shipping a release" for what a release build adds,
+and "Running without a screen" for testing a game unattended.
 
 ## A complete game
 
@@ -75,17 +77,20 @@ int main() {
 `samples/demo` goes further: components, content by name, sound, music, a sprite
 sheet drawn by tile name, screen shake through the batch transform, and a saved best score.
 
-Its CMake file:
+A game's CMake file:
 
 ```cmake
 add_subdirectory(coldx)                  # the coldx checkout
 add_executable(my_game main.cpp)
 target_link_libraries(my_game PRIVATE coldx::core)
 coldx_game(my_game)                      # windowed program on Windows, main() kept
+coldx_add_content(my_game PROJECT content/content.coldx)   # packs content/ beside the exe
 ```
 
-Content is loaded from a `content` folder beside the executable; copy it there in a
-`POST_BUILD` step, as `samples/quickstart/CMakeLists.txt` does for its font.
+Content lives in a `content` folder; `coldx_add_content` packs it into `content.rime`
+beside the executable on every build ("Packing content"). A game can also just copy its
+`content` folder beside the executable and load loose files, as
+`samples/quickstart/CMakeLists.txt` does for its font.
 
 ## The API
 
@@ -132,27 +137,17 @@ back buffer), `BackBufferWidth()`, `BackBufferHeight()`, `PresentedArea()`,
 `GetBackBufferData(Color*)` (the last finished frame). Clear and render targets only work
 inside `Draw`.
 
-**ContentManager.** `Content().Load<Texture2D>("sprites/player")` reads
-`content/sprites/player.png`; also `Load<SoundEffect>` (.wav, .ogg), `Load<Music>` (.ogg),
-`LoadFont("name", pixelHeight)` (.ttf). Cached by name; `Unload()` drops the cache.
-`SetRootDirectory`. Your own types: `Content().RegisterDataLoader<Level>({".lvl"}, [](const std::vector<std::uint8_t>& bytes, const std::string& name) { ... return Level{...}; });`
-then `Content().Load<Level>("levels/one")`. `ReadBytes("levels/one.lvl")` gives a file's
-bytes without a loader. Packed content: a `content.rime` beside the executable is mounted
-on first load and searched before loose files; `Mount("patch.rime")` adds more, newest
-first. Release builds read loose files only while no package is mounted
-(`SetLooseFiles(LooseFiles::Always)` to allow them). `RegisterLoader` (a path) reads
-loose files only. To pack: a `content/content.coldx` project (`seed = my game`, then
-sections like `[texture] sprites/*.png`, `[sound] sounds/*.wav`, `[music] music/*.ogg`,
-`[font] fonts/*.ttf`, `[data] levels/*.lvl`; `from = ../shared` under a section takes its
-files from another folder; `format = raw` under `[texture]` skips PNG decoding at load) and
-`coldx_add_content(my_game PROJECT content/content.coldx)`
-in CMake (link nothing extra). The README's Content section has more. Protection:
-`KEY_FILE game.key` (from `coldxc --new-key game.key`) encrypts the package and
-`BUILD_ID "name"` fingerprints it, both as `coldx_add_content` arguments;
-`coldx_harden(my_game)` for release flags; `COLDX_HIDDEN("text")` from
-`<coldx/protect/hidden.h>` for strings. Watermarks: `watermark = rgb` or `alpha` under a
-`[texture]` section, `watermark = on` under `[sound]` (WAV): the project's mark, or the
-`BUILD_ID`'s; `coldxc --project ... --identify file.png` checks a file for it.
+**ContentManager.** `Content().Load<Texture2D>("sprites/player")` finds
+`sprites/player.png`; also `Load<SoundEffect>` (.wav, .ogg), `Load<Music>` (.ogg),
+`LoadFont("name", pixelHeight)` (.ttf, any size). Cached by name; `Unload()` drops the
+cache. It looks in `content.rime` beside the executable first (mounted on the first load),
+then in loose files under `content/` (`SetRootDirectory` to change it). `Mount("dlc.rime")`
+adds a package, searched before the ones mounted earlier. Release builds read loose files
+only while no package is mounted; `SetLooseFiles(LooseFiles::Always)` or `Never` to choose.
+`ReadBytes("levels/one.lvl")` gives a file's bytes, extension included. Your own types:
+`Content().RegisterDataLoader<Level>({".lvl"}, [](const std::vector<std::uint8_t>& bytes, const std::string& name) { ... return Level{...}; });`
+then `Content().Load<Level>("levels/one")`; it works packed and loose. (`RegisterLoader`,
+which takes a file path, works for loose files only.)
 
 **Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,
 `Texture2D::FromPixels(Graphics(), w, h, const Color*)`, `SetData(const Color*)`,
@@ -207,17 +202,17 @@ from `Keyboard`. With an IME: `Composition()`, `CompositionCursor()`, and
 `ScrollWheelDelta()`, `HorizontalScrollWheelDelta()`, `SetPosition(x, y)`,
 `SetCursorVisible(bool)`.
 
-**GamePad info.** `GamePad::GetCapabilities(player)`: `isConnected`, `name`, `type`
-(`GamePadType::XboxOne`, `PS5`, `SwitchPro`, ...), `hasRumble`, `vendorId`, `productId`.
-`GamePad::FaceButtonLabel(player, Buttons::A)` is what the pad prints there
-(`ButtonLabel::A`, `Cross`, or `B` on Nintendo pads), for button prompts.
-
 **GamePad.** `GamePad::GetState(player, GamePadDeadZone = IndependentAxes)` returns
 `GamePadState` with `isConnected`, `leftStick`, `rightStick` (Vector2), `leftTrigger`,
 `rightTrigger` (0..1), `IsButtonDown(Buttons)`, `IsButtonUp`.
 `GamePad::WasPressed(player, Buttons)`, `WasReleased`, `SetVibration(player, low, high)`.
 `Buttons`: `A`, `B`, `X`, `Y`, `Back`, `Start`, `Guide`, `LeftShoulder`, `RightShoulder`,
 `LeftStick`, `RightStick`, `DPadUp`, `DPadDown`, `DPadLeft`, `DPadRight`. Players 0 to 3.
+
+**GamePad info.** `GamePad::GetCapabilities(player)`: `isConnected`, `name`, `type`
+(`GamePadType::XboxOne`, `PS5`, `SwitchPro`, ...), `hasRumble`, `vendorId`, `productId`.
+`GamePad::FaceButtonLabel(player, Buttons::A)` is what the pad prints there
+(`ButtonLabel::A`, `Cross`, or `B` on Nintendo pads), for button prompts.
 
 **SoundEffect.** `SoundEffect::FromFile("content/x.wav")` (WAV or OGG),
 `FromSamples(const float*, frames, channels, rate)`, `Play(volume = 1, pitch = 0, pan = 0)`
@@ -260,8 +255,9 @@ at a time; during a crossfade the old one fades out under it.
   bake another font; scaling one blurs it.
 - `Keyboard::WasPressed` and friends are built in: no need to keep last frame's state.
 - `GetState` returns the state as of the start of the current `Update`, not live.
-- Content loads loose files by name (`Content().Load<Texture2D>("player")`); packed
-  content files are not written yet. Fonts load with `LoadFont(name, size)`.
+- Content loads by name (`Content().Load<Texture2D>("player")`) from a `.rime` package
+  coldx's own tool builds, or from loose files; there is no XNB step. Fonts load with
+  `LoadFont(name, size)`.
 - `Texture2D`, `SpriteFont` and the audio types are handles, like XNA's reference types:
   a copy shares the resource.
 - Music is `Music` plus `MediaPlayer`, like XNA's `Song`; `SoundEffect.Play` takes pitch in
@@ -274,6 +270,54 @@ at a time; during a crossfade the old one fades out under it.
   coldx` the name is ambiguous. Define `NOGDI` before including it, or write
   `coldx::Rectangle`.
 
+## Packing content
+
+A content project, `content/content.coldx`, lists what goes in the package; names inside
+it are paths relative to that folder, the same names `Load` uses:
+
+```
+seed = my game                 # makes this game's name hashes its own
+[texture] sprites/*.png        # * within a folder, ** across folders
+[sound]   sounds/**/*.wav sounds/**/*.ogg
+[music]   music/*.ogg
+[font]    fonts/*.ttf
+[data]    levels/*.lvl         # anything else, as bytes: ReadBytes or RegisterDataLoader
+[texture] shared/*.png
+from = ../../shared            # a section can take files from another folder
+```
+
+`coldx_add_content(my_game PROJECT content/content.coldx)` runs `coldxc` whenever a file
+there changes and copies `content.rime` beside the game; unchanged content is not
+repacked. Under a `[texture]` section, `format = raw` stores decoded pixels (no PNG decode
+at load, a little larger). Entries are compressed where that helps. A file matched by two
+sections, an unknown setting or a broken PNG fails the build, naming the file and line.
+Put `content/** -text` in the game's `.gitattributes` so line endings never change what is
+packed. A game's own asset types can get a processor of their own: see
+`include/coldx/content/build.h`.
+
+## Shipping a release
+
+All optional; each is one line.
+
+- **Release build flags.** `coldx_harden(my_game)`, and configure coldx with
+  `-DCOLDX_HARDEN=ON`: no RTTI (`dynamic_cast` and `typeid` stop working on the game's own
+  types), whole-program optimization, and nothing in the executable naming the build
+  machine. Keep the `.pdb` beside the build for crash reports; do not ship it.
+- **Encrypted content.** `coldxc --new-key game.key` once (keep the file out of public
+  repositories), then `coldx_add_content(my_game PROJECT ... KEY_FILE game.key)`. The game
+  gets the key by itself; no code. Stops casual extraction, not a determined reader.
+- **Watermarks.** Under a section of the content project: `watermark = alpha` for pixel
+  art (alpha 254 on scattered opaque pixels: invisible, palette exact), `watermark = rgb`
+  for painted art, `watermark = on` for `[sound]` (WAV only). Marks are the project's own,
+  or a build's with `BUILD_ID "name"`. `coldxc --project content/content.coldx --identify
+  ripped.png` says whether a file carries the mark, with the odds of chance; a single
+  24x24 sprite cut from a sheet is enough. They survive a re-save, cropping and trimming;
+  not resizing or lossy re-encoding.
+- **Build fingerprints.** `BUILD_ID "beta-tester-07"` (or `-DCOLDX_BUILD_ID=...`) marks the
+  package and the executable; `coldxc --project ... --identify game.exe` reads it back.
+- **Hidden strings.** `#include <coldx/protect/hidden.h>`, link `coldx::protect`, and
+  `COLDX_HIDDEN("text")` gives a `std::string` whose text is not in the executable.
+
 ## Running without a screen
 
     COLDX_HEADLESS=1 COLDX_FRAMES=60 COLDX_LOG=run.log COLDX_CAPTURE=frame.png ./my_game
@@ -281,5 +325,6 @@ at a time; during a crossfade the old one fades out under it.
 
 The first runs 60 frames with no window and saves the log and the last frame. The second
 plays a script of input (`10 key down Left`, `30 mouse move 100 200`, `31 mouse down left`,
-`40 text hello`, `60 exit`). `SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU backend. The README has
-the full list, and how to write shaders.
+`40 text hello`, `60 exit`). `SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU
+backend. Read the log and look at the captured PNG to check a change. The README has the
+full list, and how to write shaders.
