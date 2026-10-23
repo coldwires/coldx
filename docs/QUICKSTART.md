@@ -206,8 +206,8 @@ inside `Draw` it does not see that frame's drawing yet. A screenshot: draw into 
 **RenderTarget2D.** A `Texture2D` you can draw into: `RenderTarget2D::Create(Graphics(), w, h)`.
 
 **SpriteBatch.** `SpriteBatch batch{Graphics()};` as a member.
-`Begin(SpriteSortMode, BlendState, SamplerState, Matrix transform)`, all defaulted;
-`End()`. `SetPixelSnap(true)` puts unrotated sprites and text on whole pixels (lasts
+`Begin(SpriteSortMode, BlendState, SamplerState, Effect, Matrix transform)`, all defaulted
+(pass `Effect()` for none when giving a transform); `End()`. `SetPixelSnap(true)` puts unrotated sprites and text on whole pixels (lasts
 until changed; on by default with `Settings().pixelArt`). The default sampler,
 `SamplerState::Default`, is `PointClamp` with `pixelArt` and `LinearClamp` otherwise.
 `Draw(texture, Vector2 position, Color)`;
@@ -222,6 +222,12 @@ until changed; on by default with `Settings().pixelArt`). The default sampler,
 - `BlendState`: `AlphaBlend` (default), `Additive`, `NonPremultiplied`, `Opaque`.
 - `SamplerState`: `Default`, `PointClamp`, `LinearClamp`, `PointWrap`, `LinearWrap`.
 - `SpriteEffects`: `None`, `FlipHorizontally`, `FlipVertically`, combine with `|`.
+
+**Effect.** A custom fragment shader for a batch (see "Custom shaders").
+`Content().Load<Effect>("fx/glow")`, or `Effect::FromMemory(Graphics(), bytes, size, name)`
+for one compiled into the game. `Set(name, value)` with `float`, `Vector2`, `(x, y, z)`,
+`(x, y, z, w)`, `Color`, `Matrix`, `int`, `bool`, or a `Texture2D` for an extra texture
+slot; `Has(name)`, `Name()`, `IsEmpty()`. A handle: copies share parameters.
 
 **SpriteFont.** `SpriteFont::FromFile(Graphics(), "content/font.ttf", pixelHeight)`,
 `FromMemory(Graphics(), data, size, pixelHeight)`, both with an optional
@@ -307,8 +313,10 @@ shaders while drawing (not yet). These are the game's own, or come from librarie
 - A sprite drawn from part of a texture never shows the texels around that part, with
   `PointClamp` or `LinearClamp`, at any scale: atlases need no padding (XNA and FNA bleed
   neighbouring texels in here).
-- `SpriteBatch::Begin` takes sort, blend, sampler, then the transform. There is no
-  `Effect` parameter yet, and no depth-stencil or rasterizer state.
+- `SpriteBatch::Begin` takes sort, blend, sampler, effect, then the transform, as XNA
+  does without its depth-stencil and rasterizer states. An `Effect` is a fragment
+  shader only, and it is HLSL compiled by coldxc rather than an `.fx` built by XNA's
+  content pipeline.
 - A `SpriteFont` is a TTF baked at one pixel size, loaded at runtime. For another size,
   bake another font; scaling one blurs it.
 - `Keyboard::WasPressed` and friends are built in: no need to keep last frame's state.
@@ -328,6 +336,66 @@ shaders while drawing (not yet). These are the game's own, or come from librarie
   coldx` the name is ambiguous. Define `NOGDI` before including it, or write
   `coldx::Rectangle`.
 
+## Custom shaders
+
+An `Effect` replaces SpriteBatch's fragment shader for one batch: tints, flashes, waves,
+dissolves, outlines. It is HLSL against `coldx.hlsli`; SpriteBatch's vertex stage stays
+its own. `shaders/examples/` has three to copy: `grayscale.hlsl`, `flash.hlsl` and
+`wave.hlsl`.
+
+```hlsl
+#include "coldx.hlsli"
+
+CX_SPRITE_EFFECT();                       // the sprite texture and CxSpriteInput
+CX_FRAGMENT_UNIFORMS(Params, 0) {         // the parameters, set by name from C++
+    float Amount;
+};
+
+float4 main(CxSpriteInput input) : SV_Target0 {
+    const float4 c = CX_SAMPLE(input) * input.color;   // texel times the Draw tint
+    const float grey = dot(c.rgb, float3(0.299, 0.587, 0.114));
+    return float4(lerp(c.rgb, grey.xxx, Amount), c.a);
+}
+```
+
+```cpp
+Effect gray = Content().Load<Effect>("fx/grayscale");     // [effect] fx/*.hlsl packs it
+gray.Set("Amount", 0.8f);
+batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::Default, gray);
+```
+
+- Use `CX_SAMPLE(input)`, or `CX_SAMPLE_AT(input, uv)` to read elsewhere: both keep the
+  read inside the sprite's source rectangle, so atlas neighbours never show, even when an
+  effect moves the UV. `input.color` is the tint, premultiplied; `input.position.xy` is
+  the pixel being drawn.
+- Return premultiplied colour, as the built-in shader does.
+- Parameters: `float`, `float2`, `float3`, `float4`, `float4x4`, `int`, `uint` and `bool`,
+  in one `CX_FRAGMENT_UNIFORMS(name, 0)` block. Arrays and nested structs are refused at
+  build time. A `float4x4` follows coldx's convention: `mul(m, v)` in the shader is `v`
+  transformed by `m`.
+- Extra textures: `CX_FRAGMENT_TEXTURE(Mask, MaskSampler, 1)`, then slot 2 and so on, at
+  most 8 including the sprite's; `effect.Set("Mask", texture)`. They use the batch's sampler.
+- Values are read when the batch draws: at `End`, or per `Draw` in `Immediate`. Setting
+  one twice in a batch gives the whole batch the second value; for two looks, use two
+  batches.
+- A wrong name or type is logged once and ignored. A shader that does not compile, or that
+  SpriteBatch cannot feed, fails the content build with the reason and line.
+
+Two ways to ship one: `[effect]` in the content project (packed and encrypted with the rest),
+or compiled into the game with `coldx_compile_effects(my_effects OUTPUT_DIR ... SOURCES
+fx/glow.hlsl)`, which writes `glow.h` holding `effects::glow`:
+
+```cpp
+#include "glow.h"
+Effect glow = Effect::FromMemory(Graphics(), effects::glow, sizeof(effects::glow), "glow");
+```
+
+Both use the same compiler and give the same bytes. Compiling needs `dxc` and
+`spirv-cross` from the Vulkan SDK on the machine that builds the content; players need
+nothing. `coldx_compile_effects` is not part of the default build, so committed headers
+let anyone build the game without the SDK. The content cache tracks the effect's own file,
+not files it includes: after changing an include of your own, touch the effects using it.
+
 ## Packing content
 
 A content project, `content/content.coldx`, lists what goes in the package; names inside
@@ -340,6 +408,7 @@ seed = my game                 # makes this game's name hashes its own
 [music]   music/*.ogg
 [font]    fonts/*.ttf
 [data]    levels/*.lvl         # anything else, as bytes: ReadBytes or RegisterDataLoader
+[effect]  fx/*.hlsl            # custom shaders, compiled: Load<Effect>("fx/glow")
 [texture] shared/*.png
 from = ../../shared            # a section can take files from another folder
 ```

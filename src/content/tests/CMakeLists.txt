@@ -13,3 +13,13 @@ target_link_libraries(coldx_content_watermark_test PRIVATE coldx::content SDL3::
 target_include_directories(coldx_content_watermark_test PRIVATE ${PROJECT_SOURCE_DIR}/tests ${CMAKE_CURRENT_SOURCE_DIR}/..)
 coldx_set_warnings(coldx_content_watermark_test)
 add_test(NAME content.watermark COMMAND coldx_content_watermark_test)
+
+# Needs dxc and spirv-cross; skipped (return code 77) without them.
+add_executable(coldx_content_effect_build_test effect_build_test.cpp)
+target_link_libraries(coldx_content_effect_build_test PRIVATE coldx::content SDL3::SDL3-static)
+target_include_directories(coldx_content_effect_build_test PRIVATE ${PROJECT_SOURCE_DIR}/tests ${PROJECT_SOURCE_DIR}/shaders/examples)
+target_compile_definitions(coldx_content_effect_build_test PRIVATE COLDX_TEST_EFFECTS="${PROJECT_SOURCE_DIR}/shaders/examples")
+coldx_set_warnings(coldx_content_effect_build_test)
+add_test(NAME content.effect_build COMMAND coldx_content_effect_build_test)
+set_tests_properties(content.effect_build PROPERTIES SKIP_RETURN_CODE 77
+    ENVIRONMENT "COLDX_DXC=${COLDX_DXC};COLDX_SPIRV_CROSS=${COLDX_SPIRV_CROSS}")

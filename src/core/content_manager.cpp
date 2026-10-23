@@ -1,4 +1,5 @@
 #include <coldx/core/content_manager.h>
+#include <coldx/core/effect.h>
 #include <coldx/core/music.h>
 #include <coldx/core/sound_effect.h>
 #include <coldx/core/texture2d.h>
@@ -63,6 +64,10 @@ ContentManager::ContentManager(GraphicsDevice& graphics) : graphics_(graphics) {
     });
     RegisterDataLoader<SoundEffect>({".wav", ".ogg"}, [](const std::vector<std::uint8_t>& bytes, const std::string& name) {
         return SoundEffect::FromMemory(bytes.data(), bytes.size(), name);
+    });
+    // Effects come compiled, so only from a package or a loose .fx that coldxc wrote.
+    RegisterDataLoader<Effect>({".fx"}, [this](const std::vector<std::uint8_t>& bytes, const std::string& name) {
+        return Effect::FromMemory(graphics_, bytes.data(), bytes.size(), name);
     });
     RegisterDataLoader<Music>({".ogg"}, [](const std::vector<std::uint8_t>& bytes, const std::string& name) {
         return Music::FromMemory(bytes, name);

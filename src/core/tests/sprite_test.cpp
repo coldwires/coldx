@@ -52,7 +52,7 @@ void Geometry() {
         b.End();
 
         // Scale by 2, then move right 32: the pair lands on x 32..35, y 0..1.
-        b.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp,
+        b.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp, Effect(),
                 Matrix::CreateScale(2.0f) * Matrix::CreateTranslation(32.0f, 0.0f));
         b.Draw(pair, Vector2(0, 0), Color::White);
         b.End();

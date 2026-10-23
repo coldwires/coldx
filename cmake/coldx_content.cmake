@@ -69,8 +69,13 @@ function(coldx_add_content target)
         target_sources(${target} PRIVATE "${game_source}")
         set_source_files_properties("${game_source}" PROPERTIES GENERATED TRUE)
     endif()
+    # [effect] sections need dxc and spirv-cross; hand on the ones CMake found.
+    set(tool_env)
+    if(COLDX_DXC AND COLDX_SPIRV_CROSS)
+        set(tool_env ${CMAKE_COMMAND} -E env "COLDX_DXC=${COLDX_DXC}" "COLDX_SPIRV_CROSS=${COLDX_SPIRV_CROSS}")
+    endif()
     add_custom_command(OUTPUT ${outputs}
-        COMMAND ${ARG_TOOL} --project "${project}" --output "${package}" --cache "${work}/cache" ${extra}
+        COMMAND ${tool_env} $<TARGET_FILE:${ARG_TOOL}> --project "${project}" --output "${package}" --cache "${work}/cache" ${extra}
         COMMAND ${CMAKE_COMMAND} -E touch ${outputs}
         DEPENDS ${ARG_TOOL} ${sources}
         COMMENT "Packing ${ARG_OUTPUT} for ${target}"

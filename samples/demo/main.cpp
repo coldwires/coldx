@@ -148,7 +148,8 @@ public:
 
     void Draw(const GameTime&) override {
         // Sprites at 1x, origin at the tile's centre: the snapping puts each on whole pixels.
-        batch_.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::Default, world_.ShakeTransform());
+        batch_.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::Default, Effect(),
+                     world_.ShakeTransform());
         for (const Item& it : items_) {
             const char* tile = it.kind == Kind::Meteor ? "meteor" : (it.kind == Kind::Gem ? "gem" : "star");
             batch_.Draw(world_.sheet, it.position, sheet::Get(tile), Color::White, 0.0f, Vector2(16, 16), 1.0f,

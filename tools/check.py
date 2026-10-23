@@ -103,10 +103,16 @@ def coldx_module_of(include):
     return parts[1]
 
 
+# Headers CMake writes into the build folder, so they are not in the tree to resolve.
+GENERATED_HEADERS = {"coldx_hlsli.h"}
+
+
 def check_includes(path, allowed_modules, allowed_third_party, quoted_roots, owner):
     text = path.read_text(encoding="utf-8", errors="replace")
     for kind, include in INCLUDE_RE.findall(text):
         if kind == '"':
+            if include in GENERATED_HEADERS and quoted_roots is not None:
+                continue
             if quoted_roots is None:
                 problem(path, f'quoted include "{include}" not allowed here')
                 continue
@@ -134,7 +140,9 @@ def check_boundaries(modules):
         for path in source_files(ROOT / "src" / name):
             if path.suffix in (".cmake", ".py"):
                 continue
-            check_includes(path, visible, m["third_party"], quoted, f"module '{name}'")
+            # Tests may use the example effects' compiled headers, as a game would.
+            extra = [ROOT / "shaders" / "examples"] if "tests" in path.relative_to(ROOT).parts else []
+            check_includes(path, visible, m["third_party"], quoted + extra, f"module '{name}'")
     for umbrella in (ROOT / "include" / "coldx").glob("*.h"):
         owner = coldx_module_of("coldx/" + umbrella.name)
         deps = {owner, *modules.get(owner, {}).get("deps", [])}

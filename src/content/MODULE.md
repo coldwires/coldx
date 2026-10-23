@@ -17,7 +17,7 @@ so a game that only loads packages does not link this module. Tools link it.
 
 - `Processor`: `Name` (its project section), `Version` (bump to invalidate the cache),
   `SettingKeys`, `Process(source, settings, outputs, error)`. `Source`, `Output`,
-  `Settings`. `BuiltInProcessors()`: texture, sound, music, font, data.
+  `Settings`. `BuiltInProcessors()`: texture, sound, music, font, data, effect.
 - `Build(BuildOptions, processors)` gives a `BuildResult`: counts, whether the package
   was rewritten, errors naming file and line.
 - `RunTool(argc, argv, extra processors)`: the `coldxc` command line; a game's own tool
@@ -40,6 +40,9 @@ so a game that only loads packages does not link this module. Tools link it.
 - `watermark.*`: writing and reading the PNG and WAV watermark layers; marked PNGs are
   written here. `zlib_codec.*`: stb's zlib compressor and decompressor, nothing else of
   stb_image or stb_image_write.
+- `effect_compiler.*`: `[effect]` and `--compile-effect`: runs dxc and spirv-cross, reads
+  the reflection (a small JSON reader), writes the compiled effect or a header.
+  `coldx.hlsli` is built in, from a header CMake generates.
 - `tool.cpp`: `RunTool`. `tools/coldxc/main.cpp` is `RunTool` with nothing added.
 
 ## Invariants
@@ -58,3 +61,5 @@ so a game that only loads packages does not link this module. Tools link it.
   bytes. A processor whose output changes without a version bump keeps serving old
   results from the cache.
 - The cache is never pruned; delete the folder to reclaim it.
+- An effect's cache entry follows its own bytes and the built-in `coldx.hlsli`, not files
+  it includes itself, nor the dxc version.

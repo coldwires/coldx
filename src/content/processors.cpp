@@ -4,6 +4,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "effect_compiler.h"
 #include "watermark.h"
 
 // The built-in processors check that a source is what its section says, so a broken file
@@ -185,6 +186,22 @@ protected:
     bool Check(const std::vector<std::uint8_t>&, std::string&) const override { return true; }
 };
 
+// Compiles HLSL into an Effect (effect_compiler.h). "fx/glow.hlsl" becomes "fx/glow.fx",
+// which Content().Load<Effect>("fx/glow") finds.
+class EffectProcessor : public Processor {
+public:
+    std::string Name() const override { return "effect"; }
+    // A coldx.hlsli change changes every effect, without any source changing.
+    int Version() const override { return static_cast<int>(detail::EffectIncludeVersion()); }
+
+    bool Process(const Source& source, const Settings&, std::vector<Output>& outputs, std::string& error) const override {
+        Output out{detail::EffectEntryName(source.name), rime::AssetType::Effect, {}, true};
+        if (!detail::CompileEffect(source.path, out.bytes, error)) return false;
+        outputs.push_back(std::move(out));
+        return true;
+    }
+};
+
 } // namespace
 
 std::vector<std::unique_ptr<Processor>> BuiltInProcessors() {
@@ -194,6 +211,7 @@ std::vector<std::unique_ptr<Processor>> BuiltInProcessors() {
     list.push_back(std::make_unique<MusicProcessor>());
     list.push_back(std::make_unique<FontProcessor>());
     list.push_back(std::make_unique<DataProcessor>());
+    list.push_back(std::make_unique<EffectProcessor>());
     return list;
 }
 

@@ -7,15 +7,21 @@
 #include <coldx/core/graphics_states.h>
 #include <coldx/core/matrix.h>
 
+struct SDL_GPUDevice;
+struct SDL_GPUGraphicsPipeline;
+struct SDL_GPUShader;
 struct SDL_GPUTexture;
 
 namespace coldx {
 
+class Effect;
 class GraphicsDevice;
 
 namespace detail {
 
 struct DeviceToken;
+
+inline constexpr int BlendStateCount = 4;
 
 struct SpriteVertex {
     float x, y;
@@ -34,6 +40,11 @@ struct SpriteQuad {
     SpriteVertex vertices[4];
 };
 
+// A pipeline drawing SpriteVertex quads into the back buffer's format with blend. The
+// built-in shaders and every Effect share it. Null on failure, logged.
+SDL_GPUGraphicsPipeline* CreateSpritePipeline(SDL_GPUDevice* device, SDL_GPUShader* vertex, SDL_GPUShader* fragment,
+                                              BlendState blend);
+
 // The GPU half of SpriteBatch: pipelines, samplers, buffers, and the draw itself.
 class SpriteRenderer {
 public:
@@ -43,9 +54,11 @@ public:
     SpriteRenderer& operator=(const SpriteRenderer&) = delete;
 
     // Draws quads in order into the current target, in the current frame. One GPU draw per
-    // run of quads sharing a texture. Logs and returns false outside a frame or on failure.
+    // run of quads sharing a texture. With a non-empty effect, its fragment shader and its
+    // parameters as they are now; one that cannot be used is logged and the built-in shader
+    // draws instead. Logs and returns false outside a frame or on failure.
     bool Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std::uint32_t count, BlendState blend,
-              SamplerState sampler, const Matrix& transform);
+              SamplerState sampler, const Effect& effect, const Matrix& transform);
 
 private:
     struct Impl;

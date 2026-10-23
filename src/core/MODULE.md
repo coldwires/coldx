@@ -37,6 +37,8 @@ the debug options.
   smooth or sharp), `MeasureString`,
   `LineSpacing`, `Spacing`, `DefaultCharacter`, `HasCharacter`.
 - `SpriteSortMode`, `SpriteEffects`, `BlendState`, `SamplerState`.
+- `Effect` (`FromMemory`, `Set`, `Has`), `effect_format` (`Encode`, `Decode`); a
+  `Load<Effect>` loader for `.fx`.
 - `Keyboard`, `KeyboardState`, `Key`; `Mouse`, `MouseState`, `MouseButton`; `GamePad`,
   `GamePadState`, `Buttons`, `GamePadDeadZone`. Each has `GetState` (as of the start of the
   current Update) and `WasPressed`/`WasReleased` (since the previous Update).
@@ -76,6 +78,9 @@ the debug options.
   on first use, one sampler per sampler state, buffers, and the draw.
 - `shader_blob.*`: creates an SDL shader from a compiled header in the format the device takes.
   Built-in shader headers are in `shaders/compiled/`.
+- `effect.cpp` + `effect_access.h`: `Effect`, its parameters and its GPU objects (its own
+  vertex shader, fragment shader, one pipeline per blend state); `effect_format.cpp` reads
+  and writes the compiled form, which the content module's compiler writes.
 - `sprite_font.cpp` + `font_access.h`: baking (stb_truetype packs ASCII and Latin-1 into one
   atlas), UTF-8 decoding, and the one layout routine both measuring and drawing use.
   `stb_truetype_impl.cpp` compiles stb's implementation, warnings silenced there only.

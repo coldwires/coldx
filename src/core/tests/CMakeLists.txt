@@ -21,6 +21,8 @@ coldx_core_render_test(sprite sprite_test.cpp)
 coldx_core_render_test(font font_test.cpp)
 coldx_core_render_test(scaling scaling_test.cpp)
 coldx_core_render_test(readback readback_test.cpp)
+coldx_core_render_test(effect effect_test.cpp)
+target_include_directories(coldx_core_effect_test PRIVATE ${PROJECT_SOURCE_DIR}/shaders/examples)
 target_include_directories(coldx_core_scaling_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_include_directories(coldx_core_font_test PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
 target_compile_definitions(coldx_core_font_test PRIVATE

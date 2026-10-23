@@ -113,6 +113,26 @@ Covered by `core.content` and `core.rime`.
 3. At runtime, `src/core/shader_blob.cpp` `CreateShader` - picks the format the device
    takes (SPIR-V, DXIL, then MSL with entry point `main0`).
 
+## Building an effect
+
+1. `src/content/processors.cpp` `EffectProcessor`, for an `[effect]` section, or
+   `src/content/tool.cpp` for `coldxc --compile-effect` (what `coldx_compile_effects` runs).
+2. `src/content/effect_compiler.cpp` `CompileEffect` - writes the built-in `coldx.hlsli`
+   into a temp folder; `dxc` to SPIR-V (HLSL layout) and DXIL; `spirv-cross` to MSL and
+   reflection; reads the parameter table and texture slots, refusing what SpriteBatch
+   cannot feed; encodes `coldx/core/effect_format.h`'s form.
+3. At load, `src/core/effect.cpp` `Effect::FromMemory` - decodes it and makes the shaders
+   if the device exists.
+
+## Drawing with an effect
+
+1. `SpriteBatch::Begin` keeps a copy of the effect handle; `End` (or each Draw in
+   Immediate) calls `SpriteRenderer::Draw` with it.
+2. `src/core/sprite_renderer.cpp` - `EffectAccess::Pipeline` makes the effect's pipeline
+   for the blend state on first use (`CreateSpritePipeline`, the built-in shaders' too);
+   the uniform block is pushed as it is now; extra textures bind at slots 1 and up.
+   An effect that fails falls back to the built-in shader, logged once.
+
 ## Shutdown
 
 1. `Game::Run` - loop ends; logs the frame summary; saves `COLDX_CAPTURE` if set;

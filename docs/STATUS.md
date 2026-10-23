@@ -26,7 +26,7 @@ behaviour; `not started` has no code.
 | 28 | `ContentManager` reading packed `.rime` content: mount, default package, checks, LZ4 entries, raw textures | done |
 | 16 | Math: `Vector2`, `Rectangle`, `Color` | done |
 | 17 | Math: `Point`, `Matrix`, `MathHelper` | done |
-| 18 | Custom shaders when drawing (`Effect`); `SpriteBatch::Begin` will take one | not started |
+| 18 | Custom shaders when drawing: `Effect` (fragment shaders, named parameters, extra textures), `SpriteBatch::Begin` takes one; `[effect]`, `coldx_compile_effects`; grayscale, flash and wave examples | done |
 | 24 | `Log` for games | done |
 | 29 | `demo` sample: components, content, input, audio, text, many sprites | done |
 | 26 | `Storage`: per-user folder, atomic writes | done |

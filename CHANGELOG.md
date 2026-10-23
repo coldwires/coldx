@@ -55,6 +55,11 @@
   textures, sounds and music.
 - The `content` module and `coldxc`: content projects, processors (built-in and a game's
   own), a build cache, `coldx_add_content`. The `demo` sample loads from a package.
+- `Effect`: custom fragment shaders for `SpriteBatch` with named parameters and extra
+  textures. `SpriteBatch::Begin` takes one before the transform (calls that passed a
+  transform now pass `Effect()` first). `[effect]` in content projects,
+  `coldxc --compile-effect` and `coldx_compile_effects`; `CX_SPRITE_EFFECT`, `CX_SAMPLE`
+  and `CX_SAMPLE_AT` in `coldx.hlsli`; grayscale, flash and wave in `shaders/examples/`.
 - `SpriteBatch::SetPixelSnap` and `FontSmoothing::Sharp` for pixel-perfect games, and
   `GameSettings::pixelArt` to turn on the whole recipe at once (`SamplerState::Default`);
   the `demo` sample is pixel-perfect (640x360, integer scaling) with the Silkscreen pixel

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iterator>
 
+#include "effect_compiler.h"
 #include "project.h"
 #include "protect_build.h"
 #include "watermark.h"
@@ -21,6 +22,7 @@ void Usage() {
         "  coldxc --project content/content.coldx --output build/content.rime [options]\n"
         "  coldxc --new-key FILE\n"
         "  coldxc --project content/content.coldx --identify FILE\n"
+        "  coldxc --compile-effect SHADER.hlsl --output FILE.h|FILE.fx\n"
         "\n"
         "  --project      the content project file; names in the package are relative to its folder\n"
         "  --output       the package to write; left untouched when nothing changed\n"
@@ -32,6 +34,8 @@ void Usage() {
         "  --identify     print the fingerprint in a game, package, PNG or WAV built from --project\n"
         "                 (give --key-file too if the package was encrypted); for a PNG or WAV, also\n"
         "                 whether it carries the project's own mark, or --build-id's\n"
+        "  --compile-effect  compile one effect into a C++ header (for Effect::FromMemory) or a .fx\n"
+        "                 file; the header is only rewritten when it changes\n"
         "  --verbose      one line per source\n");
 }
 
@@ -39,7 +43,7 @@ void Usage() {
 
 int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra) {
     BuildOptions options;
-    std::string newKey, identify;
+    std::string newKey, identify, compileEffect;
     for (int i = 1; i < argc; ++i) {
         const char* a = argv[i];
         const bool hasValue = i + 1 < argc;
@@ -59,6 +63,8 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
             newKey = argv[++i];
         } else if (!std::strcmp(a, "--identify") && hasValue) {
             identify = argv[++i];
+        } else if (!std::strcmp(a, "--compile-effect") && hasValue) {
+            compileEffect = argv[++i];
         } else if (!std::strcmp(a, "--verbose")) {
             options.verbose = true;
         } else if (!std::strcmp(a, "--help") || !std::strcmp(a, "-h")) {
@@ -69,6 +75,34 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
             Usage();
             return 2;
         }
+    }
+    if (!compileEffect.empty()) {
+        if (options.output.empty()) {
+            Usage();
+            return 2;
+        }
+        std::vector<std::uint8_t> compiled;
+        std::string error;
+        if (!detail::CompileEffect(compileEffect, compiled, error)) {
+            std::fprintf(stderr, "coldxc: %s: %s\n", compileEffect.c_str(), error.c_str());
+            return 1;
+        }
+        const std::filesystem::path out(std::u8string(options.output.begin(), options.output.end()));
+        std::string bytes;
+        if (out.extension() == ".h") bytes = detail::EffectHeader(compiled, compileEffect);
+        else bytes.assign(compiled.begin(), compiled.end());
+        // An unchanged header is left alone, so nothing that includes it rebuilds.
+        std::ifstream existing(out, std::ios::binary);
+        if (existing && std::string((std::istreambuf_iterator<char>(existing)), {}) == bytes) return 0;
+        existing.close();
+        std::ofstream file(out, std::ios::binary);
+        file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+        if (!file) {
+            std::fprintf(stderr, "coldxc: cannot write %s\n", options.output.c_str());
+            return 1;
+        }
+        std::printf("coldxc: wrote %s\n", options.output.c_str());
+        return 0;
     }
     if (!newKey.empty()) {
         std::string error;
