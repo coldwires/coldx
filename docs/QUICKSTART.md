@@ -151,8 +151,8 @@ in CMake (link nothing extra). The README's Content section has more. Protection
 `BUILD_ID "name"` fingerprints it, both as `coldx_add_content` arguments;
 `coldx_harden(my_game)` for release flags; `COLDX_HIDDEN("text")` from
 `<coldx/protect/hidden.h>` for strings. Watermarks: `watermark = rgb` or `alpha` under a
-`[texture]` section, `watermark = on` under `[sound]` (WAV), for builds with a `BUILD_ID`;
-`coldxc --project ... --identify file.png` reads them.
+`[texture]` section, `watermark = on` under `[sound]` (WAV): the project's mark, or the
+`BUILD_ID`'s; `coldxc --project ... --identify file.png` checks a file for it.
 
 **Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,
 `Texture2D::FromPixels(Graphics(), w, h, const Color*)`, `SetData(const Color*)`,

@@ -30,7 +30,8 @@ void Usage() {
         "  --game-source  write the C++ file that gives the game its key and fingerprint\n"
         "  --new-key      write a new random key to FILE\n"
         "  --identify     print the fingerprint in a game, package, PNG or WAV built from --project\n"
-        "                 (give --key-file too if the package was encrypted)\n"
+        "                 (give --key-file too if the package was encrypted); for a PNG or WAV, also\n"
+        "                 whether it carries the project's own mark, or --build-id's\n"
         "  --verbose      one line per source\n");
 }
 
@@ -107,9 +108,30 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
         if (png || wav) {
             const std::uint64_t secret = detail::WatermarkSecret(seed, options.keyFile.empty() ? nullptr : &key);
             bool any = false;
+            // First: does it carry this project's mark (or the named build's)? That takes far
+            // fewer marks than reading an unknown fingerprint, so it works on single sprites.
+            std::vector<std::uint64_t> expected{detail::OwnerMark(secret)};
+            if (!options.buildId.empty()) expected.push_back(detail::FingerprintOf(options.buildId));
+            for (const detail::Match& m : png ? detail::MatchPng(bytes, secret, expected) : detail::MatchWav(bytes, secret, expected)) {
+                const char* whose = m.fingerprint == expected[0] ? "this project's mark" : "the named build's mark";
+                // Below one in a million: a finding. Below one in a thousand with the marks
+                // nearly all agreeing: worth saying, with the odds, so the reader can judge.
+                const bool probable = !m.matched && m.chance < 1e-3 && m.agree * 10 >= m.total * 9;
+                if (m.matched)
+                    std::printf("%s in %s: %zu of %zu marks agree; odds of chance about 1 in %.0e\n", whose, m.layer.c_str(), m.agree,
+                                m.total, 1.0 / m.chance);
+                else if (probable)
+                    std::printf("probably %s in %s: %zu of %zu marks agree; odds of chance about 1 in %.0e (too few marks to be sure)\n",
+                                whose, m.layer.c_str(), m.agree, m.total, 1.0 / m.chance);
+                else if (m.total > 0)
+                    std::printf("not %s in %s: %zu of %zu marks agree, as chance would give\n", whose, m.layer.c_str(), m.agree, m.total);
+                any = any || m.matched;
+            }
             for (const detail::Finding& f : png ? detail::ReadPng(bytes, secret) : detail::ReadWav(bytes, secret)) {
-                if (f.found)
-                    std::printf("fingerprint 0x%016llx in %s (%zu of %zu marks agree)\n", static_cast<unsigned long long>(f.fingerprint),
+                if (f.found && f.fingerprint == expected[0])
+                    std::printf("this project's mark, read in full from %s (%zu of %zu marks agree)\n", f.layer.c_str(), f.agree, f.total);
+                else if (f.found)
+                    std::printf("fingerprint 0x%010llx in %s (%zu of %zu marks agree)\n", static_cast<unsigned long long>(f.fingerprint),
                                 f.layer.c_str(), f.agree, f.total);
                 else
                     std::printf("no mark in %s\n", f.layer.c_str());
@@ -138,7 +160,7 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
     std::printf("coldxc: %s: %zu entries from %zu sources (%zu processed, %zu cached)%s%s\n", options.output.c_str(), r.entries,
                 r.sources, r.processed, r.cached, r.written ? "" : ", unchanged", options.keyFile.empty() ? "" : ", encrypted");
     if (!options.buildId.empty())
-        std::printf("coldxc: build id \"%s\" is fingerprint 0x%016llx\n", options.buildId.c_str(),
+        std::printf("coldxc: build id \"%s\" is fingerprint 0x%010llx\n", options.buildId.c_str(),
                     static_cast<unsigned long long>(r.fingerprint));
     return 0;
 }

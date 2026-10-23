@@ -13,7 +13,7 @@ bool ReadKeyFile(const std::string& path, rime::Key& key, std::string& error);
 // Writes a new random key. Refuses to overwrite an existing file.
 bool WriteNewKey(const std::string& path, std::string& error);
 
-// A build id as given ("tester-07", "2026-10-21-beta") to the 64-bit fingerprint stored.
+// A build id as given ("tester-07", "2026-10-21-beta") to the 40-bit fingerprint stored.
 std::uint64_t FingerprintOf(const std::string& buildId);
 // The fingerprint as written into a package header or the game: masked with the package
 // seed, so the raw value is not the same in every game.

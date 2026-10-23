@@ -98,8 +98,10 @@ bool WriteNewKey(const std::string& path, std::string& error) {
     return true;
 }
 
+// 40 bits: room for a trillion builds, and the size watermarks carry, so every place a
+// fingerprint appears shows the same number.
 std::uint64_t FingerprintOf(const std::string& buildId) {
-    return rime::HashName(0x636F6C6478ull, buildId);
+    return rime::HashName(0x636F6C6478ull, buildId) & ((std::uint64_t{1} << 40) - 1);
 }
 
 std::uint64_t MaskFingerprint(std::uint64_t seed, std::uint64_t fingerprint) {
@@ -175,14 +177,14 @@ bool Identify(const std::string& file, std::uint64_t seed) {
     if (bytes.size() >= rime::HeaderSize && std::equal(std::begin(rime::Magic), std::end(rime::Magic), bytes.begin())) {
         const std::uint64_t stored = Get64(bytes.data() + 40);
         if (stored != 0) {
-            std::printf("package fingerprint 0x%016llx\n", static_cast<unsigned long long>(MaskFingerprint(seed, stored)));
+            std::printf("package fingerprint 0x%010llx\n", static_cast<unsigned long long>(MaskFingerprint(seed, stored)));
             found = true;
         }
     }
     const std::uint64_t marker = FingerprintMarker(seed);
     for (size_t i = 0; i + 16 <= bytes.size(); ++i) {
         if (Get64(bytes.data() + i) != marker) continue;
-        std::printf("fingerprint 0x%016llx at offset %zu\n",
+        std::printf("fingerprint 0x%010llx at offset %zu\n",
                     static_cast<unsigned long long>(MaskFingerprint(seed, Get64(bytes.data() + i + 8))), i);
         found = true;
     }

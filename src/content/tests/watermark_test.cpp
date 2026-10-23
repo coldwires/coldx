@@ -70,12 +70,12 @@ bool Found(const std::vector<wm::Finding>& all, const char* name, std::uint64_t 
 }
 
 const std::uint64_t Secret = 0x1234ABCD5678EF01ull;
-const std::uint64_t Print = 0x0BADC0FFEE15600Dull;
+const std::uint64_t Print = 0xC0FFEE1560ull;  // 40 bits, as marks carry
 
 void Painted() {
     // A painted-looking image with a transparent border.
-    const auto original = EncodePng(96, 80, [](int x, int y, std::uint8_t* p) {
-        const bool border = x < 8 || y < 8 || x >= 88 || y >= 72;
+    const auto original = EncodePng(160, 128, [](int x, int y, std::uint8_t* p) {
+        const bool border = x < 8 || y < 8 || x >= 152 || y >= 120;
         p[0] = static_cast<std::uint8_t>(x * 2 + y);
         p[1] = static_cast<std::uint8_t>(128 + 100 * std::sin(x * 0.2));
         p[2] = static_cast<std::uint8_t>(y * 3);
@@ -124,7 +124,8 @@ void Painted() {
     Found(after, "transparent pixels", Print);  // SDL keeps their colour; other editors may not
 
     // Crops at odd offsets, re-saved: the tiles line up somewhere, and the reader finds where.
-    for (const auto& [cx, cy, cw, ch] : {std::array<int, 4>{13, 7, 70, 64}, std::array<int, 4>{29, 3, 66, 77}, std::array<int, 4>{0, 0, 96, 80}}) {
+    // Reading an unknown fingerprint takes two whole tiles each way, about 75x75.
+    for (const auto& [cx, cy, cw, ch] : {std::array<int, 4>{3, 5, 90, 84}, std::array<int, 4>{41, 3, 82, 100}, std::array<int, 4>{0, 0, 160, 128}}) {
         const auto crop = EncodePng(cw, ch, [&](int x, int y, std::uint8_t* q) {
             std::memcpy(q, &b[(static_cast<size_t>(y + cy) * w2 + static_cast<size_t>(x + cx)) * 4], 4);
         });
@@ -150,7 +151,10 @@ void NoFalseAlarms() {
             }
             p[3] = p[3] < 40 ? 0 : (p[3] < 120 ? 255 : p[3]);  // some transparent, some opaque
         });
-        for (const wm::Finding& f : wm::ReadPng(noise, Secret)) claims += f.found ? 1 : 0;
+        for (const wm::Finding& f : wm::ReadPng(noise, Secret)) {
+            if (f.found) std::printf("  claim in random image %d: %s, %zu of %zu\n", n, f.layer.c_str(), f.agree, f.total);
+            claims += f.found ? 1 : 0;
+        }
     }
     const auto art = EncodePng(96, 96, [](int px, int py, std::uint8_t* p) {
         p[0] = static_cast<std::uint8_t>(px * 2);
@@ -162,7 +166,10 @@ void NoFalseAlarms() {
     std::string error;
     CHECK(wm::MarkPng(art, Secret, Print, wm::PixelMark::Rgb, marked, error));
     for (std::uint64_t k = 1; k <= 20; ++k)
-        for (const wm::Finding& f : wm::ReadPng(marked, Secret * 31 + k)) claims += f.found ? 1 : 0;
+        for (const wm::Finding& f : wm::ReadPng(marked, Secret * 31 + k)) {
+            if (f.found) std::printf("  claim with wrong secret %d: %s, %zu of %zu\n", static_cast<int>(k), f.layer.c_str(), f.agree, f.total);
+            claims += f.found ? 1 : 0;
+        }
     std::printf("false alarms in 40 random images and 20 wrong secrets: %d\n", claims);
     CHECK(claims == 0);
 }
@@ -264,7 +271,7 @@ std::vector<std::uint8_t> ReadAll(const fs::path& path) {
 void Pipeline() {
     const fs::path dir = fs::temp_directory_path() / "coldx_watermark_test";
     fs::remove_all(dir);
-    const auto art = EncodePng(64, 64, [](int x, int y, std::uint8_t* p) {
+    const auto art = EncodePng(80, 80, [](int x, int y, std::uint8_t* p) {
         p[0] = static_cast<std::uint8_t>(x * 4);
         p[1] = static_cast<std::uint8_t>(y * 4);
         p[2] = 90;
@@ -328,7 +335,7 @@ void Pipeline() {
                 char* none[] = {tool, p, const_cast<char*>(project.c_str()), i, const_cast<char*>(clean.c_str())};
                 CHECK(RunTool(5, none) == 1);
             }
-            CHECK(c.Load<Texture2D>("art/a").Width() == 64);  // and it still loads as a texture
+            CHECK(c.Load<Texture2D>("art/a").Width() == 80);  // and it still loads as a texture
         };
         CHECK(game.Run() == 0);
     }
@@ -383,12 +390,79 @@ void Damaged() {
     CHECK(honest);
 }
 
+// A single sprite cut tight from a marked sheet, its transparent colour wiped: too few
+// marks to read an unknown fingerprint, plenty to say it carries this project's mark.
+void OwnerMatch() {
+    const std::uint64_t owner = wm::OwnerMark(Secret);
+    // A sheet of 12x8 sprites, 24x24 each in 32x32 cells, on transparency.
+    const auto sheet = EncodePng(384, 256, [](int x, int y, std::uint8_t* p) {
+        const int cx = x % 32, cy = y % 32;
+        const bool inside = cx >= 4 && cx < 28 && cy >= 4 && cy < 28 && std::abs(cx - 16) + std::abs(cy - 16) < 14;
+        p[0] = static_cast<std::uint8_t>(inside ? 200 - (x / 32) * 10 : 0);
+        p[1] = static_cast<std::uint8_t>(inside ? 60 + (y / 32) * 20 : 0);
+        p[2] = static_cast<std::uint8_t>(inside ? 90 : 0);
+        p[3] = inside ? 255 : 0;
+    });
+    for (wm::PixelMark mode : {wm::PixelMark::Alpha, wm::PixelMark::Rgb}) {
+        std::vector<std::uint8_t> marked;
+        std::string error;
+        CHECK(wm::MarkPng(sheet, Secret, owner, mode, marked, error));
+        int w = 0, h = 0;
+        const auto pixels = Pixels(marked, w, h);
+        // Alpha: the sprite at cell (5, 3) cut to its 24x24 box. Rgb marks half as many places,
+        // and on a sprite this sparse (under half of each cell opaque) needs about four
+        // sprites' worth: 60x60 from the same corner. The transparent colour wiped either way.
+        const int cw = mode == wm::PixelMark::Alpha ? 24 : 60, chh = cw;
+        const auto cut = EncodePng(cw, chh, [&](int x, int y, std::uint8_t* q) {
+            std::memcpy(q, &pixels[(static_cast<size_t>(3 * 32 + 4 + y) * w + static_cast<size_t>(5 * 32 + 4 + x)) * 4], 4);
+            if (q[3] == 0) q[0] = q[1] = q[2] = 0;
+        });
+        const char* name = mode == wm::PixelMark::Alpha ? "alpha" : "rgb";
+        bool matched = false;
+        for (const wm::Match& m : wm::MatchPng(cut, Secret, {owner})) {
+            std::printf("  %dx%d cut marked %s, read as %s: %zu of %zu places agree, chance %.1e%s\n", cw, chh, name, m.layer.c_str(),
+                        m.agree, m.total, m.chance, m.matched ? ": MATCH" : "");
+            matched = matched || m.matched;
+        }
+        CHECK(matched);
+        for (const wm::Finding& f : wm::ReadPng(cut, Secret)) CHECK(!f.found);  // too small to read blind
+        for (const wm::Match& m : wm::MatchPng(cut, Secret + 5, {wm::OwnerMark(Secret + 5)})) CHECK(!m.matched);
+    }
+    // The same sprite unmarked, and random sprites: never a match.
+    int w = 0, h = 0;
+    const auto plain = Pixels(sheet, w, h);
+    int claims = 0;
+    const auto unmarked = EncodePng(24, 24, [&](int x, int y, std::uint8_t* q) {
+        std::memcpy(q, &plain[(static_cast<size_t>(3 * 32 + 4 + y) * w + static_cast<size_t>(5 * 32 + 4 + x)) * 4], 4);
+    });
+    for (const wm::Match& m : wm::MatchPng(unmarked, Secret, {owner})) claims += m.matched ? 1 : 0;
+    std::uint32_t x = 3;
+    for (int n = 0; n < 60; ++n) {
+        const auto noise = EncodePng(24 + n % 40, 24 + n % 23, [&](int, int, std::uint8_t* p) {
+            for (int c = 0; c < 4; ++c) {
+                x = x * 1664525u + 1013904223u;
+                p[c] = static_cast<std::uint8_t>(x >> 24);
+            }
+            // Flat colours too: half the sprites are a single colour with noise in alpha.
+            if (n % 2) p[0] = p[1] = p[2] = 128;
+            p[3] = p[3] < 60 ? 0 : 255;
+        });
+        for (const wm::Match& m : wm::MatchPng(noise, Secret, {owner})) {
+            if (m.matched) std::printf("  false match in sprite %d: %s, %zu of %zu\n", n, m.layer.c_str(), m.agree, m.total);
+            claims += m.matched ? 1 : 0;
+        }
+    }
+    std::printf("owner-mark false matches in an unmarked sprite and 60 random ones: %d\n", claims);
+    CHECK(claims == 0);
+}
+
 } // namespace
 
 int main() {
     SDL_SetEnvironmentVariable(SDL_GetEnvironment(), "COLDX_HEADLESS", "1", true);
     Painted();
     NoFalseAlarms();
+    OwnerMatch();
     PixelArt();
     Sound();
     Pipeline();
