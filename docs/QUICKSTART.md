@@ -1,9 +1,10 @@
 # coldx quickstart
 
-Everything needed to write a game, on one page: read this and nothing else. The API
-follows XNA closely; where it differs, "Different from XNA" says how. Then "Packing
-content" for a game's content folder, "Shipping a release" for what a release build adds,
-and "Running without a screen" for testing a game unattended.
+Everything needed to write a game, on one page: a game can be written from this alone.
+Pointers to headers and samples are for extras, not needed reading. The API follows XNA
+closely; where it differs, "Different from XNA" says how. Then "Packing content" for a
+game's content folder, "Shipping a release" for what a release build adds, and "Running
+without a screen" for testing a game unattended.
 
 ## A complete game
 
@@ -80,12 +81,19 @@ sheet drawn by tile name, screen shake through the batch transform, and a saved 
 A game's CMake file:
 
 ```cmake
-add_subdirectory(coldx)                  # the coldx checkout
+cmake_minimum_required(VERSION 3.24)
+project(my_game LANGUAGES C CXX)
+# The coldx checkout. Inside the game's folder, add_subdirectory(coldx) is enough; outside
+# it, give a build folder: add_subdirectory(C:/src/coldx ${CMAKE_BINARY_DIR}/coldx).
+add_subdirectory(coldx)
 add_executable(my_game main.cpp)
-target_link_libraries(my_game PRIVATE coldx::core)
+target_link_libraries(my_game PRIVATE coldx::core)   # brings C++20 with it
 coldx_game(my_game)                      # windowed program on Windows, main() kept
 coldx_add_content(my_game PROJECT content/content.coldx)   # packs content/ beside the exe
 ```
+
+Configure with `-DCOLDX_BUILD_TESTS=OFF -DCOLDX_BUILD_SAMPLES=OFF` to build only what the
+game needs.
 
 Content lives in a `content` folder; `coldx_add_content` packs it into `content.rime`
 beside the executable on every build ("Packing content"). A game can also just copy its
@@ -100,9 +108,10 @@ All in namespace `coldx`, all from `#include <coldx/coldx.h>`.
 `UnloadContent()`, `Update(const GameTime&)`, `Draw(const GameTime&)`,
 `OnResize(int w, int h)`, `OnFocusChanged(bool)`, `OnExiting()`. Call `Run()` from `main`,
 `Exit()` to quit. `Graphics()` is the `GraphicsDevice`. `Settings()` is read when `Run`
-starts: `title`, `width`, `height`, `resizable`, `fullscreen`, `vsync`, `fixedTimeStep`
-(default true), `targetElapsedSeconds` (1/60), `maxUpdatesPerFrame` (5), `console`
-(`ConsoleMode::DebugBuilds`/`Always`/`Never`), `company`, `name`. While running:
+starts: `title`, `width` and `height` (1280x720), `resizable`, `fullscreen`, `vsync`,
+`fixedTimeStep` (default true), `targetElapsedSeconds` (1/60), `maxUpdatesPerFrame` (5),
+`console` (`ConsoleMode::DebugBuilds`/`Always`/`Never`), `company`, `name` (see Storage).
+While running:
 `SetFullscreen(bool)`, `ToggleFullscreen()`, `IsFullscreen()`, `SetWindowSize(w, h)`,
 `SetWindowTitle`, `SetVSync`. Fullscreen is borderless at the desktop's resolution unless
 `fullscreenMode = FullscreenMode::Exclusive` (with `fullscreenWidth`, `fullscreenHeight`,
@@ -110,11 +119,11 @@ starts: `title`, `width`, `height`, `resizable`, `fullscreen`, `vsync`, `fixedTi
 `SetFullscreenMode(FullscreenMode::Exclusive, 1920, 1080)`. `DisplayModes()` lists what the
 display offers (`DisplayMode`: `width`, `height`, `refreshRate`), `DesktopDisplayMode()`.
 
-**Virtual resolution.** `Settings().virtualWidth = 320; virtualHeight = 180;` draws at a
-fixed size scaled into the window: the back buffer is 320x180 whatever the window, and
-mouse positions are in its pixels. `scaleMode`: `ScaleMode::Fit` (default, bars),
-`Integer` (whole multiples, for pixel art), `Stretch`. `smoothScaling` (false: sharp),
-`letterboxColor` (black). While running: `SetVirtualResolution(w, h)` (0, 0 to follow the
+**Virtual resolution.** `Settings().virtualWidth = 320; Settings().virtualHeight = 180;`
+draws at a fixed size scaled into the window: the back buffer is 320x180 whatever the
+window, and mouse positions are in its pixels. Also in `Settings()`: `scaleMode`
+(`ScaleMode::Fit`, the default, with bars; `Integer`, whole multiples, for pixel art;
+`Stretch`), `smoothScaling` (false: sharp), `letterboxColor` (black). While running: `SetVirtualResolution(w, h)` (0, 0 to follow the
 window again), `SetScaleMode(mode, smooth)`. Window resizes do not call `OnResize` then;
 `Graphics().PresentedArea()` is where the image sits in the window.
 
@@ -139,8 +148,11 @@ inside `Draw`.
 
 **ContentManager.** `Content().Load<Texture2D>("sprites/player")` finds
 `sprites/player.png`; also `Load<SoundEffect>` (.wav, .ogg), `Load<Music>` (.ogg),
-`LoadFont("name", pixelHeight)` (.ttf, any size). Cached by name; `Unload()` drops the
-cache. It looks in `content.rime` beside the executable first (mounted on the first load),
+`LoadFont("name", pixelHeight)` (.ttf, any size). A name is the file's path inside the
+content folder without its extension: `content/fonts/main.ttf` is `LoadFont("fonts/main",
+18)`, `content/coin.png` is `Load<Texture2D>("coin")`. A texture and a sound may share a
+name (`coin.png`, `coin.wav`): each type looks for its own extensions. Cached by name;
+`Unload()` drops the cache. It looks in `content.rime` beside the executable first (mounted on the first load),
 then in loose files under `content/` (`SetRootDirectory` to change it). `Mount("dlc.rime")`
 adds a package, searched before the ones mounted earlier. Release builds read loose files
 only while no package is mounted; `SetLooseFiles(LooseFiles::Always)` or `Never` to choose.
@@ -149,7 +161,9 @@ only while no package is mounted; `SetLooseFiles(LooseFiles::Always)` or `Never`
 then `Content().Load<Level>("levels/one")`; it works packed and loose. (`RegisterLoader`,
 which takes a file path, works for loose files only.)
 
-**Texture2D.** `Texture2D::FromFile(Graphics(), "content/x.png")`,
+**Texture2D.** PNGs are premultiplied as they load, so ordinary PNG art with transparency
+draws correctly with the default `BlendState::AlphaBlend`.
+`Texture2D::FromFile(Graphics(), "content/x.png")`,
 `Texture2D::FromPixels(Graphics(), w, h, const Color*)`, `SetData(const Color*)`,
 `GetData(Color*)`, `GetData(Rectangle, Color*)`, `SaveAsPng(path)`, `Width()`, `Height()`,
 `IsEmpty()`. A handle: copies share one texture. Create in `LoadContent` or later.
@@ -230,7 +244,9 @@ from `Keyboard`. With an IME: `Composition()`, `CompositionCursor()`, and
 at a time; during a crossfade the old one fades out under it.
 
 **Storage.** `Storage::WriteFile("name.txt", contents)`, `ReadFile("name.txt")` returns
-`std::optional<std::string>`, `Exists`, `Remove`, `Folder()`. Plain file names only.
+`std::optional<std::string>`, `Exists`, `Remove`, `Folder()`. Plain file names only. The
+folder is the per-user one named by `Settings().company` and `Settings().name` (the title
+if unset): `%APPDATA%\company\name\` on Windows, `~/.local/share/...` on Linux.
 
 **Math.** `Vector2` (`x`, `y`, arithmetic, `Zero()`, `One()`), `Point`, `Rectangle`
 (`x`, `y`, `width`, `height`, `Contains`, `Intersects`, `Left/Right/Top/Bottom`),
@@ -242,13 +258,17 @@ at a time; during a crossfade the old one fades out under it.
 
 **Log.** `Log("score %d", score);` printf-style, to the console and the log file.
 
+**Not in coldx.** Random numbers (use `<random>`), physics, networking, and custom
+shaders while drawing (not yet). These are the game's own, or come from libraries.
+
 ## Different from XNA
 
 - C++: value types are structs with lowercase fields (`v.x`, `rect.width`, `color.a`);
   static members are functions (`Vector2::Zero()`, `Matrix::Identity()`); `Color::White`
   is a constant.
 - Colors are premultiplied everywhere. Half-transparent white is `Color::White * 0.5f`,
-  not `Color(255, 255, 255, 128)`. Use `BlendState::NonPremultiplied` for straight-alpha art.
+  not `Color(255, 255, 255, 128)`. PNGs are premultiplied on load; use
+  `BlendState::NonPremultiplied` only for pixels you made straight-alpha yourself.
 - `SpriteBatch::Begin` takes sort, blend, sampler, then the transform. There is no
   `Effect` parameter yet, and no depth-stencil or rasterizer state.
 - A `SpriteFont` is a TTF baked at one pixel size, loaded at runtime. For another size,
@@ -321,10 +341,21 @@ All optional; each is one line.
 ## Running without a screen
 
     COLDX_HEADLESS=1 COLDX_FRAMES=60 COLDX_LOG=run.log COLDX_CAPTURE=frame.png ./my_game
-    COLDX_HEADLESS=1 COLDX_INPUT=script.txt COLDX_CAPTURE=frame.png ./my_game
+    COLDX_HEADLESS=1 COLDX_INPUT=script.txt COLDX_LOG=run.log COLDX_CAPTURE=frame.png ./my_game
 
-The first runs 60 frames with no window and saves the log and the last frame. The second
-plays a script of input (`10 key down Left`, `30 mouse move 100 200`, `31 mouse down left`,
-`40 text hello`, `60 exit`). `SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU
-backend. Read the log and look at the captured PNG to check a change. The README has the
-full list, and how to write shaders.
+The first runs 60 frames with no window and saves the log (also printed to stdout) and the
+last frame, at the back buffer's size (the virtual resolution, if set). The second plays
+a script of input, one command a line, each applied just before the numbered Update (1 is
+the first):
+
+    10 key down Left       # held until a key up; SDL key names: Left, Space, Escape, A...
+    40 key up Left
+    50 mouse move 100 200  # back buffer pixels
+    51 mouse down left
+    52 mouse up left
+    60 text hello          # typed text, if the game has TextInput on
+    90 exit                # stops before Update 90 runs
+
+`SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU backend. Headless audio is silent,
+so check sounds through the game's own log lines. Read the log and look at the captured PNG
+to check a change. The README has the full list, and how to write shaders.
