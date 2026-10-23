@@ -1,0 +1,64 @@
+# A run through every screen of the demo, for the samples.demo test (COLDX_INPUT).
+# Numbers are updates, 60 a second. The test's own profile (DEMO_PROFILE=test) keeps its
+# scores apart from a player's.
+
+# Title -> High scores: clear the table, so this run always makes it, then back.
+30 key down Down
+31 key up Down
+40 key down Return
+41 key up Return
+60 key down Delete
+61 key up Delete
+80 key down Escape
+81 key up Escape
+
+# Title -> Credits (the menu is still on High scores) and back.
+90 key down Down
+91 key up Down
+100 key down Return
+101 key up Return
+130 key down Escape
+131 key up Escape
+
+# Title -> Play (up twice to the top).
+140 key down Up
+141 key up Up
+142 key down Up
+143 key up Up
+150 key down Return
+151 key up Return
+
+# Sweep the ship side to side for ten seconds, catching what falls.
+160 key down Left
+280 key up Left
+281 key down Right
+520 key up Right
+521 key down Left
+760 key up Left
+
+# Pause, a screenshot, the wheel for volume, the debug overlay, resume.
+770 key down P
+771 key up P
+780 key down F12
+781 key up F12
+785 wheel -2
+790 key down F3
+791 key up F3
+800 key down P
+801 key up P
+802 key down F3
+803 key up F3
+
+# End the run (or it already ended): name entry, typed, saved.
+830 key down F9
+831 key up F9
+860 text Tester
+870 key down Return
+871 key up Return
+
+# High scores -> Title, then Escape quits.
+900 key down Return
+901 key up Return
+930 key down Escape
+931 key up Escape
+1000 exit

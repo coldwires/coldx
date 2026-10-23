@@ -1,0 +1,6 @@
+Made with coldx (MIT)
+Sprites and sounds: made for coldx
+Music: the hello_audio sample's loop
+Font: Silkscreen, under the SIL Open Font License
+
+Esc or Enter to go back

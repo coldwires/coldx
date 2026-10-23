@@ -119,8 +119,10 @@ def check_boundaries(modules):
         deps = {owner, *modules.get(owner, {}).get("deps", [])}
         check_includes(umbrella, deps, [], None, f"umbrella '{umbrella.name}'")
     every_module = set(modules)
+    # A sample is a game: its own folder, coldx's public headers, and the example effects
+    # coldx ships for games (shaders/examples).
     for path in source_files(ROOT / "samples"):
-        check_includes(path, every_module, [], [path.parent], "its sample")
+        check_includes(path, every_module, [], [path.parent, ROOT / "shaders" / "examples"], "its sample")
 
 
 def check_files():
