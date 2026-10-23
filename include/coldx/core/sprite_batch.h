@@ -55,8 +55,10 @@ public:
     SpriteBatch(const SpriteBatch&) = delete;
     SpriteBatch& operator=(const SpriteBatch&) = delete;
 
+    // SamplerState::Default is PointClamp in a pixel-art game (GameSettings::pixelArt),
+    // LinearClamp otherwise.
     void Begin(SpriteSortMode sortMode = SpriteSortMode::Deferred, BlendState blend = BlendState::AlphaBlend,
-               SamplerState sampler = SamplerState::LinearClamp, const Matrix& transform = Matrix::Identity());
+               SamplerState sampler = SamplerState::Default, const Matrix& transform = Matrix::Identity());
     void End();
 
     // Pixel art: with snapping on, every unrotated sprite and every glyph is moved to the
@@ -64,7 +66,7 @@ public:
     // cleanly instead of shimmering, and its texels map 1:1 (or 2:1, 3:1) onto pixels.
     // Positions are snapped in sprite coordinates, before the Begin transform: keep a camera
     // transform on whole pixels too. Rotated sprites are left alone. Off by default, as in
-    // XNA; it lasts across Begin and End until changed.
+    // XNA, on in a pixel-art game (GameSettings::pixelArt); once set it lasts until changed.
     void SetPixelSnap(bool snap);
     bool PixelSnap() const;
 

@@ -13,6 +13,7 @@ update its row here in the same commit.
 | dr_wav | 0.14.6 | `dr_libs/dr_libs/` | `dr_wav.h` from mackron/dr_libs at commit `dfe8377631000664666519fdb83da193fd8037f4` | MIT-0 or public domain (`dr_libs/LICENSE`) |
 | stb_vorbis | 1.22 | `stb/stb/` | `stb_vorbis.c` from nothings/stb at commit `a7d4c2175630e1ea5b6f8dd00ab96fed0b97b96d` | MIT or public domain (`stb/LICENSE`) |
 | LZ4 | 1.10.0 | `lz4/lz4/` | `lz4.c`, `lz4.h`, `lz4hc.c`, `lz4hc.h` from `lib/` of `v1.10.0.tar.gz`, the lz4/lz4 GitHub tag `v1.10.0` | BSD 2-Clause (`lz4/LICENSE`) |
+| Silkscreen Regular | from google/fonts | `fonts/silkscreen/` | `ofl/silkscreen/Silkscreen-Regular.ttf` and `OFL.txt` (as `LICENSE`) from google/fonts at commit `e7db6ca603fd4862010383ff17ffd6cc4ffac1c0` | SIL OFL 1.1 (`fonts/silkscreen/LICENSE`) |
 | Liberation Sans Regular | 2.1.5 | `fonts/liberation/` | `liberation-fonts-ttf-2.1.5.tar.gz` from the liberationfonts/liberation-fonts GitHub release `2.1.5` | SIL OFL 1.1 (`fonts/liberation/LICENSE`) |
 
 SDL tarball SHA-256: `9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3`
@@ -24,9 +25,11 @@ SDL tarball SHA-256: `9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f
 LZ4 tarball SHA-256: `537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b`
 `lz4.c` SHA-256: `9396f7de527bc8435de9c7569fb7998e56545a84b4f3c2d808c0235c01774539`
 `lz4hc.c` SHA-256: `126cafafdb91767e6e55238298a910903851b35b2cee27ce80ae2280469ee232`
+`Silkscreen-Regular.ttf` SHA-256: `c845473330b94c2079ce9af01c51ac8ba2d99c24f4d14c039843bbb8e642ebd8`
 `LiberationSans-Regular.ttf` SHA-256: `76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8`
 
-Liberation Sans is used by the samples and tests only; coldx itself ships no font. A game
+Liberation Sans and Silkscreen are used by the samples and tests only; coldx itself ships
+no font. The `demo` packs Silkscreen with its license. A game
 that ships it must ship `LICENSE` beside it, as `samples/hello_text` does.
 
 ## Generated audio

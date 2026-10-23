@@ -40,6 +40,9 @@ public:
     int BackBufferWidth() const;
     int BackBufferHeight() const;
 
+    // Whether the game set GameSettings::pixelArt: SpriteBatch's defaults follow it.
+    bool PixelArt() const;
+
     // Where the back buffer was shown in the window last frame, in window pixels. The whole
     // window unless a virtual resolution is set; empty headless.
     Rectangle PresentedArea() const;

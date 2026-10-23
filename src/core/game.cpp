@@ -71,8 +71,9 @@ void Game::Impl::ApplyPresentation() {
         p.width = settings.virtualWidth;
         p.height = settings.virtualHeight;
     }
-    p.mode = settings.scaleMode;
-    p.smooth = settings.smoothScaling;
+    p.mode = settings.pixelArt ? ScaleMode::Integer : settings.scaleMode;
+    p.smooth = settings.pixelArt ? false : settings.smoothScaling;
+    detail::GraphicsAccess::SetPixelArt(*graphics, settings.pixelArt);
     p.letterbox = settings.letterboxColor;
     detail::GraphicsAccess::SetPresentation(*graphics, p);
     detail::Input::Get().presentation = p;

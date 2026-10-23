@@ -38,6 +38,7 @@ struct GraphicsAccess {
     // A fixed back buffer size scaled into the window, or inactive for one that follows the
     // window. Takes effect at the next frame; headless, at once.
     static void SetPresentation(GraphicsDevice& graphics, const Presentation& presentation);
+    static void SetPixelArt(GraphicsDevice& graphics, bool pixelArt);
     static void Close(GraphicsDevice& graphics);
 
     // False when there is nothing to draw into this frame, e.g. the window is minimized.

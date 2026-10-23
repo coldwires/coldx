@@ -103,28 +103,32 @@ beside the executable on every build ("Packing content"). A game can also just c
 ## Pixel-perfect 2D
 
 coldx games are expected to be pixel-perfect: every texel of the art lands on whole
-screen pixels, the same size everywhere, and nothing blurs or shimmers. The recipe, all
-of which `samples/demo` uses:
+screen pixels, the same size everywhere, and nothing blurs or shimmers. In the game's
+constructor:
 
 ```cpp
-Settings().virtualWidth = 640;                 // draw at a fixed size...
+Settings().pixelArt = true;          // integer scaling; every SpriteBatch: PointClamp, pixel snapping
+Settings().virtualWidth = 640;       // the game's own resolution, scaled 2x, 3x, 4x into the window
 Settings().virtualHeight = 360;
-Settings().scaleMode = ScaleMode::Integer;     // ...scaled by whole numbers into the window
-batch.SetPixelSnap(true);                      // sprites and text on whole pixels
-batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
-batch.Draw(sheet, position, tile, Color::White, 0.0f, Vector2(16, 16), 1.0f,   // scale 1, 2, 3...
-           SpriteEffects::None, 0.0f);
-font = Content().LoadFont("myfont", 12, FontSmoothing::Sharp);   // no grey edges
 ```
 
+That is the whole setup: every `batch.Begin()` is then point-sampled and snapped, unless a
+batch asks otherwise. Then draw well:
+
 - Draw at whole scales (1, 2, 3); 1.5x makes some texels one pixel wide and others two.
-- `SamplerState::PointClamp` everywhere; the default `LinearClamp` blurs.
 - Rotation other than by flips makes pixel art jagged; draw rotated frames instead.
 - Keep a camera or shake transform on whole pixels: `Matrix::CreateTranslation(std::round(x),
   std::round(y))`. Snapping happens before the transform.
 - Atlases need no padding: a sprite never samples outside its source rectangle.
-- A pixel font (designed on a pixel grid) at its design size, or a multiple, looks best
-  with `FontSmoothing::Sharp`; an ordinary font made sharp is legible but rough.
+- Text: use a pixel font, loaded with `FontSmoothing::Sharp`, at the size where one of
+  its design pixels is one screen pixel. A font's size here runs from ascender to
+  descender, so for a pixel font that is (ascender - descender) / (units per design
+  pixel): for Silkscreen, which the demo uses, 10.24 for 1x and 20.48 for 2x
+  (`LoadFont("silkscreen/Silkscreen-Regular", 10.24f, FontSmoothing::Sharp)`). An ordinary
+  font at small sizes comes out mangled when sharp: it needs hinting coldx does not do.
+  Keep ordinary fonts `Smooth`, at larger sizes.
+- Without `pixelArt`, the same result comes from `SamplerState::PointClamp` in every
+  `Begin`, `batch.SetPixelSnap(true)` and `Settings().scaleMode = ScaleMode::Integer`.
 
 ## The API
 
@@ -134,7 +138,8 @@ All in namespace `coldx`, all from `#include <coldx/coldx.h>`.
 `UnloadContent()`, `Update(const GameTime&)`, `Draw(const GameTime&)`,
 `OnResize(int w, int h)`, `OnFocusChanged(bool)`, `OnExiting()`. Call `Run()` from `main`,
 `Exit()` to quit. `Graphics()` is the `GraphicsDevice`. `Settings()` is read when `Run`
-starts: `title`, `width` and `height` (1280x720), `resizable`, `fullscreen`, `vsync`,
+starts: `title`, `width` and `height` (1280x720), `pixelArt` (see "Pixel-perfect 2D"),
+`resizable`, `fullscreen`, `vsync`,
 `fixedTimeStep` (default true), `targetElapsedSeconds` (1/60), `maxUpdatesPerFrame` (5),
 `console` (`ConsoleMode::DebugBuilds`/`Always`/`Never`), `company`, `name` (see Storage).
 While running:
@@ -203,7 +208,8 @@ inside `Draw` it does not see that frame's drawing yet. A screenshot: draw into 
 **SpriteBatch.** `SpriteBatch batch{Graphics()};` as a member.
 `Begin(SpriteSortMode, BlendState, SamplerState, Matrix transform)`, all defaulted;
 `End()`. `SetPixelSnap(true)` puts unrotated sprites and text on whole pixels (lasts
-until changed).
+until changed; on by default with `Settings().pixelArt`). The default sampler,
+`SamplerState::Default`, is `PointClamp` with `pixelArt` and `LinearClamp` otherwise.
 `Draw(texture, Vector2 position, Color)`;
 `Draw(texture, Vector2 position, std::optional<Rectangle> source, Color)`;
 `Draw(texture, Vector2 position, source, Color, float rotation, Vector2 origin, float or Vector2 scale, SpriteEffects, float layerDepth)`;
@@ -214,7 +220,7 @@ until changed).
 `DrawString(font, text, position, Color, rotation, origin, float or Vector2 scale, SpriteEffects, layerDepth)`.
 - `SpriteSortMode`: `Deferred` (default), `Immediate`, `Texture`, `BackToFront`, `FrontToBack`.
 - `BlendState`: `AlphaBlend` (default), `Additive`, `NonPremultiplied`, `Opaque`.
-- `SamplerState`: `PointClamp`, `LinearClamp` (default), `PointWrap`, `LinearWrap`.
+- `SamplerState`: `Default`, `PointClamp`, `LinearClamp`, `PointWrap`, `LinearWrap`.
 - `SpriteEffects`: `None`, `FlipHorizontally`, `FlipVertically`, combine with `|`.
 
 **SpriteFont.** `SpriteFont::FromFile(Graphics(), "content/font.ttf", pixelHeight)`,

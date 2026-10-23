@@ -55,8 +55,10 @@
   textures, sounds and music.
 - The `content` module and `coldxc`: content projects, processors (built-in and a game's
   own), a build cache, `coldx_add_content`. The `demo` sample loads from a package.
-- `SpriteBatch::SetPixelSnap` and `FontSmoothing::Sharp` for pixel-perfect games; the
-  `demo` sample is pixel-perfect (640x360, integer scaling).
+- `SpriteBatch::SetPixelSnap` and `FontSmoothing::Sharp` for pixel-perfect games, and
+  `GameSettings::pixelArt` to turn on the whole recipe at once (`SamplerState::Default`);
+  the `demo` sample is pixel-perfect (640x360, integer scaling) with the Silkscreen pixel
+  font.
 - Sprites sample only their own source rectangle (with the clamp samplers), so atlas
   neighbours never bleed in, through filtering or rounding on shrunk sprites.
 - LZ4 compression of package entries where it helps; `[texture] format = raw`.

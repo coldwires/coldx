@@ -21,6 +21,7 @@ struct GraphicsDevice::Impl {
     Uint32 width = 0;
     Uint32 height = 0;
     detail::Presentation presentation;
+    bool pixelArt = false;
     Rectangle presented;  // where the back buffer went in the swapchain, last frame
     bool inFrame = false;
     SDL_GPUTexture* target = nullptr;
@@ -75,6 +76,10 @@ int GraphicsDevice::BackBufferWidth() const {
 
 int GraphicsDevice::BackBufferHeight() const {
     return static_cast<int>(impl_->height);
+}
+
+bool GraphicsDevice::PixelArt() const {
+    return impl_->pixelArt;
 }
 
 Rectangle GraphicsDevice::PresentedArea() const {
@@ -193,6 +198,10 @@ void GraphicsAccess::ResizeHeadless(GraphicsDevice& graphics, int width, int hei
     GraphicsDevice::Impl& g = *graphics.impl_;
     if (g.device && !g.window && width > 0 && height > 0 && !g.presentation.Active())
         ResizeBackBuffer(graphics, static_cast<unsigned>(width), static_cast<unsigned>(height));
+}
+
+void GraphicsAccess::SetPixelArt(GraphicsDevice& graphics, bool pixelArt) {
+    graphics.impl_->pixelArt = pixelArt;
 }
 
 void GraphicsAccess::SetPresentation(GraphicsDevice& graphics, const Presentation& presentation) {

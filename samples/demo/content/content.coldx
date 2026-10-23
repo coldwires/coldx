@@ -7,8 +7,8 @@ seed = coldx demo
 [music] loop.ogg
 from = ../../hello_audio/content
 
-# The font travels with its license (SIL Open Font License).
-[font] LiberationSans-Regular.ttf
-from = ../../../third_party/fonts/liberation
-[data] LICENSE
-from = ../../../third_party/fonts/liberation
+# Silkscreen, a pixel font, travels with its license (SIL Open Font License).
+[font] silkscreen/Silkscreen-Regular.ttf
+from = ../../../third_party/fonts
+[data] silkscreen/LICENSE
+from = ../../../third_party/fonts
