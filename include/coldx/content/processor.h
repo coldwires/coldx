@@ -15,9 +15,9 @@ struct Source {
     std::string name;  // relative to the project file, forward slashes: "sprites/player.png"
     std::string path;  // where it is on disk
     std::vector<std::uint8_t> bytes;
-    // This build's fingerprint (BuildOptions::buildId), for processors that watermark what
-    // they output, and the secret that places the marks. No fingerprint: nothing to mark.
-    bool hasFingerprint = false;
+    // What a processor that watermarks its output writes: this build's fingerprint
+    // (BuildOptions::buildId), or without one the project's own mark; and the secret that
+    // places the marks.
     std::uint64_t fingerprint = 0;
     std::uint64_t watermarkSecret = 0;
 };
@@ -60,7 +60,8 @@ public:
 // checks its sources and stores them as they are, compressed when that helps; see
 // docs/DECISIONS/0012. texture takes "format = raw" to store decoded pixels instead, which
 // load without a PNG decode. texture takes "watermark = rgb" or "alpha", and sound
-// "watermark = on" (WAV), to mark each file with the build's fingerprint.
+// "watermark = on" (WAV), to mark each file with the project's mark or the build's
+// fingerprint.
 std::vector<std::unique_ptr<Processor>> BuiltInProcessors();
 
 } // namespace coldx::content

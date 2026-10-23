@@ -7,7 +7,7 @@ game's own), the processed-source cache, and the `coldxc` command line.
 **Third-party:** SDL3, stb
 **Public headers:** `include/coldx/content/`
 **Library target:** `coldx::content`
-**Size:** ~2.1k lines
+**Size:** ~2.8k lines
 
 The format and reading packages are core's (`coldx/core/rime.h`, `ContentManager::Mount`),
 so a game that only loads packages does not link this module. Tools link it.

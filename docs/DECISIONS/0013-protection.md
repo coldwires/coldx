@@ -23,14 +23,21 @@ game executable, string hiding touches game code.
   the generated source behind a marker derived from the package seed, so there is no byte
   pattern common to all coldx games to search for. `coldxc --identify` reads either.
 - Watermarks (added the same day): `[texture] watermark = rgb | alpha` and
-  `[sound] watermark = on` write the build's fingerprint into each file, in layers that
+  `[sound] watermark = on` write a 40-bit mark into each file: the project's own mark, or
+  the build's fingerprint when there is a build id. The layers
   each read back from the suspect file alone with the project's secret (the seed, and the
   key if there is one). PNG: a private chunk, the filter chosen for each row, the colour of
   fully transparent pixels, and the lowest bit of a channel (or alpha 254/255 on opaque
-  pixels, which keeps a pixel-art palette exact) at 80 places in every 32x32 tile,
-  shuffled by the secret. WAV: a private chunk and the lowest bit of non-silent samples at
-  80 places in every 2048. Each layer repeats an 80-bit payload (fingerprint and a 16-bit
-  check) and decides by majority. Tiling makes crops and trimmed clips readable: the
+  pixels, which keeps a pixel-art palette exact) at 80 places (rgb) or 240 (alpha) in
+  every 37x37 tile, shuffled by the secret; the tile is prime so sprite grids never line up
+  with it and each sprite brings new places. WAV: a private chunk and the lowest bit of
+  non-silent samples at 80 places in every 2048. Each layer repeats an 80-bit payload
+  (the 40-bit mark and a 40-bit check) and decides by majority. Checking for a known mark
+  (`coldxc --identify` always tries the project's) counts agreeing places and states the
+  odds of chance; a 24x24 sprite cut from an alpha-marked sheet, its transparent colour
+  wiped, matches at about 1 in 5x10^10 (all 47 of its marked places agree). The check was 16 bits at first: flat colours read
+  alike in every tile, so copies agreeing proved nothing, and a wrong secret on a flat
+  image passed it in the tests; 40 bits fixed that. Tiling makes crops and trimmed clips readable: the
   reader tries every alignment, and to keep false accusations out accepts one only with
   two copies of every bit, 90% agreement and the check (40 random images and 20 wrong
   secrets in the tests: no claims). The first version spread marks over the whole file

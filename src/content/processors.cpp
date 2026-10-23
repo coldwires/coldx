@@ -39,7 +39,8 @@ public:
 
     // format = png (the default) stores the PNG; format = raw stores the decoded,
     // premultiplied pixels, compressed: larger, but no PNG decode when it loads.
-    // watermark = rgb or alpha marks the PNG with the build's fingerprint (watermark.h).
+    // watermark = rgb or alpha marks the PNG with the project's mark or the build's
+    // fingerprint (watermark.h).
     bool Process(const Source& source, const Settings& settings, std::vector<Output>& outputs, std::string& error) const override {
         const auto format = settings.find("format");
         const std::string kind = format == settings.end() ? "png" : format->second;
@@ -53,7 +54,7 @@ public:
             error = "watermarks need format = png";
             return false;
         }
-        if (kind == "png" && mark != "off" && source.hasFingerprint) {
+        if (kind == "png" && mark != "off") {
             if (!Check(source.bytes, error)) return false;
             Output out{source.name, rime::AssetType::Texture, {}, false};
             const detail::PixelMark mode = mark == "alpha" ? detail::PixelMark::Alpha : detail::PixelMark::Rgb;
@@ -116,7 +117,7 @@ public:
     std::string Name() const override { return "sound"; }
     std::vector<std::string> SettingKeys() const override { return {"watermark"}; }
 
-    // watermark = on marks WAV files with the build's fingerprint. OGG cannot be marked
+    // watermark = on marks WAV files with the project's mark or the build's fingerprint. OGG cannot be marked
     // without re-encoding it, so it is an error rather than a silent skip.
     bool Process(const Source& source, const Settings& settings, std::vector<Output>& outputs, std::string& error) const override {
         const auto watermark = settings.find("watermark");
@@ -131,7 +132,6 @@ public:
             error = "watermark = on needs WAV; put OGG sounds in a section without it";
             return false;
         }
-        if (!source.hasFingerprint) return Stored::Process(source, settings, outputs, error);
         Output out{source.name, rime::AssetType::Sound, {}, true};
         if (!detail::MarkWav(source.bytes, source.watermarkSecret, source.fingerprint, out.bytes, error)) return false;
         outputs.push_back(std::move(out));

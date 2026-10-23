@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <numeric>
 
@@ -13,8 +14,17 @@ namespace coldx::content::detail {
 
 namespace {
 
-constexpr std::size_t PayloadSize = 80;  // bits: the fingerprint, then a 16-bit check
-constexpr std::size_t Tile = 32;         // pixels: every Tile x Tile window holds the payload
+// Bits: a 40-bit fingerprint, then a 40-bit check. The check is long because the reader
+// tries thousands of alignments, and flat colours read the same at every copy, so the
+// check is the only thing between a chance reading and a false claim.
+constexpr std::size_t PayloadSize = 80;
+constexpr std::size_t FingerprintBits = 40;
+constexpr std::size_t CheckBits = PayloadSize - FingerprintBits;
+constexpr std::uint64_t FingerprintMask = (std::uint64_t{1} << FingerprintBits) - 1;
+// Pixels: every Tile x Tile window holds the payload. A prime, so sprite sheets on 8, 16, 32
+// or 64 pixel grids never line up with it: each sprite lands on different places, and more
+// sprites bring more evidence rather than the same places again.
+constexpr std::size_t Tile = 37;
 constexpr std::size_t Block = 2048;      // samples: every Block samples hold the payload
 
 // Pseudo-random bits from the secret, the same every time, one stream per purpose, so the
@@ -48,10 +58,10 @@ std::uint64_t Mix(std::uint64_t h) {
     return h;
 }
 
-std::uint16_t Check(std::uint64_t secret, std::uint64_t fingerprint) {
+std::uint64_t Check(std::uint64_t secret, std::uint64_t fingerprint) {
     std::string bytes(8, '\0');
     for (int i = 0; i < 8; ++i) bytes[static_cast<size_t>(i)] = static_cast<char>(fingerprint >> (8 * i));
-    return static_cast<std::uint16_t>(rime::HashName(secret, "check" + bytes));
+    return rime::HashName(secret, "check" + bytes) & ((std::uint64_t{1} << CheckBits) - 1);
 }
 
 using Payload = std::array<std::uint8_t, PayloadSize>;
@@ -59,10 +69,12 @@ using Payload = std::array<std::uint8_t, PayloadSize>;
 // Each layer carries these bits, whitened so they look random.
 Payload PayloadOf(std::uint64_t secret, std::uint64_t fingerprint) {
     Stream white(secret, "payload");
-    const std::uint16_t check = Check(secret, fingerprint);
+    fingerprint &= FingerprintMask;
+    const std::uint64_t check = Check(secret, fingerprint);
     Payload bits{};
-    for (std::size_t i = 0; i < 64; ++i) bits[i] = static_cast<std::uint8_t>(((fingerprint >> i) & 1) ^ white.Bit(i));
-    for (std::size_t i = 0; i < 16; ++i) bits[64 + i] = static_cast<std::uint8_t>(((check >> i) & 1) ^ white.Bit(64 + i));
+    for (std::size_t i = 0; i < FingerprintBits; ++i) bits[i] = static_cast<std::uint8_t>(((fingerprint >> i) & 1) ^ white.Bit(i));
+    for (std::size_t i = 0; i < CheckBits; ++i)
+        bits[FingerprintBits + i] = static_cast<std::uint8_t>(((check >> i) & 1) ^ white.Bit(FingerprintBits + i));
     return bits;
 }
 
@@ -81,8 +93,7 @@ public:
     }
 
     // A layer whose alignment was searched for asks for several copies of every bit and
-    // near-total agreement, so a chance alignment can never pass; the 16-bit check comes on
-    // top.
+    // near-total agreement; the 40-bit check is what makes a chance pass negligible.
     Finding Decide(const char* layer, std::uint64_t secret, std::size_t minCopies = 1, double minAgreement = 0.0) const {
         Finding f;
         f.layer = layer;
@@ -94,10 +105,9 @@ public:
             f.agree += bits[i] ? ones_[i] : seen_[i] - ones_[i];
         }
         Stream white(secret, "payload");
-        std::uint64_t fingerprint = 0;
-        std::uint16_t check = 0;
-        for (std::size_t i = 0; i < 64; ++i) fingerprint |= std::uint64_t(bits[i] ^ white.Bit(i)) << i;
-        for (std::size_t i = 0; i < 16; ++i) check = static_cast<std::uint16_t>(check | ((bits[64 + i] ^ white.Bit(64 + i)) << i));
+        std::uint64_t fingerprint = 0, check = 0;
+        for (std::size_t i = 0; i < FingerprintBits; ++i) fingerprint |= std::uint64_t(bits[i] ^ white.Bit(i)) << i;
+        for (std::size_t i = 0; i < CheckBits; ++i) check |= std::uint64_t(bits[FingerprintBits + i] ^ white.Bit(FingerprintBits + i)) << i;
         f.fingerprint = fingerprint;
         f.found = Check(secret, fingerprint) == check && static_cast<double>(f.agree) >= minAgreement * static_cast<double>(f.total);
         return f;
@@ -107,41 +117,65 @@ private:
     std::array<std::size_t, PayloadSize> ones_{}, seen_{};
 };
 
-// The 80 places one period (a tile of pixels, a block of samples) marks, chosen by a
-// shuffle keyed with the secret: place i carries payload bit i. Every period uses the same
-// places, which is what lets a crop or a trimmed clip be read: any window one period long
-// holds each place exactly once, wherever it starts.
+// The places one period (a tile of pixels, a block of samples) marks, chosen by a shuffle
+// keyed with the secret: place i carries payload bit i % 80, so 240 places hold three copies.
+// Every period uses the same places, which is what lets a crop or a trimmed clip be read:
+// any window one period long holds each place exactly once, wherever it starts. Each place
+// also has its own whitening bit and (pixels) channel.
 class Layout {
 public:
-    Layout(std::size_t period, std::uint64_t secret, const char* purpose) : slot_(period, -1) {
+    Layout(std::size_t period, std::size_t count, std::uint64_t secret, const char* purpose)
+        : slot_(period, -1), place_(count), noise_(count), channel_(count) {
         std::vector<std::size_t> order(period);
         std::iota(order.begin(), order.end(), std::size_t{0});
         Stream s(secret, purpose);
-        for (std::size_t i = 0; i < PayloadSize; ++i) {  // the first 80 steps of a Fisher-Yates shuffle
+        const std::string extra = std::string(purpose) + " whitening";
+        Stream n(secret, extra.c_str());
+        for (std::size_t i = 0; i < count; ++i) {  // the first steps of a Fisher-Yates shuffle
             std::swap(order[i], order[i + s.Word(i) % (period - i)]);
             place_[i] = order[i];
             slot_[order[i]] = static_cast<int>(i);
+            noise_[i] = static_cast<std::uint8_t>(n.Bit(i));
+            channel_[i] = static_cast<std::uint8_t>(n.Byte(1024 + i) % 3);
         }
     }
+    std::size_t Count() const { return place_.size(); }
     int Slot(std::size_t inPeriod) const { return slot_[inPeriod]; }
-    std::size_t Place(std::size_t bit) const { return place_[bit]; }
+    std::size_t Place(std::size_t i) const { return place_[i]; }
+    int Noise(std::size_t i) const { return noise_[i]; }
+    std::size_t Channel(std::size_t i) const { return channel_[i]; }
 
 private:
     std::vector<int> slot_;
-    std::array<std::size_t, PayloadSize> place_{};
+    std::vector<std::size_t> place_;
+    std::vector<std::uint8_t> noise_, channel_;
 };
 
-// Per payload bit, the noise that whitens it and (pixels) the channel it lives in.
-struct Whitening {
-    std::array<std::uint8_t, PayloadSize> noise{}, channel{};
-    Whitening(std::uint64_t secret, const char* noisePurpose, const char* channelPurpose) {
-        Stream n(secret, noisePurpose), c(secret, channelPurpose);
-        for (std::size_t i = 0; i < PayloadSize; ++i) {
-            noise[i] = static_cast<std::uint8_t>(n.Bit(i));
-            channel[i] = static_cast<std::uint8_t>(c.Byte(i) % 3);
-        }
+// One pixel layout per mode: alpha marks three times as many places (240 of a tile's 1369),
+// as alpha 254 is invisible to eyes and to colour tools alike, and pixel art has few opaque
+// pixels to spare: every place is evidence a single sprite needs.
+Layout PixelLayout(PixelMark mode, std::uint64_t secret) {
+    return mode == PixelMark::Rgb ? Layout(Tile * Tile, PayloadSize, secret, "rgb places")
+                                  : Layout(Tile * Tile, 3 * PayloadSize, secret, "alpha places");
+}
+Layout SampleLayout(std::uint64_t secret) {
+    return Layout(Block, PayloadSize, secret, "sample places");
+}
+
+// log10 of P(X >= k) for X ~ Binomial(n, 1/2): how likely agreeing this well is by chance.
+double ChanceLog10(std::size_t k, std::size_t n) {
+    if (k == 0) return 0.0;
+    const double ln2 = std::log(2.0);
+    double sum = 0.0, top = -INFINITY;
+    std::vector<double> terms;
+    for (std::size_t j = k; j <= n; ++j) {
+        const double t = std::lgamma(n + 1.0) - std::lgamma(j + 1.0) - std::lgamma(n - j + 1.0) - n * ln2;
+        terms.push_back(t);
+        top = std::max(top, t);
     }
-};
+    for (double t : terms) sum += std::exp(t - top);
+    return (top + std::log(sum)) / std::log(10.0);
+}
 
 std::uint32_t Get32BE(const std::uint8_t* p) {
     return (std::uint32_t{p[0]} << 24) | (std::uint32_t{p[1]} << 16) | (std::uint32_t{p[2]} << 8) | p[3];
@@ -253,6 +287,89 @@ struct ClearCode {
 
 } // namespace
 
+namespace {
+
+bool Loud(const std::vector<std::uint8_t>& b, std::size_t at);
+
+// Calls f(place, bit) for every marked place in the image, with the tiles aligned at
+// (ox, oy): the bit read, unwhitened, carrying payload bit place % 80.
+template <class F>
+void VisitPixels(const std::vector<std::uint8_t>& rgba, int w, int h, PixelMark mode, const Layout& layout, std::size_t ox,
+                 std::size_t oy, F&& f) {
+    for (std::size_t i = 0; i < layout.Count(); ++i) {
+        const std::size_t place = layout.Place(i);
+        const std::size_t sx = (place % Tile + Tile - ox) % Tile, sy = (place / Tile + Tile - oy) % Tile;
+        for (std::size_t y = sy; y < static_cast<size_t>(h); y += Tile) {
+            for (std::size_t x = sx; x < static_cast<size_t>(w); x += Tile) {
+                const std::size_t p = y * static_cast<size_t>(w) + x;
+                if (!Candidate(rgba[p * 4 + 3], mode)) continue;
+                const std::uint8_t v = mode == PixelMark::Rgb ? rgba[p * 4 + layout.Channel(i)] : rgba[p * 4 + 3];
+                f(i, (v & 1) ^ layout.Noise(i));
+            }
+        }
+    }
+}
+
+template <class F>
+void VisitSamples(const std::vector<std::uint8_t>& wav, std::size_t data, std::size_t samples, const Layout& layout,
+                  std::size_t offset, F&& f) {
+    for (std::size_t i = 0; i < layout.Count(); ++i) {
+        for (std::size_t s = (layout.Place(i) + Block - offset) % Block; s < samples; s += Block) {
+            const std::size_t at = data + s * 2;
+            if (Loud(wav, at)) f(i, (wav[at] & 1) ^ layout.Noise(i));
+        }
+    }
+}
+
+// The best agreement with each fingerprint over every alignment, and its chance.
+template <class Visit>
+std::vector<Match> MatchAll(const char* layer, std::size_t alignments, std::size_t modes, std::uint64_t secret,
+                            const std::vector<std::uint64_t>& fingerprints, Visit&& visit) {
+    std::vector<Match> out;
+    const double tries = std::log10(static_cast<double>(alignments * modes * std::max<std::size_t>(fingerprints.size(), 1)));
+    for (std::uint64_t fp : fingerprints) {
+        const Payload expect = PayloadOf(secret, fp);
+        Match best;
+        best.layer = layer;
+        best.fingerprint = fp & FingerprintMask;
+        double bestLog = 0.0;
+        // Evidence is counted per distinct place, not per read: the copies of one place in
+        // different tiles of a flat colour read alike whatever is there, so they are one
+        // coin flip, not many.
+        std::vector<std::size_t> yes, seen;
+        for (std::size_t a = 0; a < alignments; ++a) {
+            yes.assign(512, 0);
+            seen.assign(512, 0);
+            visit(a, [&](std::size_t i, int bit) {
+                seen[i] += 1;
+                yes[i] += bit == expect[i % PayloadSize] ? 1 : 0;
+            });
+            std::size_t agree = 0, total = 0;
+            for (std::size_t i = 0; i < seen.size(); ++i) {
+                if (seen[i] == 0) continue;
+                ++total;
+                agree += yes[i] * 2 > seen[i] ? 1 : 0;
+            }
+            const double log = ChanceLog10(agree, total);
+            if (total > 0 && (best.total == 0 || log < bestLog)) {
+                bestLog = log;
+                best.agree = agree;
+                best.total = total;
+            }
+        }
+        best.chance = std::pow(10.0, std::min(0.0, bestLog + tries));
+        best.matched = best.total > 0 && bestLog + tries < -6.0 && best.agree * 10 >= best.total * 9;
+        out.push_back(best);
+    }
+    return out;
+}
+
+} // namespace
+
+std::uint64_t OwnerMark(std::uint64_t secret) {
+    return rime::HashName(secret, "owner mark") & FingerprintMask;
+}
+
 std::uint64_t WatermarkSecret(std::uint64_t seed, const rime::Key* key) {
     std::uint64_t secret = rime::HashName(seed, "watermark");
     if (key) secret = rime::HashName(secret, std::string(key->begin(), key->end()));
@@ -270,17 +387,16 @@ bool MarkPng(const std::vector<std::uint8_t>& png, std::uint64_t secret, std::ui
     const Payload bits = PayloadOf(secret, fingerprint);
     const auto bytes = BytesOf(bits);
 
-    // Pixels: in every tile, the lowest bit of a channel (or alpha 254/255) at the 80 places.
-    const Layout layout(Tile * Tile, secret, "pixel places");
-    const Whitening white(secret, "pixel bits", "pixel channels");
+    // Pixels: in every tile, the lowest bit of a channel (or alpha 254/255) at the places.
+    const Layout layout = PixelLayout(mode, secret);
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
             const int slot = layout.Slot(static_cast<size_t>(y) % Tile * Tile + static_cast<size_t>(x) % Tile);
             const std::size_t p = static_cast<size_t>(y) * w + static_cast<size_t>(x);
             if (slot < 0 || !Candidate(rgba[p * 4 + 3], mode)) continue;
             const auto i = static_cast<std::size_t>(slot);
-            std::uint8_t& v = mode == PixelMark::Rgb ? rgba[p * 4 + white.channel[i]] : rgba[p * 4 + 3];
-            v = static_cast<std::uint8_t>((v & 0xFE) | (bits[i] ^ white.noise[i]));
+            std::uint8_t& v = mode == PixelMark::Rgb ? rgba[p * 4 + layout.Channel(i)] : rgba[p * 4 + 3];
+            v = static_cast<std::uint8_t>((v & 0xFE) | (bits[i % PayloadSize] ^ layout.Noise(i)));
         }
     }
     // Fully transparent pixels: their colour, which nothing ever shows.
@@ -383,26 +499,14 @@ std::vector<Finding> ReadPng(const std::vector<std::uint8_t>& png, std::uint64_t
     }
     // Pixel bits: the image may be a crop, so every alignment of the tiles is tried; the
     // one that decodes with several copies and near-total agreement wins.
-    const Layout layout(Tile * Tile, secret, "pixel places");
-    const Whitening white(secret, "pixel bits", "pixel channels");
     for (PixelMark mode : {PixelMark::Rgb, PixelMark::Alpha}) {
+        const Layout layout = PixelLayout(mode, secret);
         Finding best;
         best.layer = mode == PixelMark::Rgb ? "pixel bits (rgb)" : "pixel bits (alpha)";
         for (std::size_t oy = 0; oy < Tile && !(best.found && best.agree == best.total); ++oy) {
             for (std::size_t ox = 0; ox < Tile; ++ox) {
                 Tally t;
-                for (std::size_t i = 0; i < PayloadSize; ++i) {
-                    const std::size_t place = layout.Place(i);
-                    const std::size_t sx = (place % Tile + Tile - ox) % Tile, sy = (place / Tile + Tile - oy) % Tile;
-                    for (std::size_t y = sy; y < static_cast<size_t>(h); y += Tile) {
-                        for (std::size_t x = sx; x < static_cast<size_t>(w); x += Tile) {
-                            const std::size_t p = y * static_cast<size_t>(w) + x;
-                            if (!Candidate(rgba[p * 4 + 3], mode)) continue;
-                            const std::uint8_t v = mode == PixelMark::Rgb ? rgba[p * 4 + white.channel[i]] : rgba[p * 4 + 3];
-                            t.Add(i, (v & 1) ^ white.noise[i]);
-                        }
-                    }
-                }
+                VisitPixels(rgba, w, h, mode, layout, ox, oy, [&](std::size_t i, int bit) { t.Add(i, bit); });
                 Finding f = t.Decide(best.layer.c_str(), secret, 2, 0.9);
                 const bool better = f.found && (!best.found || f.agree * best.total > best.agree * f.total);
                 if (better || (!best.found && f.total > best.total)) best = f;
@@ -469,14 +573,13 @@ bool MarkWav(const std::vector<std::uint8_t>& wav, std::uint64_t secret, std::ui
     out = wav;
     const Payload bits = PayloadOf(secret, fingerprint);
     if (file.pcm16) {
-        const Layout layout(Block, secret, "sample places");
-        const Whitening white(secret, "sample bits", "sample channels");
+        const Layout layout = SampleLayout(secret);
         for (std::size_t s = 0; s < file.size / 2; ++s) {
             const int slot = layout.Slot(s % Block);
             const std::size_t at = file.data + s * 2;
             if (slot < 0 || !Loud(out, at)) continue;
             const auto i = static_cast<std::size_t>(slot);
-            out[at] = static_cast<std::uint8_t>((out[at] & 0xFE) | (bits[i] ^ white.noise[i]));
+            out[at] = static_cast<std::uint8_t>((out[at] & 0xFE) | (bits[i % PayloadSize] ^ layout.Noise(i)));
         }
     }
     // The private chunk at the end, where players skip chunks they do not know.
@@ -512,19 +615,13 @@ std::vector<Finding> ReadWav(const std::vector<std::uint8_t>& wav, std::uint64_t
     if (file.pcm16) {
         // The clip may be trimmed: every alignment of the blocks is tried, over at most the
         // first million samples, which hold hundreds of copies.
-        const Layout layout(Block, secret, "sample places");
-        const Whitening white(secret, "sample bits", "sample channels");
+        const Layout layout = SampleLayout(secret);
         const std::size_t samples = std::min<std::size_t>(file.size / 2, std::size_t{1} << 20);
         Finding best;
         best.layer = "sample bits";
         for (std::size_t offset = 0; offset < Block; ++offset) {
             Tally t;
-            for (std::size_t i = 0; i < PayloadSize; ++i) {
-                for (std::size_t s = (layout.Place(i) + Block - offset) % Block; s < samples; s += Block) {
-                    const std::size_t at = file.data + s * 2;
-                    if (Loud(wav, at)) t.Add(i, (wav[at] & 1) ^ white.noise[i]);
-                }
-            }
+            VisitSamples(wav, file.data, samples, layout, offset, [&](std::size_t i, int bit) { t.Add(i, bit); });
             Finding f = t.Decide("sample bits", secret, 2, 0.9);
             const bool better = f.found && (!best.found || f.agree * best.total > best.agree * f.total);
             if (better || (!best.found && f.total > best.total)) best = f;
@@ -533,6 +630,29 @@ std::vector<Finding> ReadWav(const std::vector<std::uint8_t>& wav, std::uint64_t
         found.push_back(best);
     }
     return found;
+}
+
+std::vector<Match> MatchPng(const std::vector<std::uint8_t>& png, std::uint64_t secret, const std::vector<std::uint64_t>& fingerprints) {
+    std::vector<Match> out;
+    std::vector<std::uint8_t> rgba;
+    int w = 0, h = 0;
+    if (!DecodeRgba(png, rgba, w, h)) return out;
+    for (PixelMark mode : {PixelMark::Rgb, PixelMark::Alpha}) {
+        const Layout layout = PixelLayout(mode, secret);
+        auto found = MatchAll(mode == PixelMark::Rgb ? "pixel bits (rgb)" : "pixel bits (alpha)", Tile * Tile, 2, secret, fingerprints,
+                              [&](std::size_t a, auto&& f) { VisitPixels(rgba, w, h, mode, layout, a % Tile, a / Tile, f); });
+        out.insert(out.end(), found.begin(), found.end());
+    }
+    return out;
+}
+
+std::vector<Match> MatchWav(const std::vector<std::uint8_t>& wav, std::uint64_t secret, const std::vector<std::uint64_t>& fingerprints) {
+    WavFile file;
+    if (!ParseWav(wav, file) || !file.pcm16) return {};
+    const Layout layout = SampleLayout(secret);
+    const std::size_t samples = std::min<std::size_t>(file.size / 2, std::size_t{1} << 20);
+    return MatchAll("sample bits", Block, 1, secret, fingerprints,
+                    [&](std::size_t a, auto&& f) { VisitSamples(wav, file.data, samples, layout, a, f); });
 }
 
 } // namespace coldx::content::detail
