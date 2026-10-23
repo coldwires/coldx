@@ -360,6 +360,46 @@ void ShrunkSprites() {
     }
 }
 
+// SetPixelSnap: sprites at fractional positions draw exactly as at the rounded positions,
+// unrotated ones only; without it, a fractional position draws differently.
+void PixelSnap() {
+    auto run = [](bool snap, bool rounded, const char* name) {
+        Scene scene(96, 32);
+        scene.load = [](Scene& s) {
+            std::vector<Color> art;
+            for (int i = 0; i < 16; ++i) art.push_back(i % 3 == 0 ? R : (i % 3 == 1 ? G : B));
+            s.AddTexture(4, 4, art);
+        };
+        scene.draw = [snap, rounded](Scene& s) {
+            s.Graphics().Clear(Black);
+            SpriteBatch& b = s.batch;
+            b.SetPixelSnap(snap);
+            b.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
+            const float xs[3] = {5.4f, 20.6f, 41.5f};
+            for (int i = 0; i < 3; ++i) {
+                const float x = rounded ? std::round(xs[i]) : xs[i];
+                const float y = rounded ? std::round(7.3f + i) : 7.3f + i;
+                b.Draw(s.textures[0], Vector2(x, y), std::nullopt, Color::White, 0.0f, Vector2(), 3.0f, SpriteEffects::None, 0);
+            }
+            b.End();
+        };
+        return RunAndCapture(scene, name);
+    };
+    const Frame snapped = run(true, false, "sprite_snap_on");
+    const Frame exact = run(false, true, "sprite_snap_rounded");
+    const Frame loose = run(false, false, "sprite_snap_off");
+    int same = 0, differ = 0;
+    for (int y = 0; y < 32; ++y) {
+        for (int x = 0; x < 96; ++x) {
+            same += snapped.At(x, y) == exact.At(x, y) ? 1 : 0;
+            differ += loose.At(x, y) == exact.At(x, y) ? 0 : 1;
+        }
+    }
+    std::printf("pixel snap: %d of %d pixels match the rounded drawing; unsnapped differs in %d\n", same, 96 * 32, differ);
+    CHECK(same == 96 * 32);
+    CHECK(differ > 0);
+}
+
 } // namespace
 
 int main() {
@@ -369,5 +409,6 @@ int main() {
     RenderTargets();
     AtlasEdges();
     ShrunkSprites();
+    PixelSnap();
     return CheckResult();
 }

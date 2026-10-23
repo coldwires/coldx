@@ -30,7 +30,9 @@ the debug options.
 - `SpriteBatch`: `Begin(sortMode, blend, sampler, transform)`, `Draw` (position or
   destination, source, tint, rotation, origin, scale, flip, depth), `End`.
 - `SpriteBatch::DrawString`: UTF-8 text, with the same origin, rotation, scale, flip and depth.
-- `SpriteFont`: `FromFile`, `FromMemory` (TTF, baked at one pixel height), `MeasureString`,
+- `SpriteBatch::SetPixelSnap`. Sprites sample only their own source rectangle.
+- `SpriteFont`: `FromFile`, `FromMemory` (TTF, baked at one pixel height, `FontSmoothing`
+  smooth or sharp), `MeasureString`,
   `LineSpacing`, `Spacing`, `DefaultCharacter`, `HasCharacter`.
 - `SpriteSortMode`, `SpriteEffects`, `BlendState`, `SamplerState`.
 - `Keyboard`, `KeyboardState`, `Key`; `Mouse`, `MouseState`, `MouseButton`; `GamePad`,

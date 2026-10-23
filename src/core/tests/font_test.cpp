@@ -142,11 +142,43 @@ void Drawing(const Reference& ref) {
     for (const auto& p : ref.Rasterize("L")) CheckPixel(f, 160 + (width - 1 - p.x), 4 + p.y, white(p.coverage));
 }
 
+// FontSmoothing::Sharp: every pixel of drawn text is either the text colour or the
+// background, never between; Smooth has in-between pixels at the edges.
+void Sharpness() {
+    auto count = [](FontSmoothing smoothing, const char* name) {
+        SpriteFont font;
+        Scene scene(160, 32);
+        scene.load = [&](Scene& s) { font = SpriteFont::FromFile(s.Graphics(), COLDX_TEST_FONT, 16.0f, smoothing); };
+        scene.draw = [&](Scene& s) {
+            s.Graphics().Clear(Color::Black);
+            s.batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
+            s.batch.DrawString(font, "Sharp edges: Wg@&8", Vector2(2, 4), Color::White);
+            s.batch.End();
+        };
+        const Frame f = RunAndCapture(scene, name);
+        int full = 0, between = 0;
+        for (int y = 0; y < f.Height(); ++y)
+            for (int x = 0; x < f.Width(); ++x) {
+                const int v = f.At(x, y).r;
+                full += v == 255 ? 1 : 0;
+                between += v > 0 && v < 255 ? 1 : 0;
+            }
+        std::printf("%s text: %d full pixels, %d in between\n", name, full, between);
+        return std::pair{full, between};
+    };
+    const auto [sharpFull, sharpBetween] = count(FontSmoothing::Sharp, "font_sharp");
+    const auto [smoothFull, smoothBetween] = count(FontSmoothing::Smooth, "font_smooth");
+    CHECK(sharpFull > 100 && sharpBetween == 0);
+    CHECK(smoothBetween > 50);
+    (void)smoothFull;
+}
+
 } // namespace
 
 int main() {
     const Reference ref;
     Metrics(ref);
     Drawing(ref);
+    Sharpness();
     return CheckResult();
 }
