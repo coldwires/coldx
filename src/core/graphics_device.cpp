@@ -3,6 +3,8 @@
 
 #include <SDL3/SDL.h>
 
+#include <array>
+
 #include "gpu_download.h"
 #include "graphics_access.h"
 #include "texture_access.h"
@@ -28,6 +30,23 @@ struct GraphicsDevice::Impl {
     Uint32 targetWidth = 0;
     Uint32 targetHeight = 0;
     std::shared_ptr<detail::DeviceToken> token;
+    // With no window there is no swapchain to make the CPU wait for the GPU, so frames
+    // submitted faster than the GPU finishes them would queue without end (a software
+    // driver, headless, at thousands of frames a second). The fences of the frames in
+    // flight, oldest first; BeginFrame waits for the oldest once there are this many.
+    static constexpr int MaxFramesInFlight = 2;
+    std::array<SDL_GPUFence*, MaxFramesInFlight> inFlight{};
+    int inFlightCount = 0;
+
+    // Waits for, and releases, the oldest frame in flight.
+    void WaitOldestFrame() {
+        if (inFlightCount == 0) return;
+        SDL_GPUFence* oldest = inFlight[0];
+        SDL_WaitForGPUFences(device, true, &oldest, 1);
+        SDL_ReleaseGPUFence(device, oldest);
+        for (int i = 1; i < inFlightCount; ++i) inFlight[static_cast<size_t>(i - 1)] = inFlight[static_cast<size_t>(i)];
+        inFlight[static_cast<size_t>(--inFlightCount)] = nullptr;
+    }
 };
 
 static constexpr SDL_GPUTextureFormat BackBufferFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -224,6 +243,7 @@ void GraphicsAccess::Close(GraphicsDevice& graphics) {
     if (!g.device) return;
     ReleaseWindow(graphics);
     SDL_WaitForGPUIdle(g.device);
+    while (g.inFlightCount > 0) g.WaitOldestFrame();
     if (g.backBuffer) SDL_ReleaseGPUTexture(g.device, g.backBuffer);
     g.token->device = nullptr;
     SDL_DestroyGPUDevice(g.device);
@@ -232,6 +252,7 @@ void GraphicsAccess::Close(GraphicsDevice& graphics) {
 
 bool GraphicsAccess::BeginFrame(GraphicsDevice& graphics) {
     GraphicsDevice::Impl& g = *graphics.impl_;
+    if (!g.window && g.inFlightCount == GraphicsDevice::Impl::MaxFramesInFlight) g.WaitOldestFrame();
     g.commands = SDL_AcquireGPUCommandBuffer(g.device);
     if (!g.commands) {
         SDL_Log("coldx.core: SDL_AcquireGPUCommandBuffer failed: %s", SDL_GetError());
@@ -283,8 +304,13 @@ void GraphicsAccess::EndFrame(GraphicsDevice& graphics) {
         blit.filter = p.Active() && p.smooth ? SDL_GPU_FILTER_LINEAR : SDL_GPU_FILTER_NEAREST;
         SDL_BlitGPUTexture(g.commands, &blit);
     }
-    if (g.commands && !SDL_SubmitGPUCommandBuffer(g.commands))
+    if (g.commands && !g.window) {
+        SDL_GPUFence* fence = SDL_SubmitGPUCommandBufferAndAcquireFence(g.commands);
+        if (!fence) SDL_Log("coldx.core: SDL_SubmitGPUCommandBufferAndAcquireFence failed: %s", SDL_GetError());
+        else g.inFlight[static_cast<size_t>(g.inFlightCount++)] = fence;
+    } else if (g.commands && !SDL_SubmitGPUCommandBuffer(g.commands)) {
         SDL_Log("coldx.core: SDL_SubmitGPUCommandBuffer failed: %s", SDL_GetError());
+    }
     g.commands = nullptr;
     g.swapchain = nullptr;
     g.inFrame = false;
