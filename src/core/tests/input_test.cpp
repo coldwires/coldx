@@ -429,8 +429,54 @@ void Storage_() {
 
 } // namespace
 
+// A tap: down and up between two Updates. The state never shows it held, but the next
+// Update sees both edges, and the one after neither. For keys, mouse buttons and pads.
+void Taps() {
+    Headless();
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+    Driver game;
+    VirtualPad pad;
+    game.initialize = [&] { pad.Attach("coldx tap pad"); };
+    auto padButton = [&](bool down) {
+        SDL_Event e{};
+        e.type = down ? SDL_EVENT_GAMEPAD_BUTTON_DOWN : SDL_EVENT_GAMEPAD_BUTTON_UP;
+        e.gbutton.which = pad.id;
+        e.gbutton.button = SDL_GAMEPAD_BUTTON_SOUTH;
+        e.gbutton.down = down;
+        SDL_PushEvent(&e);
+    };
+    game.step = [&](int n) {
+        switch (n) {
+        case 1:
+            PushKey(SDL_SCANCODE_E, true);
+            PushKey(SDL_SCANCODE_E, false);
+            PushMouseButton(SDL_BUTTON_LEFT, true, 4, 4);
+            PushMouseButton(SDL_BUTTON_LEFT, false, 4, 4);
+            padButton(true);
+            padButton(false);
+            break;
+        case 2:
+            CHECK(Keyboard::GetState().IsKeyUp(Key::E) && Keyboard::WasPressed(Key::E) && Keyboard::WasReleased(Key::E));
+            CHECK(!Mouse::GetState().left && Mouse::WasPressed(MouseButton::Left) && Mouse::WasReleased(MouseButton::Left));
+            CHECK(GamePad::GetState(0).IsButtonUp(Buttons::A) && GamePad::WasPressed(0, Buttons::A) && GamePad::WasReleased(0, Buttons::A));
+            CHECK(!Keyboard::WasPressed(Key::Q) && !Mouse::WasPressed(MouseButton::Right) && !GamePad::WasPressed(0, Buttons::B));
+            break;
+        case 3:
+            CHECK(!Keyboard::WasPressed(Key::E) && !Keyboard::WasReleased(Key::E));
+            CHECK(!Mouse::WasPressed(MouseButton::Left) && !Mouse::WasReleased(MouseButton::Left));
+            CHECK(!GamePad::WasPressed(0, Buttons::A) && !GamePad::WasReleased(0, Buttons::A));
+            pad.Detach();
+            return false;
+        }
+        return true;
+    };
+    CHECK(game.Run() == 0);
+    CHECK(game.updates == 3);
+}
+
 int main() {
     KeyboardEdges();
+    Taps();
     MouseState_();
     GamePads();
     PadKinds();

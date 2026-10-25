@@ -46,7 +46,7 @@ public:
     // The state as of the start of the current Update.
     static MouseState GetState();
 
-    // Down now, up at the start of the previous Update; and the reverse.
+    // Pressed (or released) at any moment since the previous Update, a quick click included.
     static bool WasPressed(MouseButton button);
     static bool WasReleased(MouseButton button);
 

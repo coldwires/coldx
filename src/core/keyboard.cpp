@@ -25,14 +25,16 @@ KeyboardState Keyboard::GetState() {
     return detail::Input::Get().currentKeys;
 }
 
+// The edges since the previous Update, including any that went and came back between
+// two (a tap); the state comparison as well, for changes with no event (focus lost).
 bool Keyboard::WasPressed(Key key) {
     const detail::Input& in = detail::Input::Get();
-    return in.currentKeys.IsKeyDown(key) && in.previousKeys.IsKeyUp(key);
+    return in.keysPressed.IsKeyDown(key) || (in.currentKeys.IsKeyDown(key) && in.previousKeys.IsKeyUp(key));
 }
 
 bool Keyboard::WasReleased(Key key) {
     const detail::Input& in = detail::Input::Get();
-    return in.currentKeys.IsKeyUp(key) && in.previousKeys.IsKeyDown(key);
+    return in.keysReleased.IsKeyDown(key) || (in.currentKeys.IsKeyUp(key) && in.previousKeys.IsKeyDown(key));
 }
 
 std::string Keyboard::KeyName(Key key) {

@@ -12,12 +12,14 @@ MouseState Mouse::GetState() {
 
 bool Mouse::WasPressed(MouseButton button) {
     const detail::Input& in = detail::Input::Get();
-    return in.currentMouse.IsDown(button) && !in.previousMouse.IsDown(button);
+    const bool edge = (in.mousePressed >> static_cast<unsigned>(button)) & 1u;
+    return edge || (in.currentMouse.IsDown(button) && !in.previousMouse.IsDown(button));
 }
 
 bool Mouse::WasReleased(MouseButton button) {
     const detail::Input& in = detail::Input::Get();
-    return !in.currentMouse.IsDown(button) && in.previousMouse.IsDown(button);
+    const bool edge = (in.mouseReleased >> static_cast<unsigned>(button)) & 1u;
+    return edge || (!in.currentMouse.IsDown(button) && in.previousMouse.IsDown(button));
 }
 
 float Mouse::ScrollWheelDelta() {

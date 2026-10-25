@@ -324,6 +324,8 @@ shaders while drawing (not yet). These are the game's own, or come from librarie
 - A `SpriteFont` is a TTF baked at one pixel size, loaded at runtime. For another size,
   bake another font; scaling one blurs it.
 - `Keyboard::WasPressed` and friends are built in: no need to keep last frame's state.
+  They catch a tap that went down and up between two Updates, which `GetState` alone
+  misses: for "is this action on this tick", test `IsKeyDown || WasPressed`.
 - `GetState` returns the state as of the start of the current `Update`, not live.
 - Content loads by name (`Content().Load<Texture2D>("player")`) from a `.rime` package
   coldx's own tool builds, or from loose files; there is no XNB step. Fonts load with

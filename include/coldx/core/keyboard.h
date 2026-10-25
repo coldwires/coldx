@@ -87,7 +87,8 @@ public:
     // loses focus.
     static KeyboardState GetState();
 
-    // Down now, up at the start of the previous Update; and the reverse. With a fixed
+    // Pressed (or released) at any moment since the previous Update: a tap that went down
+    // and up in between counts as both, though GetState never shows it held. With a fixed
     // timestep running several updates in one frame, only the first of them sees the press.
     static bool WasPressed(Key key);
     static bool WasReleased(Key key);

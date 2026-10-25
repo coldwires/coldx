@@ -65,16 +65,16 @@ bool GamePad::WasPressed(int player, Buttons button) {
     if (!ValidPlayer(player)) return false;
     const detail::Input& in = detail::Input::Get();
     const auto bit = static_cast<std::uint32_t>(button);
-    return (in.currentPads[static_cast<size_t>(player)].buttons & bit) &&
-           !(in.previousPads[static_cast<size_t>(player)].buttons & bit);
+    const auto p = static_cast<size_t>(player);
+    return (in.padPressed[p] & bit) || ((in.currentPads[p].buttons & bit) && !(in.previousPads[p].buttons & bit));
 }
 
 bool GamePad::WasReleased(int player, Buttons button) {
     if (!ValidPlayer(player)) return false;
     const detail::Input& in = detail::Input::Get();
     const auto bit = static_cast<std::uint32_t>(button);
-    return !(in.currentPads[static_cast<size_t>(player)].buttons & bit) &&
-           (in.previousPads[static_cast<size_t>(player)].buttons & bit);
+    const auto p = static_cast<size_t>(player);
+    return (in.padReleased[p] & bit) || (!(in.currentPads[p].buttons & bit) && (in.previousPads[p].buttons & bit));
 }
 
 namespace {

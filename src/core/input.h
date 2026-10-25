@@ -33,6 +33,12 @@ struct Input {
     Presentation presentation;
     KeyboardState liveKeys, currentKeys, previousKeys;
     MouseState liveMouse, currentMouse, previousMouse;
+    // Presses and releases as they happen, so a tap that goes down and up between two
+    // Updates is still seen by the next one: "live" gathers them, BeginUpdate moves them to
+    // the per-Update sets that WasPressed and WasReleased read. Mouse buttons and pad
+    // buttons one bit each (MouseButton's value, Buttons' bit).
+    KeyboardState liveKeysPressed, liveKeysReleased, keysPressed, keysReleased;
+    std::uint8_t liveMousePressed = 0, liveMouseReleased = 0, mousePressed = 0, mouseReleased = 0;
     // Text input: typed text gathers in liveText and moves to currentText each Update.
     bool textActive = false;
     std::string liveText, currentText;
@@ -40,6 +46,7 @@ struct Input {
     int compositionCursor = 0;
     std::array<SDL_Gamepad*, GamePad::MaxPlayers> pads{};
     std::array<GamePadRaw, GamePad::MaxPlayers> currentPads{}, previousPads{};
+    std::array<std::uint32_t, GamePad::MaxPlayers> livePadPressed{}, livePadReleased{}, padPressed{}, padReleased{};
     // Requested rumble per player, and when it was last sent. SDL ends a rumble after at
     // most about 65 seconds, so BeginUpdate sends it again while it is on.
     std::array<float, GamePad::MaxPlayers> rumbleLow{}, rumbleHigh{};
@@ -55,6 +62,10 @@ struct Input {
     void Stop();
 
     void HandleEvent(const SDL_Event& event);
+    // A key or mouse button going down or up: the live state, and the edge if it changed.
+    // For events and for scripted input alike.
+    void SetKey(Key key, bool down);
+    void SetMouseButton(MouseButton button, bool down);
     // Polls the pads and takes the per-Update copies.
     void BeginUpdate();
 

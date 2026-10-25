@@ -34,14 +34,24 @@ float Axis(SDL_Gamepad* pad, SDL_GamepadAxis axis) {
     return v < -1.0f ? -1.0f : (v > 1.0f ? 1.0f : v);
 }
 
-void SetButton(MouseState& m, Uint8 button, bool down) {
+bool MouseButtonFromSdl(Uint8 button, MouseButton& out) {
     switch (button) {
-    case SDL_BUTTON_LEFT: m.left = down; break;
-    case SDL_BUTTON_RIGHT: m.right = down; break;
-    case SDL_BUTTON_MIDDLE: m.middle = down; break;
-    case SDL_BUTTON_X1: m.x1 = down; break;
-    case SDL_BUTTON_X2: m.x2 = down; break;
-    default: break;
+    case SDL_BUTTON_LEFT: out = MouseButton::Left; return true;
+    case SDL_BUTTON_RIGHT: out = MouseButton::Right; return true;
+    case SDL_BUTTON_MIDDLE: out = MouseButton::Middle; return true;
+    case SDL_BUTTON_X1: out = MouseButton::X1; return true;
+    case SDL_BUTTON_X2: out = MouseButton::X2; return true;
+    default: return false;
+    }
+}
+
+void SetDown(MouseState& m, MouseButton button, bool down) {
+    switch (button) {
+    case MouseButton::Left: m.left = down; break;
+    case MouseButton::Right: m.right = down; break;
+    case MouseButton::Middle: m.middle = down; break;
+    case MouseButton::X1: m.x1 = down; break;
+    case MouseButton::X2: m.x2 = down; break;
     }
 }
 
@@ -102,11 +112,24 @@ void Input::BackBufferToWindow(int x, int y, float& outX, float& outY) const {
     outY /= density;
 }
 
+void Input::SetKey(Key key, bool down) {
+    if (down && liveKeys.IsKeyUp(key)) liveKeysPressed.SetKey(key, true);
+    if (!down && liveKeys.IsKeyDown(key)) liveKeysReleased.SetKey(key, true);
+    liveKeys.SetKey(key, down);
+}
+
+void Input::SetMouseButton(MouseButton button, bool down) {
+    const auto bit = static_cast<std::uint8_t>(1u << static_cast<unsigned>(button));
+    if (down && !liveMouse.IsDown(button)) liveMousePressed |= bit;
+    if (!down && liveMouse.IsDown(button)) liveMouseReleased |= bit;
+    SetDown(liveMouse, button, down);
+}
+
 void Input::HandleEvent(const SDL_Event& event) {
     switch (event.type) {
     case SDL_EVENT_KEY_DOWN:
     case SDL_EVENT_KEY_UP:
-        liveKeys.SetKey(static_cast<Key>(event.key.scancode), event.type == SDL_EVENT_KEY_DOWN);
+        SetKey(static_cast<Key>(event.key.scancode), event.type == SDL_EVENT_KEY_DOWN);
         break;
     case SDL_EVENT_MOUSE_MOTION:
         WindowToBackBuffer(event.motion.x, event.motion.y, liveMouse.x, liveMouse.y);
@@ -114,7 +137,20 @@ void Input::HandleEvent(const SDL_Event& event) {
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP:
         WindowToBackBuffer(event.button.x, event.button.y, liveMouse.x, liveMouse.y);
-        SetButton(liveMouse, event.button.button, event.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
+        if (MouseButton b{}; MouseButtonFromSdl(event.button.button, b)) SetMouseButton(b, event.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
+        break;
+    case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+    case SDL_EVENT_GAMEPAD_BUTTON_UP:
+        // Pads are read whole at each Update; these only catch the presses in between.
+        for (int player = 0; player < GamePad::MaxPlayers; ++player) {
+            if (!pads[player] || SDL_GetGamepadID(pads[player]) != event.gbutton.which) continue;
+            for (const ButtonMap& b : PadButtons) {
+                if (b.sdl != event.gbutton.button) continue;
+                const auto bit = static_cast<std::uint32_t>(b.button);
+                if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) livePadPressed[static_cast<size_t>(player)] |= bit;
+                else livePadReleased[static_cast<size_t>(player)] |= bit;
+            }
+        }
         break;
     case SDL_EVENT_TEXT_INPUT:
         if (textActive && event.text.text) liveText += event.text.text;
@@ -183,6 +219,15 @@ void Input::BeginUpdate() {
     currentKeys = liveKeys;
     previousMouse = currentMouse;
     currentMouse = liveMouse;
+    keysPressed = liveKeysPressed;
+    keysReleased = liveKeysReleased;
+    liveKeysPressed = liveKeysReleased = KeyboardState{};
+    mousePressed = liveMousePressed;
+    mouseReleased = liveMouseReleased;
+    liveMousePressed = liveMouseReleased = 0;
+    padPressed = livePadPressed;
+    padReleased = livePadReleased;
+    livePadPressed = livePadReleased = {};
     currentText.swap(liveText);
     liveText.clear();
     for (int player = 0; player < GamePad::MaxPlayers; ++player) {

@@ -99,7 +99,7 @@ public:
     // The state as of the start of the current Update. Not connected for an unused player.
     static GamePadState GetState(int player, GamePadDeadZone deadZone = GamePadDeadZone::IndependentAxes);
 
-    // Down now, up at the start of the previous Update; and the reverse.
+    // Pressed (or released) at any moment since the previous Update, a quick tap included.
     static bool WasPressed(int player, Buttons button);
     static bool WasReleased(int player, Buttons button);
 

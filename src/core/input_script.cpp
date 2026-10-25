@@ -11,12 +11,12 @@ namespace coldx::detail {
 
 namespace {
 
-bool MouseButtonByName(const std::string& name, MouseState& m, bool down) {
-    if (name == "left") m.left = down;
-    else if (name == "right") m.right = down;
-    else if (name == "middle") m.middle = down;
-    else if (name == "x1") m.x1 = down;
-    else if (name == "x2") m.x2 = down;
+bool MouseButtonByName(const std::string& name, MouseButton& out) {
+    if (name == "left") out = MouseButton::Left;
+    else if (name == "right") out = MouseButton::Right;
+    else if (name == "middle") out = MouseButton::Middle;
+    else if (name == "x1") out = MouseButton::X1;
+    else if (name == "x2") out = MouseButton::X2;
     else return false;
     return true;
 }
@@ -42,8 +42,8 @@ std::string Validate(const std::vector<std::string>& w) {
     }
     if (w[0] == "mouse") {
         if (w.size() == 4 && w[1] == "move") return "";
-        MouseState probe;
-        if (w.size() == 3 && (w[1] == "down" || w[1] == "up") && MouseButtonByName(w[2], probe, true)) return "";
+        MouseButton probe{};
+        if (w.size() == 3 && (w[1] == "down" || w[1] == "up") && MouseButtonByName(w[2], probe)) return "";
         return "expected: mouse move <x> <y>, or mouse down|up left|right|middle|x1|x2";
     }
     if (w[0] == "wheel") return (w.size() == 2 || w.size() == 3) ? "" : "expected: wheel <dy> [<dx>]";
@@ -97,12 +97,12 @@ bool InputScript::Apply(int update, Input& input) const {
             exit = true;
         } else if (w[0] == "key") {
             const SDL_Scancode code = SDL_GetScancodeFromName(Rest(w, 2).c_str());
-            input.liveKeys.SetKey(static_cast<Key>(code), w[1] == "down");
+            input.SetKey(static_cast<Key>(code), w[1] == "down");
         } else if (w[0] == "mouse" && w[1] == "move") {
             input.liveMouse.x = std::atoi(w[2].c_str());
             input.liveMouse.y = std::atoi(w[3].c_str());
         } else if (w[0] == "mouse") {
-            MouseButtonByName(w[2], input.liveMouse, w[1] == "down");
+            if (MouseButton b{}; MouseButtonByName(w[2], b)) input.SetMouseButton(b, w[1] == "down");
         } else if (w[0] == "text") {
             // As typed: only while the game has text input on.
             if (input.textActive) input.liveText += Rest(w, 1);
