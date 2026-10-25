@@ -1,6 +1,8 @@
 // SpriteBatch states and geometry, and render targets. Every expected pixel is computed
 // from the texels and the blend equation; opaque results must match exactly.
 
+#include <cmath>
+
 #include "headless.h"
 
 using namespace coldx;

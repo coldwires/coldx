@@ -21,5 +21,10 @@ target_include_directories(coldx_content_effect_build_test PRIVATE ${PROJECT_SOU
 target_compile_definitions(coldx_content_effect_build_test PRIVATE COLDX_TEST_EFFECTS="${PROJECT_SOURCE_DIR}/shaders/examples")
 coldx_set_warnings(coldx_content_effect_build_test)
 add_test(NAME content.effect_build COMMAND coldx_content_effect_build_test)
-set_tests_properties(content.effect_build PROPERTIES SKIP_RETURN_CODE 77
-    ENVIRONMENT "COLDX_DXC=${COLDX_DXC};COLDX_SPIRV_CROSS=${COLDX_SPIRV_CROSS}")
+set_tests_properties(content.effect_build PROPERTIES SKIP_RETURN_CODE 77)
+# Only paths that were found: a missing tool reaches the test as "COLDX_DXC-NOTFOUND", which
+# looks set, and the test would try to run it rather than skip.
+if(COLDX_DXC AND COLDX_SPIRV_CROSS)
+    set_tests_properties(content.effect_build PROPERTIES
+        ENVIRONMENT "COLDX_DXC=${COLDX_DXC};COLDX_SPIRV_CROSS=${COLDX_SPIRV_CROSS}")
+endif()

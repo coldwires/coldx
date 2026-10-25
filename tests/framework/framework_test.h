@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 struct SDL_Window;
@@ -26,6 +27,11 @@ enum class Status {
 const char* StatusName(Status status);
 
 struct Result {
+    Result() = default;
+    // A constructor, not aggregate initialisation: GCC warns on every Result{id, priority}
+    // that leaves the rest out.
+    Result(std::string id_, std::string priority_, Status status_ = Status::Skipped, std::string notes_ = {})
+        : id(std::move(id_)), priority(std::move(priority_)), status(status_), notes(std::move(notes_)) {}
     std::string id;
     std::string priority;
     Status status = Status::Skipped;

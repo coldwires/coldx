@@ -9,6 +9,7 @@ namespace coldx {
 
 class Game;
 class GameComponentCollection;
+class DrawableGameComponent;  // named before GameComponent uses it: a friend declaration does not
 class GraphicsDevice;
 
 // A piece of a game with its own Update: a camera, a spawner, a debug overlay. Add it to

@@ -400,7 +400,8 @@ They run once per GPU backend
 ## Status
 
 Early. Tested on Windows 11
-with MSVC, on the Direct3D 12 and Vulkan backends; Linux and macOS have not been built.
+with MSVC, on the Direct3D 12 and Vulkan backends. Builds and passes its tests on Linux
+with GCC, on a software Vulkan driver only so far; macOS has not been built.
 
 ## License
 
