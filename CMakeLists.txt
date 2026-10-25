@@ -20,6 +20,12 @@ include(cmake/coldx_harden.cmake)
 if(COLDX_HARDEN AND MSVC)
     file(TO_NATIVE_PATH "${PROJECT_SOURCE_DIR}/" coldx_source_prefix)
     add_compile_options("$<$<CONFIG:Release>:/d1trimfile:${coldx_source_prefix}>")
+elseif(COLDX_HARDEN AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # No RTTI for every C++ file, tests and samples included: GCC and Clang put a class's
+    # type information in the file with its first virtual function, so code compiled with
+    # RTTI that derives from a coldx class (a Game) needs coldx's, which -fno-rtti never made.
+    add_compile_options("$<$<CONFIG:Release>:-ffile-prefix-map=${PROJECT_SOURCE_DIR}/=>"
+                        "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-fno-rtti>")
 endif()
 
 # SDL builds from the vendored source as a static library and nothing else.
