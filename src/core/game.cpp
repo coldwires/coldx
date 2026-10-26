@@ -256,9 +256,14 @@ int Game::Run() {
     s.ApplyFullscreenMode();
     if (startFullscreen && !SDL_SetWindowFullscreen(s.window, true))
         SDL_Log("coldx.core: could not start fullscreen: %s", SDL_GetError());
-    if (!debug.headless) {
+    // A windowed start stays hidden until its first frame is presented (below): shown now, it
+    // would sit empty while the GPU starts and the game loads, then snap to the first frame.
+    // A fullscreen start is shown now, so the mode change happens before the swapchain exists.
+    bool shown = debug.headless;
+    if (!debug.headless && startFullscreen) {
         SDL_ShowWindow(s.window);
         SDL_SyncWindow(s.window);
+        shown = true;
     }
     SDL_Window* presentTo = debug.headless ? nullptr : s.window;
     s.ApplyPresentation();
@@ -370,6 +375,11 @@ int Game::Run() {
             SDL_Delay(16);
         }
         detail::GraphicsAccess::EndFrame(*s.graphics);
+        if (!shown) {
+            SDL_ShowWindow(s.window);
+            SDL_SyncWindow(s.window);
+            shown = true;
+        }
         audio.Pump();
 
         if (debug.frames > 0 && frames >= debug.frames) s.exitRequested = true;
