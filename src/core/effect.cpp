@@ -20,7 +20,7 @@ struct Effect::Impl {
     std::string name;
     effect_format::Compiled compiled;
     std::vector<std::uint8_t> uniforms;
-    std::vector<Texture2D> textures;  // by slot; slot 0, the sprite's, stays empty
+    std::vector<Texture2D> textures;  // by slot, slot 0 (the sprite's) stays empty
 
     std::shared_ptr<detail::DeviceToken> token;
     SDL_GPUShader* vertex = nullptr;
@@ -44,7 +44,7 @@ struct Effect::Impl {
         for (auto& p : pipelines) p = nullptr;
     }
 
-    // Shaders for the device graphics has now; remade after a second Run makes a new one.
+    // Shaders for the device graphics has now. Remade after a second Run makes a new one.
     bool Shaders(GraphicsDevice& graphics) {
         SDL_GPUDevice* device = detail::GraphicsAccess::Device(graphics);
         if (!device) return false;
@@ -74,7 +74,7 @@ struct Effect::Impl {
     const effect_format::Parameter* Find(const std::string& parameter) {
         for (const effect_format::Parameter& p : compiled.parameters)
             if (p.name == parameter) return &p;
-        WarnOnce("?" + parameter, "coldx.core: effect %s has no parameter %s; ignored", parameter);
+        WarnOnce("?" + parameter, "coldx.core: effect %s has no parameter %s, ignored", parameter);
         return nullptr;
     }
 
@@ -84,7 +84,7 @@ struct Effect::Impl {
         const effect_format::Parameter* p = Find(parameter);
         if (!p) return;
         if (p->type != a && p->type != b) {
-            WarnOnce("!" + parameter, "coldx.core: effect %s: parameter %s is set with a value of another type; ignored", parameter);
+            WarnOnce("!" + parameter, "coldx.core: effect %s: parameter %s is set with a value of another type, ignored", parameter);
             return;
         }
         std::memcpy(uniforms.data() + p->offset, value, size);
@@ -150,7 +150,7 @@ void Effect::Set(const std::string& name, Color value) {
     Set(name, value.r / 255.0f, value.g / 255.0f, value.b / 255.0f, value.a / 255.0f);
 }
 
-// Stored row-major as coldx keeps it; the shader reads the transpose, which is why
+// Stored row-major as coldx keeps it. The shader reads the transpose, which is why
 // mul(matrix, v) there is v * matrix here (the same as SpriteBatch's own transform).
 void Effect::Set(const std::string& name, const Matrix& value) {
     if (impl_) impl_->Write(name, Type::Float4x4, Type::Float4x4, value.m, sizeof(value.m));
@@ -173,7 +173,7 @@ void Effect::Set(const std::string& name, const Texture2D& texture) {
             return;
         }
     }
-    impl_->WarnOnce("?" + name, "coldx.core: effect %s has no texture %s at slot 1 or later; ignored", name);
+    impl_->WarnOnce("?" + name, "coldx.core: effect %s has no texture %s at slot 1 or later, ignored", name);
 }
 
 const std::string& Effect::Name() const {
@@ -209,7 +209,7 @@ std::size_t EffectAccess::TextureCount(const Effect& effect) {
 SDL_GPUTexture* EffectAccess::Texture(const Effect& effect, std::size_t slot, SDL_GPUTexture* fallback) {
     Effect::Impl& e = *effect.impl_;
     if (SDL_GPUTexture* set = TextureAccess::Handle(e.textures[slot])) return set;
-    e.WarnOnce("#" + e.compiled.textures[slot].name, "coldx.core: effect %s: texture %s was never set; the sprite's own stands in",
+    e.WarnOnce("#" + e.compiled.textures[slot].name, "coldx.core: effect %s: texture %s was never set. The sprite's own stands in",
                e.compiled.textures[slot].name);
     return fallback;
 }

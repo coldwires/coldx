@@ -65,7 +65,7 @@ protected:
         CHECK(Same(back, flipped));
         texture_.SetData(pixels_.data());
 
-        // SaveAsPng writes straight alpha; FromFile premultiplies again: the same image, to
+        // SaveAsPng writes straight alpha. FromFile premultiplies again, giving the same image to
         // within rounding on the half-transparent pixel.
         std::filesystem::remove(png);
         CHECK(texture_.SaveAsPng(png));
@@ -83,7 +83,7 @@ protected:
     void Update(const GameTime&) override {
         ++frame;
         if (frame == 2) {
-            // Frame 1 drew into the target and cleared the back buffer: both are visible now.
+            // Frame 1 drew into the target and cleared the back buffer. Both are visible now.
             std::vector<Color> got(64);
             CHECK(target_.GetData(got.data()));
             std::vector<Color> want(64, Color::Red);

@@ -17,7 +17,7 @@ struct EffectAccess {
     // The pipeline for sprites drawn with effect in blend, made on first use with the
     // graphics device's current GPU device. Null on failure, logged once per effect.
     static SDL_GPUGraphicsPipeline* Pipeline(const Effect& effect, GraphicsDevice& graphics, BlendState blend);
-    // The uniform block as last set; empty when the shader has none.
+    // The uniform block as last set. Empty when the shader has none.
     static const std::vector<std::uint8_t>& Uniforms(const Effect& effect);
     // Texture slots the shader samples, the sprite texture's (slot 0) included.
     static std::size_t TextureCount(const Effect& effect);

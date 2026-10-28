@@ -1,4 +1,4 @@
-// The tests a person judges. Each scene shows what to do and live readouts; the tester
+// The tests a person judges. Each scene shows what to do and live readouts. The tester
 // presses P, F or S. Tests that need other machines have instructions and no scene.
 
 #include "framework_test.h"
@@ -92,16 +92,16 @@ void RegisterHuman() {
 
     add("GFX-01", "P0", "Window resize by hand",
         {"Drag the window edges quickly, very small and very large.",
-         "Pass: no crash; yellow squares stay in the corners; the green target with its red square stays centred and sharp."},
+         "Pass: no crash. Yellow squares stay in the corners. The green target with its red square stays centred and sharp."},
         AnchoredScene);
     add("GFX-02", "P0", "Fullscreen, alt-tab, monitors",
-        {"F11 toggles fullscreen. Toggle several times; alt-tab away and back while fullscreen;",
-         "drag the window to another monitor if there is one.",
+        {"F11 toggles fullscreen. Toggle several times. Alt-tab away and back while fullscreen.",
+         "Drag the window to another monitor if there is one.",
          "Pass: never black, corners and target intact, the right resolution after returning."},
         AnchoredScene);
     add("GFX-03", "P0", "High-DPI sharpness and cursor",
         {"Run at 150% or 200% Windows scaling, or on a Retina Mac.",
-         "Pass: the 1 px grid and the small text are sharp, not blurred; the cross sits exactly under the pointer tip."},
+         "Pass: the 1 px grid and the small text are sharp, not blurred. The cross sits exactly under the pointer tip."},
         [](HumanScene& s) {
             auto small = std::make_shared<SpriteFont>();
             s.load = [&s, small] { *small = SpriteFont::FromFile(s.Graphics(), FontPath, 11.0f); };
@@ -129,7 +129,7 @@ void RegisterHuman() {
         nullptr);
     add("TIME-01", "P0", "Smooth motion at 60 updates",
         {"Watch the square cross the screen on a 60 Hz and a high-refresh display.",
-         "Pass: even, smooth motion; updates per second stay at 60."},
+         "Pass: even, smooth motion. Updates per second stay at 60."},
         [](HumanScene& s) {
             auto counters = std::make_shared<std::array<double, 4>>();  // updates, draws, start, shown rate
             s.update = [counters](const GameTime& t) {
@@ -150,7 +150,7 @@ void RegisterHuman() {
             s.readout = [counters] { return std::vector<std::string>{Format("updates last second: %.0f", (*counters)[3])}; };
         });
     add("TIME-03", "P1", "Tearing with vsync off",
-        {"V toggles vsync. Watch the moving bars.", "Pass: tearing only with vsync off; no crash or stutter when toggling."},
+        {"V toggles vsync. Watch the moving bars.", "Pass: tearing only with vsync off. No crash or stutter when toggling."},
         [](HumanScene& s) {
             auto vsync = std::make_shared<bool>(true);
             s.update = [&s, vsync](const GameTime&) {
@@ -167,7 +167,7 @@ void RegisterHuman() {
         });
     add("AUD-01", "P0", "Sound bursts, heard",
         {"B plays 500 sounds at once. Press it repeatedly with the music on.",
-         "Pass: the music never cuts out; the game does not hitch."},
+         "Pass: the music never cuts out. The game does not hitch."},
         [](HumanScene& s) {
             auto blip = std::make_shared<SoundEffect>();
             auto music = std::make_shared<Music>();
@@ -184,8 +184,8 @@ void RegisterHuman() {
             };
         });
     add("AUD-02", "P0", "Output device change",
-        {"Music and a hum are playing. Unplug or plug in headphones; change the default output in Windows settings.",
-         "Pass: sound continues on the new device within a second; no crash, no lasting silence."},
+        {"Music and a hum are playing. Unplug or plug in headphones. Change the default output in Windows settings.",
+         "Pass: sound continues on the new device within a second. No crash, no lasting silence."},
         [](HumanScene& s) {
             auto music = std::make_shared<Music>();
             auto hum = std::make_shared<SoundEffectInstance>();
@@ -203,7 +203,7 @@ void RegisterHuman() {
         });
     add("AUD-03", "P1", "Music loop seam",
         {"Listen through several loops of the music (8 s each). N restarts the track.",
-         "Pass: no gap or click at the loop point; restarting does not hitch."},
+         "Pass: no gap or click at the loop point. Restarting does not hitch."},
         [](HumanScene& s) {
             auto music = std::make_shared<Music>();
             s.load = [music] {
@@ -244,12 +244,12 @@ void RegisterHuman() {
         });
     add("INP-01", "P0", "Real controllers",
         {"Connect an Xbox, a PlayStation, a Switch Pro and a generic controller in turn.",
-         "Press every button and move every stick and trigger. Pass: each shows as the matching XNA button;",
-         "the name and type match the pad, and the bottom button's label matches what is printed on it."},
+         "Press every button and move every stick and trigger. Pass: each shows as the matching XNA button.",
+         "The name and type match the pad, and the bottom button's label matches what is printed on it."},
         GamepadScene);
     add("INP-03", "P1", "Real sticks at rest, triggers",
         {"Leave the sticks alone, then press the triggers slowly.",
-         "Pass: sticks read 0.00 at rest (raw values may not); triggers rise smoothly 0 to 1."},
+         "Pass: sticks read 0.00 at rest (raw values may not). Triggers rise smoothly 0 to 1."},
         GamepadScene);
     add("INP-04", "P2", "Real rumble", {"Press 1-4 to rumble each player's pad, 0 to stop. Pass: rumble where the pad has motors, no crash where not."},
         GamepadScene);
@@ -260,7 +260,7 @@ void RegisterHuman() {
         [](HumanScene& s) {
             s.readout = [] {
                 const Key w = Keyboard::KeyForCharacter('w');
-                std::vector<std::string> lines{Format("physical W key is named \"%s\" here; 'w' is typed by physical key %d (\"%s\")",
+                std::vector<std::string> lines{Format("physical W key is named \"%s\" here. 'w' is typed by physical key %d (\"%s\")",
                                                       Keyboard::KeyName(Key::W).c_str(), static_cast<int>(w),
                                                       Keyboard::KeyName(w).c_str())};
                 std::string held;
@@ -274,8 +274,8 @@ void RegisterHuman() {
             };
         });
     add("INP-07", "P1", "Mouse, by hand",
-        {"Scroll both ways; drag with the left button out of the window and back; hold a button and alt-tab away.",
-         "Pass: wheel totals move one per notch; no button stays held after alt-tab."},
+        {"Scroll both ways. Drag with the left button out of the window and back. Hold a button and alt-tab away.",
+         "Pass: wheel totals move one per notch. No button stays held after alt-tab."},
         [](HumanScene& s) {
             s.readout = [] {
                 const MouseState m = Mouse::GetState();
@@ -287,10 +287,10 @@ void RegisterHuman() {
         {"Build and run ctest and coldx_framework_tests --auto on each platform. Pass: everything builds and passes."}, nullptr);
     add("PLAT-03", "P0", "Low-end hardware",
         {"On an old laptop with integrated graphics run coldx_framework_tests --auto --only GFX-08 and samples/demo.",
-         "Pass: frame times reported; playable at a reduced sprite count."},
+         "Pass: frame times reported. Playable at a reduced sprite count."},
         nullptr);
     add("PLAT-04", "P1", "Alt-tab and focus",
-        {"Alt-tab to another window and back; minimize and restore.", "Pass: no crash; focus readout follows; no jump in game time."},
+        {"Alt-tab to another window and back. Minimize and restore.", "Pass: no crash. Focus readout follows. No jump in game time."},
         [](HumanScene& s) {
             s.readout = [&s] {
                 SDL_Window* w = OnlyWindow();

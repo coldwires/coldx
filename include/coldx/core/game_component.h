@@ -9,7 +9,7 @@ namespace coldx {
 
 class Game;
 class GameComponentCollection;
-class DrawableGameComponent;  // named before GameComponent uses it: a friend declaration does not
+class DrawableGameComponent;  // named before GameComponent uses it. A friend declaration does not
 class GraphicsDevice;
 
 // A piece of a game with its own Update: a camera, a spawner, a debug overlay. Add it to
@@ -27,7 +27,7 @@ public:
 
     bool Enabled() const { return enabled_; }
     void SetEnabled(bool enabled) { enabled_ = enabled; }
-    // Lower updates first; equal orders keep the order they were added in.
+    // Lower updates first. Equal orders keep the order they were added in.
     int UpdateOrder() const { return updateOrder_; }
     void SetUpdateOrder(int order);
 
@@ -45,7 +45,7 @@ private:
 };
 
 // A component that also draws, after the game's own Draw, in DrawOrder. Its LoadContent
-// runs right after its Initialize; UnloadContent when it is removed or the game ends.
+// runs right after its Initialize, and UnloadContent when it is removed or the game ends.
 class DrawableGameComponent : public GameComponent {
 public:
     using GameComponent::GameComponent;

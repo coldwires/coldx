@@ -24,18 +24,18 @@ void Usage() {
         "  coldxc --project content/content.coldx --identify FILE\n"
         "  coldxc --compile-effect SHADER.hlsl --output FILE.h|FILE.fx\n"
         "\n"
-        "  --project      the content project file; names in the package are relative to its folder\n"
-        "  --output       the package to write; left untouched when nothing changed\n"
+        "  --project      the content project file. Names in the package are relative to its folder\n"
+        "  --output       the package to write, left untouched when nothing changed\n"
         "  --cache        a folder for processed results, so unchanged sources are not processed again\n"
         "  --key-file     encrypt every entry with the key in FILE\n"
         "  --build-id     mark the package (and the game, with --game-source) with a fingerprint of ID\n"
         "  --game-source  write the C++ file that gives the game its key and fingerprint\n"
         "  --new-key      write a new random key to FILE\n"
         "  --identify     print the fingerprint in a game, package, PNG or WAV built from --project\n"
-        "                 (give --key-file too if the package was encrypted); for a PNG or WAV, also\n"
+        "                 (give --key-file too if the package was encrypted). For a PNG or WAV, also\n"
         "                 whether it carries the project's own mark, or --build-id's\n"
         "  --compile-effect  compile one effect into a C++ header (for Effect::FromMemory) or a .fx\n"
-        "                 file; the header is only rewritten when it changes\n"
+        "                 file. The header is only rewritten when it changes\n"
         "  --verbose      one line per source\n");
 }
 
@@ -152,10 +152,10 @@ int RunTool(int argc, char** argv, std::vector<std::unique_ptr<Processor>> extra
                 // nearly all agreeing: worth saying, with the odds, so the reader can judge.
                 const bool probable = !m.matched && m.chance < 1e-3 && m.agree * 10 >= m.total * 9;
                 if (m.matched)
-                    std::printf("%s in %s: %zu of %zu marks agree; odds of chance about 1 in %.0e\n", whose, m.layer.c_str(), m.agree,
+                    std::printf("%s in %s: %zu of %zu marks agree, odds of chance about 1 in %.0e\n", whose, m.layer.c_str(), m.agree,
                                 m.total, 1.0 / m.chance);
                 else if (probable)
-                    std::printf("probably %s in %s: %zu of %zu marks agree; odds of chance about 1 in %.0e (too few marks to be sure)\n",
+                    std::printf("probably %s in %s: %zu of %zu marks agree, odds of chance about 1 in %.0e (too few marks to be sure)\n",
                                 whose, m.layer.c_str(), m.agree, m.total, 1.0 / m.chance);
                 else if (m.total > 0)
                     std::printf("not %s in %s: %zu of %zu marks agree, as chance would give\n", whose, m.layer.c_str(), m.agree, m.total);

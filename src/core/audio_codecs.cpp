@@ -78,7 +78,7 @@ std::shared_ptr<SoundData> DecodeSound(const std::vector<unsigned char>& file, c
     else
         SDL_Log("coldx.core: %s: not WAV or OGG", name);
     if (sound && sound->channels != 1 && sound->channels != 2) {
-        SDL_Log("coldx.core: %s: %d channels; only mono and stereo are supported", name, sound->channels);
+        SDL_Log("coldx.core: %s: %d channels. Only mono and stereo are supported", name, sound->channels);
         return nullptr;
     }
     return sound;
@@ -102,7 +102,7 @@ std::shared_ptr<MusicData> LoadMusic(std::vector<unsigned char> file, const char
     music->duration = stb_vorbis_stream_length_in_seconds(v);
     stb_vorbis_close(v);
     if (music->channels != 1 && music->channels != 2) {
-        SDL_Log("coldx.core: %s: %d channels; only mono and stereo are supported", name, music->channels);
+        SDL_Log("coldx.core: %s: %d channels. Only mono and stereo are supported", name, music->channels);
         return nullptr;
     }
     music->bytes = std::move(file);

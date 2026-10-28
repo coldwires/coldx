@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-// The .rime package format, version 1. ContentManager::Mount reads packages; coldxc and
+// The .rime package format, version 1. ContentManager::Mount reads packages. coldxc and
 // the content module write them through PackageWriter. Games rarely need this header.
 //
 // Layout, all integers little-endian:
@@ -16,13 +16,13 @@
 //     0  magic      9F 9C B9 B6
 //     4  u16        format version (1)
 //     6  u16        header size (48)
-//     8  u32        package flags (0; reserved for protection)
+//     8  u32        package flags (0, reserved for protection)
 //     12 u32        entry count
 //     16 u64        name hash seed
 //     24 u64        offset of the entry table
 //     32 u64        key check: 0, or the first 8 bytes of the key's ChaCha20 keystream
 //                   for an all-0xFF nonce, so a wrong key is told apart from damage
-//     40 u64        build fingerprint, masked with the seed; 0 for none
+//     40 u64        build fingerprint, masked with the seed, 0 for none
 //   entry table: entry count entries of 40 bytes, sorted by hash
 //     0  u64        name hash
 //     8  u8         asset type
@@ -40,7 +40,7 @@
 // deterministic. Encryption with a key the game carries keeps out casual extraction, not
 // a determined reader.
 //
-// No name, type name or extension is written: entries are known by the hash of their
+// No name, type name or extension is written. Entries are known by the hash of their
 // content path, seeded per package.
 namespace coldx::rime {
 
@@ -67,7 +67,7 @@ enum EntryFlags : std::uint8_t {
 };
 
 using Key = std::array<std::uint8_t, 32>;
-// The value stored in the header for key; never 0.
+// The value stored in the header for key. Never 0.
 std::uint64_t KeyCheck(const Key& key);
 
 // A texture stored decoded, for loading without a PNG decode: this tag (not text), then
@@ -88,7 +88,7 @@ class PackageWriter {
 public:
     explicit PackageWriter(std::uint64_t seed) : seed_(seed) {}
 
-    // Stored in the header as given; coldxc masks it first.
+    // Stored in the header as given. coldxc masks it first.
     void SetFingerprint(std::uint64_t value) { fingerprint_ = value; }
     // Encrypts every entry with key.
     void SetKey(const Key& key) {
@@ -97,8 +97,8 @@ public:
     }
 
     // Adds name (normalized here). False, logged, if the name or its hash is already in.
-    // With compress, Finish stores the entry compressed if that saves at least a twentieth:
-    // already-compressed data (PNG, OGG) stays as it is.
+    // With compress, Finish stores the entry compressed if that saves at least a twentieth.
+    // Already-compressed data (PNG, OGG) stays as it is.
     bool Add(std::string_view name, AssetType type, std::vector<std::uint8_t> bytes, bool compress = true);
     std::size_t Count() const { return entries_.size(); }
 

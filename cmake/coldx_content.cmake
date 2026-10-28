@@ -2,17 +2,17 @@
 #
 #   coldx_add_content(my_game PROJECT content/content.coldx)
 #
-# PROJECT   the content project file; everything in its folder is watched for changes.
+# PROJECT   the content project file. Everything in its folder is watched for changes.
 # OUTPUT    the package's file name, content.rime by default. ContentManager mounts
 #           "<RootDirectory>.rime" by itself, and the root is "content" unless the game
 #           changes it, so keep the two in step.
-# TOOL      the tool target to run, coldxc by default; a game with its own processors
+# TOOL      the tool target to run, coldxc by default. A game with its own processors
 #           names its own tool (see coldx/content/build.h).
 # KEY_FILE  encrypt the package with this key (make one with coldxc --new-key FILE, and
 #           keep it out of public repositories). The game gets the key through a source
-#           file generated into its build; nothing to call.
-# BUILD_ID  mark the package and the game with a fingerprint of this id; coldxc --identify
-#           reads it back. Defaults to the COLDX_BUILD_ID cache variable; empty for none.
+#           file generated into its build. There is nothing to call.
+# BUILD_ID  mark the package and the game with a fingerprint of this id. coldxc --identify
+#           reads it back. Defaults to the COLDX_BUILD_ID cache variable, empty for none.
 #
 # The tool only rewrites the package when it changes, and keeps a cache of processed
 # sources in the build folder.
@@ -48,7 +48,7 @@ function(coldx_add_content target)
 
     set(work "${CMAKE_CURRENT_BINARY_DIR}/${target}_content")
     set(package "${work}/${ARG_OUTPUT}")
-    # A stamp, not the package, is the command's output: the tool leaves an unchanged
+    # A stamp, not the package, is the command's output. The tool leaves an unchanged
     # package untouched, and the stamp keeps the command from running every build.
     set(stamp "${work}/${ARG_OUTPUT}.stamp")
     set(outputs "${stamp}")
@@ -69,7 +69,7 @@ function(coldx_add_content target)
         target_sources(${target} PRIVATE "${game_source}")
         set_source_files_properties("${game_source}" PROPERTIES GENERATED TRUE)
     endif()
-    # [effect] sections need dxc and spirv-cross; hand on the ones CMake found.
+    # [effect] sections need dxc and spirv-cross. Hand on the ones CMake found.
     set(tool_env)
     if(COLDX_DXC AND COLDX_SPIRV_CROSS)
         set(tool_env ${CMAKE_COMMAND} -E env "COLDX_DXC=${COLDX_DXC}" "COLDX_SPIRV_CROSS=${COLDX_SPIRV_CROSS}")

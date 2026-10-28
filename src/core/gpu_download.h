@@ -10,7 +10,7 @@ namespace coldx::detail {
 
 // Copies region of an R8G8B8A8 texture into out (region.width * region.height pixels, rows
 // top to bottom) on a command buffer of its own, and waits for it. Work submitted before it
-// is included; a frame still being recorded is not. False, logged, on failure.
+// is included. A frame still being recorded is not. False, logged, on failure.
 bool DownloadTexture(SDL_GPUDevice* device, SDL_GPUTexture* texture, const Rectangle& region, Color* out);
 
 // Writes width x height pixels to a PNG. straightAlpha undoes premultiplying first, so the

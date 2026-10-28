@@ -33,7 +33,7 @@ struct GraphicsDevice::Impl {
     // With no window there is no swapchain to make the CPU wait for the GPU, so frames
     // submitted faster than the GPU finishes them would queue without end (a software
     // driver, headless, at thousands of frames a second). The fences of the frames in
-    // flight, oldest first; BeginFrame waits for the oldest once there are this many.
+    // flight, oldest first. BeginFrame waits for the oldest once there are this many.
     static constexpr int MaxFramesInFlight = 2;
     std::array<SDL_GPUFence*, MaxFramesInFlight> inFlight{};
     int inFlightCount = 0;
@@ -74,7 +74,7 @@ void GraphicsDevice::Clear(Color color) {
 void GraphicsDevice::SetRenderTarget(const RenderTarget2D* target) {
     Impl& g = *impl_;
     if (!g.inFrame) {
-        SDL_Log("coldx.core: SetRenderTarget called outside Draw; ignored");
+        SDL_Log("coldx.core: SetRenderTarget called outside Draw, ignored");
         return;
     }
     SDL_GPUTexture* handle = target ? detail::TextureAccess::Handle(*target) : nullptr;
@@ -298,7 +298,7 @@ void GraphicsAccess::EndFrame(GraphicsDevice& graphics) {
         blit.destination.w = static_cast<Uint32>(g.presented.width);
         blit.destination.h = static_cast<Uint32>(g.presented.height);
         const detail::Presentation& p = g.presentation;
-        // The bars around a scaled image are cleared; a 1:1 image covers the whole window.
+        // The bars around a scaled image are cleared. A 1:1 image covers the whole window.
         blit.load_op = p.Active() ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_DONT_CARE;
         blit.clear_color = {p.letterbox.r / 255.0f, p.letterbox.g / 255.0f, p.letterbox.b / 255.0f, 1.0f};
         blit.filter = p.Active() && p.smooth ? SDL_GPU_FILTER_LINEAR : SDL_GPU_FILTER_NEAREST;

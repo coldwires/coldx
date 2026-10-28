@@ -29,7 +29,7 @@ const void* TypeKey() {
 
 // When ContentManager reads loose files from RootDirectory.
 enum class LooseFiles {
-    // Debug builds always; release builds only while no package is mounted, so a game
+    // Debug builds always. Release builds only while no package is mounted, so a game
     // that ships a package is not changed by files dropped beside it.
     Auto,
     Always,
@@ -45,7 +45,7 @@ enum class LooseFiles {
 // Load<Texture2D>("sprites/player") finds sprites/player.png. Mounted .rime packages are
 // searched first, newest mount first, then loose files (see LooseFiles). The package
 // "<RootDirectory>.rime" beside the executable, content.rime by default, is mounted the
-// first time anything loads. Loaded types must be copyable; coldx's are handles, so a copy
+// first time anything loads. Loaded types must be copyable. coldx's are handles, so a copy
 // shares the loaded data.
 class ContentManager {
 public:
@@ -58,7 +58,7 @@ public:
     void SetRootDirectory(std::string directory);
     const std::string& RootDirectory() const { return root_; }
 
-    // Adds a .rime package, searched before everything mounted earlier: patches and DLC
+    // Adds a .rime package, searched before everything mounted earlier. Patches and DLC
     // mount after the base game. Relative to the executable's folder unless absolute.
     // False, logged, if it cannot be read.
     bool Mount(const std::string& path);
@@ -145,7 +145,7 @@ private:
     std::shared_ptr<void> Find(const Loader& loader, const std::string& name);
     // The candidates for name: as given if it has an extension, then name plus each one.
     std::vector<std::string> Candidates(const std::string& name, const std::vector<std::string>& extensions) const;
-    // Bytes of the first candidate in a package, or a loose file if allowed; found is the
+    // Bytes of the first candidate in a package, or a loose file if allowed. found is the
     // name it was found under. False if none, with what was tried logged.
     bool FindBytes(const std::vector<std::string>& candidates, std::vector<std::uint8_t>& bytes, std::string& found);
     bool LooseAllowed();

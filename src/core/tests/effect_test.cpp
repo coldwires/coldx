@@ -192,7 +192,7 @@ void Flash() {
     Block(f, 16, 0, 8, 8, Over(Color(128, 128, 128, 128), Black), 1);
 }
 
-// Wave moves pixels, and never past the sprite's source rectangle: a red tile beside a
+// Wave moves pixels, and never past the sprite's source rectangle. A red tile beside a
 // green one in the same texture shows no green, however far the wave reaches.
 void Wave() {
     Scene scene(48, 16);

@@ -23,8 +23,8 @@ struct FontAccess;
 //
 // Glyphs land on whole pixels at scale 1, so text drawn at a whole-pixel position with
 // SamplerState::PointClamp is exactly the rasterized font. A different size is a new bake,
-// not a scale: scaling a bake blurs or blocks it.
-// How glyph edges are baked. Smooth anti-aliases them; Sharp keeps each pixel fully on or
+// not a scale. Scaling a bake blurs or blocks it.
+// How glyph edges are baked. Smooth anti-aliases them. Sharp keeps each pixel fully on or
 // off, for pixel-art games and pixel fonts (at a fixed resolution with integer scaling).
 enum class FontSmoothing {
     Smooth,
@@ -47,7 +47,7 @@ public:
     static SpriteFont FromMemory(GraphicsDevice& graphics, const void* data, std::size_t size, float pixelHeight,
                                  FontSmoothing smoothing = FontSmoothing::Smooth);
 
-    // Width of the widest line and height of all lines. Newlines start a line; '\r' is ignored.
+    // Width of the widest line and height of all lines. Newlines start a line. '\r' is ignored.
     Vector2 MeasureString(std::string_view text) const;
 
     // Distance between baselines. Defaults to the font's ascender, descender and line gap.
@@ -60,7 +60,7 @@ public:
     float Spacing() const;
     void SetSpacing(float spacing);
 
-    // Drawn in place of a character the font does not have. '?' by default; nullopt skips
+    // Drawn in place of a character the font does not have. '?' by default. nullopt skips
     // such characters instead.
     std::optional<char32_t> DefaultCharacter() const;
     void SetDefaultCharacter(std::optional<char32_t> character);

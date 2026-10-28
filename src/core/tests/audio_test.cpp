@@ -1,6 +1,6 @@
 // Audio: the mixer sample by sample, decoding, and the public classes end to end.
 //
-// The mixer is tested directly, with no device: every expected sample is computed here from
+// The mixer is tested directly, with no device. Every expected sample is computed here from
 // the input and the documented rules (linear interpolation, balance pan, clamp). The end-to-end
 // part runs a headless game, which uses SDL's dummy audio driver: silent, but it pulls audio
 // in real time, so voices and music finish as they would aloud.
@@ -81,7 +81,7 @@ void Basics() {
         const auto out = Mix(m, 10);
         for (int i = 0; i < 10; ++i) CHECK(Near(out[i * 2], mono.samples[i]) && Near(out[i * 2 + 1], mono.samples[i]));
     }
-    {   // Volume scales; pan fades only the far side.
+    {   // Volume scales. Pan fades only the far side.
         Mixer m(Rate);
         m.Submit(Play(0, 1, mono, 0.5f, 0.0f, 1.0f));
         m.Submit(Play(1, 1, stereo, 1.0f, 0.0f, -0.5f));
@@ -138,7 +138,7 @@ void Lifetimes() {
         CHECK(Near(out[19 * 2], (slow.samples[9] + slow.samples[0]) / 2));
         CHECK(Near(out[20 * 2], slow.samples[0]));
     }
-    {   // Pause holds the position; resume carries on from it. Stop ends it.
+    {   // Pause holds the position. Resume carries on from it. Stop ends it.
         Mixer m(Rate);
         m.Submit(Play(0, 1, mono));
         Mix(m, 3);
@@ -180,7 +180,7 @@ void Lifetimes() {
     }
 }
 
-// Volume and pan changes ramp across the next block instead of jumping; a new sound starts
+// Volume and pan changes ramp across the next block instead of jumping. A new sound starts
 // at its own gain.
 void Ramping() {
     SoundData flat;
@@ -312,14 +312,14 @@ void MusicMixing() {
     CHECK(all);
     CHECK(m.MusicEnded() == 0);
 
-    // Unlooped, it ends and is handed back; the game thread frees it.
+    // Unlooped, it ends and is handed back. The game thread frees it.
     Mix(m, Rate);
     CHECK(m.MusicEnded() == 1);
     CHECK(m.TakeRetiredMusic() == stream.get());
 }
 
 // Crossfades and fade-outs: the old track fades under the new one and is handed back when
-// its fade ends; after the fade the output is the new track alone, sample for sample.
+// its fade ends. After the fade the output is the new track alone, sample for sample.
 void MusicFades() {
     const std::vector<unsigned char> toneBytes = ReadFile(COLDX_TEST_DATA "/tone.ogg");
     const std::vector<unsigned char> stereoBytes = ReadFile(COLDX_TEST_DATA "/stereo.ogg");
@@ -491,7 +491,7 @@ void EndToEnd() {
             mark = t;
         } else if (phase == 2 && t > mark + 0.1) {
             // The stop has reached the audio thread, and the finished `once` instance holds
-            // nothing: every voice is free. MaxVoices three-second sounds play; one more finds none.
+            // nothing. Every voice is free. MaxVoices three-second sounds play, and one more finds none.
             CHECK(once.State() == SoundState::Stopped);
             int played = 0;
             for (int i = 0; i < SoundEffect::MaxVoices + 1; ++i) played += longEffect.Play() ? 1 : 0;

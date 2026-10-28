@@ -47,7 +47,7 @@ struct Pad {
     }
 };
 
-// Pad tests run headless; a hidden window has no focus, and SDL drops pad presses without it.
+// Pad tests run headless. A hidden window has no focus, and SDL drops pad presses without it.
 void PadEnvironment(bool on) {
     SetEnv("COLDX_HEADLESS", on ? "1" : nullptr);
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, on ? "1" : "0");
@@ -84,7 +84,7 @@ Result GamepadMapping() {
         } else {
             const GamePadState s = GamePad::GetState(0);
             if (s.buttons != static_cast<std::uint32_t>(map[i].second))
-                wrong += Format(" SDL button %d gave 0x%x;", static_cast<int>(map[i].first), s.buttons);
+                wrong += Format(" SDL button %d gave 0x%x.", static_cast<int>(map[i].first), s.buttons);
             SDL_SetJoystickVirtualButton(pad.joystick, map[i].first, false);
             ++i;
         }
@@ -117,21 +117,21 @@ Result Hotplug() {
     game.update = [&](Probe& p, const GameTime&) {
         switch (p.updates) {
         case 3:
-            if (connected() != "1111") problems += " four pads at once gave " + connected() + ";";
+            if (connected() != "1111") problems += " four pads at once gave " + connected() + ".";
             pads[1].Detach();
             pads[2].Detach();
             break;
         case 6:
-            if (connected() != "1001") problems += " after unplugging players 1 and 2: " + connected() + ";";
+            if (connected() != "1001") problems += " after unplugging players 1 and 2: " + connected() + ".";
             pads[4].Attach("ft hotplug pad");
             break;
         case 9:
-            if (connected() != "1101") problems += " a new pad should take player 1: " + connected() + ";";
+            if (connected() != "1101") problems += " a new pad should take player 1: " + connected() + ".";
             pads[5].Attach("ft hotplug pad");
             pads[1].Attach("ft hotplug pad");
             break;
         case 12:
-            if (connected() != "1111") problems += " filling up: " + connected() + ";";
+            if (connected() != "1111") problems += " filling up: " + connected() + ".";
             p.Exit();
             break;
         }
@@ -140,14 +140,14 @@ Result Hotplug() {
     for (Pad& pad : pads) pad.Detach();
     PadEnvironment(false);
     r.status = rc == 0 && problems.empty() ? Status::NeedsHuman : Status::Fail;
-    r.notes = problems.empty() ? "Four at once; unplugging players 1 and 2 left 0 and 3 where they were; the next pad took the "
-                                 "lowest free player; with all four taken, a further pad was turned away (logged). Real "
+    r.notes = problems.empty() ? "Four at once. Unplugging players 1 and 2 left 0 and 3 where they were. The next pad took the "
+                                 "lowest free player. With all four taken, a further pad was turned away (logged). Real "
                                  "controllers plugged in mid-game need a person."
                                : "Problems:" + problems;
     return r;
 }
 
-// INP-03: at rest and with small noise the sticks read zero; triggers rise smoothly to 1.
+// INP-03: at rest and with small noise the sticks read zero. Triggers rise smoothly to 1.
 Result Deadzones() {
     Result r{"INP-03", "P1"};
     PadEnvironment(true);
@@ -161,21 +161,21 @@ Result Deadzones() {
         if (p.updates == 3) {
             const GamePadState s = GamePad::GetState(0);
             if (s.leftStick != Vector2() || s.rightStick != Vector2() || s.leftTrigger != 0 || s.rightTrigger != 0)
-                problems += " not zero at rest;";
+                problems += " not zero at rest.";
             SDL_SetJoystickVirtualAxis(pad.joystick, SDL_GAMEPAD_AXIS_LEFTX, 3000);  // drift, about 9%
             SDL_SetJoystickVirtualAxis(pad.joystick, SDL_GAMEPAD_AXIS_RIGHTY, -4000);
         } else if (p.updates == 5) {
             const GamePadState s = GamePad::GetState(0);
-            if (s.leftStick.x != 0 || s.rightStick.y != 0) problems += " drift got through the dead zone;";
+            if (s.leftStick.x != 0 || s.rightStick.y != 0) problems += " drift got through the dead zone.";
         } else if (p.updates > 5 && step <= 32) {
-            // A slow trigger pull, 0 to full in 32 steps: must never go backwards and end at 1.
+            // A slow trigger pull, 0 to full in 32 steps. It must never go backwards and must end at 1.
             const float v = GamePad::GetState(0).rightTrigger;
-            if (step > 0 && v < last) problems += " trigger went backwards;";
+            if (step > 0 && v < last) problems += " trigger went backwards.";
             last = v;
             SDL_SetJoystickVirtualAxis(pad.joystick, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, static_cast<Sint16>(std::min(32767, step * 1024)));
             ++step;
         } else if (step > 32) {
-            if (std::fabs(GamePad::GetState(0).rightTrigger - 1.0f) > 1e-4f) problems += " trigger did not reach 1;";
+            if (std::fabs(GamePad::GetState(0).rightTrigger - 1.0f) > 1e-4f) problems += " trigger did not reach 1.";
             p.Exit();
         }
     };
@@ -190,7 +190,7 @@ Result Deadzones() {
     return r;
 }
 
-// INP-04: rumble where the pad has motors; no crash and a false return where it has not.
+// INP-04: rumble where the pad has motors. No crash and a false return where it has not.
 Result Rumble() {
     Result r{"INP-04", "P2"};
     PadEnvironment(true);
@@ -215,7 +215,7 @@ Result Rumble() {
     none.Detach();
     PadEnvironment(false);
     r.status = rc == 0 && withOk && withoutOk && absentOk ? Status::NeedsHuman : Status::Fail;
-    r.notes = Format("Pad with motors got the strengths asked for: %s; pad without motors returned false: %s; no pad: %s. "
+    r.notes = Format("Pad with motors got the strengths asked for: %s. Pad without motors returned false: %s. No pad: %s. "
                      "Real controllers need a person.",
                      withOk ? "yes" : "NO", withoutOk ? "yes" : "NO", absentOk ? "yes" : "NO");
     return r;
@@ -264,7 +264,7 @@ Result MouseEdges() {
     r.status = released ? Status::NeedsHuman : Status::Fail;
     r.notes = notes + (released ? "Focus loss released the held button. " : "A held button stayed down after focus loss. ") +
               "Wheel deltas, both directions and natural scrolling, are covered by core.input. " +
-              (keptInside ? std::string("Bug: outside the window the position stopped at the edge; mouse.h says it "
+              (keptInside ? std::string("Bug: outside the window the position stopped at the edge. mouse.h says it "
                                         "follows the pointer, as in XNA. ")
                           : std::string("Outside the window the position follows the pointer, as mouse.h says. ")) +
               "Real alt-tab with a button held needs a person.";
@@ -297,8 +297,8 @@ Result SaveLocation() {
     std::filesystem::remove(made, ignored);
     std::filesystem::remove(made.parent_path().parent_path(), ignored);
     r.status = roundTrip && underAppData && notInstall ? Status::NeedsHuman : Status::Fail;
-    r.notes = Format("Windows: %s (under %%APPDATA%%: %s; outside the executable's folder: %s; write and read back: %s). "
-                     "SDL's pref path gives ~/.local/share on Linux and Application Support on macOS; those need the "
+    r.notes = Format("Windows: %s (under %%APPDATA%%: %s, outside the executable's folder: %s, write and read back: %s). "
+                     "SDL's pref path gives ~/.local/share on Linux and Application Support on macOS. Those need the "
                      "machines.",
                      folder.c_str(), underAppData ? "yes" : "NO", notInstall ? "yes" : "NO", roundTrip ? "yes" : "NO");
     return r;
@@ -333,7 +333,7 @@ Result Minimize() {
     };
     const int rc = game.Run();
     const bool lostFocus = std::find(focus.begin(), focus.end(), false) != focus.end();
-    // A window opened by a background process may never get focus; then there is none to lose.
+    // A window opened by a background process may never get focus. Then there is none to lose.
     const bool focusOk = !hadFocus || lostFocus;
     r.status = rc == 0 && maxDelta < 0.02 && focusOk ? Status::NeedsHuman : Status::Fail;
     r.notes = Format("Minimized 2 s and restored: %d updates ran while minimized (the game keeps time), largest update step "

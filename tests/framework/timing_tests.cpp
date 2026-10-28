@@ -46,15 +46,15 @@ Result FixedTimestep() {
     SDL_DisplayID display = SDL_GetPrimaryDisplay();
     const SDL_DisplayMode* mode = display ? SDL_GetCurrentDisplayMode(display) : nullptr;
     r.status = std::abs(updates - 3600) <= 1 ? Status::NeedsHuman : Status::Fail;
-    r.notes = Format("%lld updates and %lld draws in 60 s at %.0f Hz with vsync on (want 3600 +-1); the most off single "
-                     "second had %d updates. By default draws are not decoupled from updates: with a fixed timestep coldx draws "
+    r.notes = Format("%lld updates and %lld draws in 60 s at %.0f Hz with vsync on (want 3600 +-1). The most off single "
+                     "second had %d updates. By default draws are not decoupled from updates. With a fixed timestep coldx draws "
                      "once per frame that ran updates, as XNA does, so a high-refresh display shows 60 fps, not "
-                     "interpolated frames; drawBetweenUpdates turns that on (TIME-05). Smoothness of motion, and 60 Hz or slow machines, need a person.",
+                     "interpolated frames. drawBetweenUpdates turns that on (TIME-05). Smoothness of motion, and 60 Hz or slow machines, need a person.",
                      updates, draws, mode ? mode->refresh_rate : 0.0f, worstSecond);
     return r;
 }
 
-// TIME-02: 200 ms stalls, once and then five in a row: the loop must catch up within its
+// TIME-02: 200 ms stalls, once and then five in a row. The loop must catch up within its
 // cap, flag the slow frames, and settle back to one update per frame.
 Result Stalls() {
     Result r{"TIME-02", "P0"};
@@ -103,7 +103,7 @@ Result Stalls() {
     return r;
 }
 
-// TIME-03: vsync on and off every 1.5 s; frame rate must follow, nothing may break.
+// TIME-03: vsync on and off every 1.5 s. Frame rate must follow, and nothing may break.
 Result VsyncToggle() {
     Result r{"TIME-03", "P1"};
     Probe game;
@@ -125,7 +125,7 @@ Result VsyncToggle() {
         }
     };
     const int rc = game.Run();
-    // Phase 0 is warm-up; after it, on and off phases alternate, so each set is averaged by
+    // Phase 0 is warm-up. After it, on and off phases alternate, so each set is averaged by
     // its own count.
     double onFps = 0, offFps = 0;
     int onCount = 0, offCount = 0;
@@ -140,13 +140,13 @@ Result VsyncToggle() {
     const float hz = mode ? mode->refresh_rate : 0.0f;
     const bool ok = rc == 0 && hz > 0 && std::abs(onFps - hz) < hz * 0.1 && offFps > hz * 1.5;
     r.status = ok ? Status::NeedsHuman : Status::Fail;
-    r.notes = Format("7 toggles: vsync on averaged %.0f fps (display %.0f Hz), off %.0f fps; no errors. Tearing with vsync "
+    r.notes = Format("7 toggles: vsync on averaged %.0f fps (display %.0f Hz), off %.0f fps. No errors. Tearing with vsync "
                      "off, and 60 Hz displays, need a person.",
                      onFps, hz, offFps);
     return r;
 }
 
-// TIME-04: a typical scene for a long time; memory must not climb and the fixed step must
+// TIME-04: a typical scene for a long time. Memory must not climb and the fixed step must
 // still be exact at the end.
 Result LongSession() {
     Result r{"TIME-04", "P0"};
@@ -201,7 +201,7 @@ Result LongSession() {
     const bool ok = first > 0 && last - first < 5.0 && std::abs(lastMinute - 3600) <= 1;
     r.status = ok ? Status::Pass : Status::Fail;
     r.notes = Format("%d minutes headless with 5000 sprites, a sound every quarter second, input polling: memory %.1f MB "
-                     "after one minute, %.1f MB at the end (%+.1f); %lld updates in the final minute (want 3600 +-1).",
+                     "after one minute, %.1f MB at the end (%+.1f). %lld updates in the final minute (want 3600 +-1).",
                      SoakMinutes, first, last, last - first, lastMinute);
     return r;
 }

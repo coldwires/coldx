@@ -40,20 +40,20 @@ Result VirtualResolution() {
     game.resized = [&](int, int) { ++resizes; };
     auto expect = [&](const char* what, Rectangle want) {
         const Rectangle got = game.Graphics().PresentedArea();
-        notes += Format("%s: %d,%d %dx%d; ", what, got.x, got.y, got.width, got.height);
-        if (got != want) problems += Format(" %s placed wrong (want %d,%d %dx%d);", what, want.x, want.y, want.width, want.height);
+        notes += Format("%s: %d,%d %dx%d. ", what, got.x, got.y, got.width, got.height);
+        if (got != want) problems += Format(" %s placed wrong (want %d,%d %dx%d).", what, want.x, want.y, want.width, want.height);
     };
     game.update = [&](Probe& p, const GameTime&) {
         switch (p.updates) {
         case 5:
-            if (p.Graphics().BackBufferWidth() != 320 || p.Graphics().BackBufferHeight() != 180) problems += " back buffer not 320x180;";
+            if (p.Graphics().BackBufferWidth() != 320 || p.Graphics().BackBufferHeight() != 180) problems += " back buffer not 320x180.";
             expect("Integer in 1000x1000", Rectangle(20, 230, 960, 540));
             Mouse::SetPosition(100, 50);
             break;
         case 8: {
             const MouseState m = Mouse::GetState();
-            notes += Format("mouse set to (100, 50) reads (%d, %d); ", m.x, m.y);
-            if (m.x != 100 || m.y != 50) problems += " mouse position does not round-trip;";
+            notes += Format("mouse set to (100, 50) reads (%d, %d). ", m.x, m.y);
+            if (m.x != 100 || m.y != 50) problems += " mouse position does not round-trip.";
             p.SetScaleMode(ScaleMode::Fit);
             break;
         }
@@ -63,21 +63,21 @@ Result VirtualResolution() {
             break;
         case 20:
             expect("Fit in 1280x720", Rectangle(0, 0, 1280, 720));
-            if (p.Graphics().BackBufferWidth() != 320) problems += " back buffer followed the window;";
+            if (p.Graphics().BackBufferWidth() != 320) problems += " back buffer followed the window.";
             p.Exit();
             break;
         default: break;
         }
     };
     const int rc = game.Run();
-    if (resizes != 0) problems += Format(" OnResize fired %d times for window changes;", resizes);
+    if (resizes != 0) problems += Format(" OnResize fired %d times for window changes.", resizes);
     r.status = rc == 0 && problems.empty() ? Status::NeedsHuman : Status::Fail;
     r.notes = notes + "Scaling quality and the bars need a person (VRES-02)." + (problems.empty() ? "" : " Problems:" + problems);
     return r;
 }
 
 // FS-01: exclusive fullscreen at a resolution below the desktop's, entered while running
-// and at startup; the display must come back to its desktop mode afterwards.
+// and at startup. The display must come back to its desktop mode afterwards.
 Result ExclusiveFullscreen() {
     Result r{"FS-01", "P1"};
     std::string notes, problems;
@@ -93,25 +93,25 @@ Result ExclusiveFullscreen() {
                 desktop = p.DesktopDisplayMode();
                 const std::vector<DisplayMode> modes = p.DisplayModes();
                 modeCount = modes.size();
-                if (modes.empty()) problems += " no display modes listed;";
+                if (modes.empty()) problems += " no display modes listed.";
                 p.SetFullscreenMode(FullscreenMode::Exclusive, 1920, 1080);
                 p.SetFullscreen(true);
                 phase = 1;
                 since = Now();
             } else if (phase == 1 && ((w == 1920 && h == 1080) || Now() - since > 5)) {
                 const SDL_DisplayMode* m = SDL_GetWindowFullscreenMode(OnlyWindow());
-                notes += Format("running: back buffer %dx%d after %.1f s, window mode %s; ", w, h, Now() - since,
+                notes += Format("running: back buffer %dx%d after %.1f s, window mode %s. ", w, h, Now() - since,
                                 m ? Format("%dx%d at %.0f Hz", m->w, m->h, m->refresh_rate).c_str() : "borderless");
-                if (w != 1920 || h != 1080 || !m) problems += " exclusive 1920x1080 not entered;";
+                if (w != 1920 || h != 1080 || !m) problems += " exclusive 1920x1080 not entered.";
                 p.SetFullscreen(false);
                 phase = 2;
                 since = Now();
             } else if (phase == 2 && ((w == 1280 && h == 720) || Now() - since > 5)) {
-                if (w != 1280 || h != 720) problems += Format(" back to a window gave %dx%d;", w, h);
+                if (w != 1280 || h != 720) problems += Format(" back to a window gave %dx%d.", w, h);
                 p.Exit();
             }
         };
-        if (game.Run() != 0) problems += " first run failed;";
+        if (game.Run() != 0) problems += " first run failed.";
     }
     {
         Probe game;
@@ -125,14 +125,14 @@ Result ExclusiveFullscreen() {
             if (p.updates == 30) p.Exit();
         };
         game.Run();
-        notes += Format("started fullscreen: first frame %d wide; ", first);
-        if (first != 1920) problems += " a fullscreen start did not begin at 1920;";
+        notes += Format("started fullscreen: first frame %d wide. ", first);
+        if (first != 1920) problems += " a fullscreen start did not begin at 1920.";
     }
     // After both runs the display is back at its desktop mode.
     SDL_Init(SDL_INIT_VIDEO);
     const SDL_DisplayMode* now = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
-    if (now && (now->w != desktop.width || now->h != desktop.height)) problems += " the display did not return to its desktop mode;";
-    notes += Format("%zu modes listed; desktop %dx%d at %.0f Hz, now %dx%d. ", modeCount, desktop.width, desktop.height,
+    if (now && (now->w != desktop.width || now->h != desktop.height)) problems += " the display did not return to its desktop mode.";
+    notes += Format("%zu modes listed. Desktop %dx%d at %.0f Hz, now %dx%d. ", modeCount, desktop.width, desktop.height,
                     desktop.refreshRate, now ? now->w : 0, now ? now->h : 0);
     SDL_Quit();
     r.status = problems.empty() ? Status::NeedsHuman : Status::Fail;
@@ -140,8 +140,8 @@ Result ExclusiveFullscreen() {
     return r;
 }
 
-// TIME-05: drawing between updates in a real window with vsync: draws at the display's
-// rate, updates at 60.
+// TIME-05: drawing between updates in a real window with vsync. It draws at the display's
+// rate and updates at 60.
 Result DrawBetweenUpdates() {
     Result r{"TIME-05", "P1"};
     Probe game;
@@ -201,7 +201,7 @@ void TypingScene(HumanScene& s) {
     s.readout = [text] {
         int characters = 0;
         for (unsigned char c : *text) characters += (c & 0xC0) != 0x80 ? 1 : 0;
-        return std::vector<std::string>{Format("%d characters, %zu bytes; composing: %zu bytes", characters, text->size(),
+        return std::vector<std::string>{Format("%d characters, %zu bytes. Composing: %zu bytes", characters, text->size(),
                                                TextInput::Composition().size()),
                                         "Ctrl+V pastes, Ctrl+C copies the line, Backspace deletes, Enter clears"};
     };
@@ -281,20 +281,20 @@ void RegisterFeatures() {
     AutoTests().push_back({"TIME-05", "P1", "Drawing between updates", DrawBetweenUpdates});
     HumanTests().push_back({"AUD-06", "P1", "Music crossfade",
                             {"Switch between the two tracks with each key, several times, also mid-fade.",
-                             "Pass: crossfades are smooth with no dip in loudness halfway and no click; a cut (3) is",
-                             "instant; fade out ends in silence and playing shows no."},
+                             "Pass: crossfades are smooth with no dip in loudness halfway and no click. A cut (3) is",
+                             "instant. Fade out ends in silence and playing shows no."},
                             CrossFadeScene});
     HumanTests().push_back({"INP-06", "P1", "Text input",
-                            {"Type a name with accents (e with acute, u with umlaut) and dead keys; paste text with Ctrl+V;",
-                             "turn on a Japanese or Chinese IME and type. The font draws Latin-1 only: other scripts show as",
-                             "gaps, so check the counts. Pass: accents arrive as one character each; Backspace removes one",
-                             "character; the IME's candidate list sits beside the cyan caret; paste and copy work."},
+                            {"Type a name with accents (e with acute, u with umlaut) and dead keys. Paste text with Ctrl+V.",
+                             "Turn on a Japanese or Chinese IME and type. The font draws Latin-1 only. Other scripts show as",
+                             "gaps, so check the counts. Pass: accents arrive as one character each. Backspace removes one",
+                             "character. The IME's candidate list sits beside the cyan caret. Paste and copy work."},
                             TypingScene});
     HumanTests().push_back(
         {"TIME-06", "P1", "Interpolated motion by eye",
          {"Two squares cross at 60 updates a second. The top one is drawn interpolated, the bottom one is not.",
           "Best on a display above 60 Hz. I turns drawing between updates off and on.",
-          "Pass: with it on, the top square moves visibly smoother than the bottom one; neither stutters or jumps back."},
+          "Pass: with it on, the top square moves visibly smoother than the bottom one. Neither stutters or jumps back."},
          [](HumanScene& s) {
              s.Settings().drawBetweenUpdates = true;
              auto pos = std::make_shared<std::array<float, 2>>();  // previous, current
@@ -319,7 +319,7 @@ void RegisterFeatures() {
     HumanTests().push_back({"FS-02", "P1", "Exclusive fullscreen by hand",
                             {"E: exclusive at 1920x1080. B: borderless. F11 toggles fullscreen.",
                              "In exclusive, alt-tab away and back, and press the Windows key.",
-                             "Pass: the game comes back at 1920x1080, corners intact; the desktop is untouched after quitting."},
+                             "Pass: the game comes back at 1920x1080, corners intact. The desktop is untouched after quitting."},
                             [](HumanScene& s) {
                                 s.update = [&s](const GameTime&) {
                                     if (Keyboard::WasPressed(Key::E)) s.SetFullscreenMode(FullscreenMode::Exclusive, 1920, 1080);
@@ -342,8 +342,8 @@ void RegisterFeatures() {
                             }});
     HumanTests().push_back({"VRES-02", "P1", "Virtual resolution by eye",
                             {"640x360 scaled into the window. Resize it, try each mode, go fullscreen.",
-                             "Pass: the yellow frame is always fully visible; Integer keeps the checker crisp;",
-                             "bars are purple; the red cross stays under the pointer, also in the bars' edges."},
+                             "Pass: the yellow frame is always fully visible. Integer keeps the checker crisp.",
+                             "Bars are purple. The red cross stays under the pointer, also in the bars' edges."},
                             VirtualScene});
 }
 

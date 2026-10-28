@@ -1,5 +1,5 @@
 // Many moving, rotating sprites with vsync off, logging frames per second. The sprite count
-// is the first argument; 10,000 by default.
+// is the first argument, 10,000 by default.
 
 #include <coldx/coldx.h>
 

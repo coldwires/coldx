@@ -77,8 +77,8 @@ bool PackageWriter::Add(std::string_view name, AssetType type, std::vector<std::
             return false;
         }
         if (p.hash == hash) {
-            // A 64-bit collision; vanishingly rare, and a different seed fixes it.
-            SDL_Log("coldx.core: rime: \"%s\" and \"%s\" hash alike; change the package seed", normal.c_str(),
+            // A 64-bit collision. It is vanishingly rare, and a different seed fixes it.
+            SDL_Log("coldx.core: rime: \"%s\" and \"%s\" hash alike. Change the package seed", normal.c_str(),
                     p.name.c_str());
             return false;
         }

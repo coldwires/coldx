@@ -26,7 +26,7 @@ struct MusicData {
 };
 
 // One playback of a MusicData: a decoder plus the buffer the mixer resamples from. Made
-// and destroyed on the game thread; between Play and its return to the game thread, only
+// and destroyed on the game thread. Between Play and its return to the game thread, only
 // the audio thread touches it.
 class MusicStream {
 public:
@@ -38,7 +38,7 @@ public:
 
     int Channels() const { return data_->channels; }
     int SampleRate() const { return data_->sampleRate; }
-    // Up to frames interleaved frames into out; 0 at the end of the track.
+    // Up to frames interleaved frames into out. 0 at the end of the track.
     int Read(float* out, int frames);
     void Rewind();
 

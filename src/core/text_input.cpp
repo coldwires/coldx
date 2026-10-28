@@ -11,7 +11,7 @@ namespace coldx {
 void TextInput::Start() {
     detail::Input& in = detail::Input::Get();
     if (!in.window) {
-        SDL_Log("coldx.core: TextInput::Start before Run; call it from Initialize on");
+        SDL_Log("coldx.core: TextInput::Start before Run. Call it from Initialize on");
         return;
     }
     if (!SDL_StartTextInput(in.window)) SDL_Log("coldx.core: could not start text input: %s", SDL_GetError());

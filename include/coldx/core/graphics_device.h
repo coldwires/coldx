@@ -12,9 +12,9 @@ class RenderTarget2D;
 // How a fixed virtual resolution (GameSettings::virtualWidth and virtualHeight) fills the
 // window.
 enum class ScaleMode {
-    Fit,      // as large as fits with the aspect ratio kept; bars on two sides
-    Integer,  // whole multiples only (1x, 2x, 3x), for pixel art; below 1x it shrinks as Fit
-    Stretch,  // fills the window; the aspect ratio is not kept
+    Fit,      // as large as fits with the aspect ratio kept, bars on two sides
+    Integer,  // whole multiples only (1x, 2x, 3x), for pixel art. Below 1x it shrinks as Fit
+    Stretch,  // fills the window. The aspect ratio is not kept
 };
 
 namespace detail {
@@ -31,7 +31,7 @@ public:
     void Clear(Color color);
 
     // Where Clear and SpriteBatch draw from now on. nullptr, or an empty target, means the
-    // back buffer. Only has an effect inside Draw; every frame starts on the back buffer.
+    // back buffer. Only has an effect inside Draw. Every frame starts on the back buffer.
     // Do not draw a target into itself.
     void SetRenderTarget(const RenderTarget2D* target);
 
@@ -44,7 +44,7 @@ public:
     bool PixelArt() const;
 
     // Where the back buffer was shown in the window last frame, in window pixels. The whole
-    // window unless a virtual resolution is set; empty headless.
+    // window unless a virtual resolution is set. Empty headless.
     Rectangle PresentedArea() const;
 
     // The back buffer as the last finished frame left it, BackBufferWidth() *

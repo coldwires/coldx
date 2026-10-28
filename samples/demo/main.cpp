@@ -14,22 +14,22 @@
 //   Content: textures, sounds, music, fonts, ReadBytes, a custom loader     this file, screens.h
 //   Packed content: encrypted, fingerprinted, watermarked (CMakeLists.txt)  content/content.coldx
 //   Texture2D: FromPixels, GetData (collision masks), SetData (the radar),
-//     SaveAsPng (screenshots); RenderTarget2D (the playfield)               world.h, play.h, this file
+//     SaveAsPng (screenshots). RenderTarget2D (the playfield)             world.h, play.h, this file
 //   SpriteBatch: every sort mode but Immediate, every blend state, the
 //     wrap sampler, flips, depth, scale, a transform (screen shake)         play.h, screens.h
 //   Effect: grayscale (pause), flash (hit), wave (title)                    play.h, screens.h
 //   SpriteFont: sharp pixel font, MeasureString, LineSpacing, HasCharacter  screens.h
-//   Keyboard, KeyName, KeyForCharacter; Mouse, wheel, cursor; GamePad,
-//     vibration, capabilities, button labels; TextInput, Clipboard          this file, screens.h
-//   SoundEffect with pitch and pan; FromSamples; a looping instance;
+//   Keyboard, KeyName, KeyForCharacter. Mouse, wheel, cursor. GamePad,
+//     vibration, capabilities, button labels. TextInput, Clipboard          this file, screens.h
+//   SoundEffect with pitch and pan. FromSamples. A looping instance.
 //     MediaPlayer play, pause, resume, fade out, crossfade                  this file, play.h
-//   Storage (high scores, screenshots); Log; COLDX_HIDDEN; Matrix, Rectangle,
+//   Storage (high scores, screenshots). Log. COLDX_HIDDEN. Matrix, Rectangle,
 //     Point, MathHelper                                                     everywhere
 //
 // Not shown: Immediate sort mode (an effect test uses it), SetFullscreenMode for exclusive
 // fullscreen, SetVirtualResolution while running, Mount for a second package,
 // Load<Effect> (the effects are compiled into the game here, so building the demo needs no
-// Vulkan SDK; see QUICKSTART "Custom shaders" for packing them instead).
+// Vulkan SDK. See QUICKSTART "Custom shaders" for packing them instead).
 
 #include <coldx/coldx.h>
 #include <coldx/protect/hidden.h>
@@ -53,7 +53,7 @@ public:
         Settings().company = "coldx";
         if (!profile.empty()) Settings().name = "coldx demo " + profile;
         Settings().resizable = true;
-        // The game is 640x360; the window shows it at whole multiples, bars filling the rest,
+        // The game is 640x360. The window shows it at whole multiples, bars filling the rest,
         // and every SpriteBatch samples point-wise and snaps to whole pixels.
         Settings().pixelArt = true;
         Settings().virtualWidth = Width;
@@ -84,7 +84,7 @@ protected:
         });
         world_.sheet = content.Load<Texture2D>("sheet");
         world_.waves = content.Load<Waves>("levels/waves");
-        // Silkscreen is drawn on a grid of 125 font units, 8 to the em; 10.24 px (ascender
+        // Silkscreen is drawn on a grid of 125 font units, 8 to the em. 10.24 px (ascender
         // to descender) puts one of its pixels on one screen pixel, 20.48 on two.
         world_.font = content.LoadFont("silkscreen/Silkscreen-Regular", 10.24f, FontSmoothing::Sharp);
         world_.big = content.LoadFont("silkscreen/Silkscreen-Regular", 20.48f, FontSmoothing::Sharp);
@@ -164,7 +164,7 @@ protected:
     }
 
     void Draw(const GameTime&) override {
-        // The playfield components draw into the render target; the Compositor puts it on
+        // The playfield components draw into the render target. The Compositor puts it on
         // the back buffer and the screens draw over it.
         Graphics().SetRenderTarget(&world_.field);
         Graphics().Clear(Color(8, 10, 20));
@@ -240,7 +240,7 @@ private:
         if (pad.IsButtonDown(Buttons::DPadLeft)) move.x -= 1;
         if (pad.IsButtonDown(Buttons::DPadRight)) move.x += 1;
         world_.player.x += MathHelper::Clamp(move.x, -1.0f, 1.0f) * 210.0f * dt;
-        // The mouse is in the game's 640x360 pixels, whatever the window's size; undo the
+        // The mouse is in the game's 640x360 pixels, whatever the window's size. Undo the
         // shake so the ship goes where the pointer is, not where the shaken screen shows it.
         const MouseState mouse = Mouse::GetState();
         if (mouse.left) {

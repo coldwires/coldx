@@ -5,7 +5,7 @@
 namespace coldx {
 
 // 4x4 matrix in XNA's convention: row vectors, so a point is transformed as v * M, and
-// A * B applies A first. m[row][col]; the translation is m[3][0..2].
+// A * B applies A first. Elements are m[row][col], and the translation is m[3][0..2].
 struct Matrix {
     float m[4][4] = {
         {1, 0, 0, 0},

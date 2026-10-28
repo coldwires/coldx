@@ -27,7 +27,7 @@ public:
     }
 
 protected:
-    // Formats that are compressed already never shrink; not trying saves build time.
+    // Formats that are compressed already never shrink. Not trying saves build time.
     virtual bool Compressible() const { return true; }
     virtual rime::AssetType Type() const = 0;
     virtual bool Check(const std::vector<std::uint8_t>& bytes, std::string& error) const = 0;
@@ -38,7 +38,7 @@ public:
     std::string Name() const override { return "texture"; }
     std::vector<std::string> SettingKeys() const override { return {"format", "watermark"}; }
 
-    // format = png (the default) stores the PNG; format = raw stores the decoded,
+    // format = png (the default) stores the PNG. format = raw stores the decoded,
     // premultiplied pixels, compressed: larger, but no PNG decode when it loads.
     // watermark = rgb or alpha marks the PNG with the project's mark or the build's
     // fingerprint (watermark.h).
@@ -130,7 +130,7 @@ public:
         if (mark == "off") return Stored::Process(source, settings, outputs, error);
         if (!Check(source.bytes, error)) return false;
         if (!StartsWith(source.bytes, "RIFF")) {
-            error = "watermark = on needs WAV; put OGG sounds in a section without it";
+            error = "watermark = on needs WAV. Put OGG sounds in a section without it";
             return false;
         }
         Output out{source.name, rime::AssetType::Sound, {}, true};

@@ -1,8 +1,8 @@
-// Watermarks: every layer of a marked PNG and WAV reads back the fingerprint; the marks
+// Watermarks: every layer of a marked PNG and WAV reads back the fingerprint. The marks
 // stay invisible and inaudible (at most 1 per channel or sample, palettes and silence
-// untouched); a wrong secret finds nothing; a re-save by another encoder keeps exactly the
-// layers it should; crops and trimmed clips still name the build; nothing unmarked is ever
-// named; and Build marks only when asked and when there is a build id.
+// untouched). A wrong secret finds nothing. A re-save by another encoder keeps exactly the
+// layers it should. Crops and trimmed clips still name the build. Nothing unmarked is ever
+// named. Build marks only when asked and when there is a build id.
 
 #include <coldx/coldx.h>
 #include <coldx/content/build.h>
@@ -122,7 +122,7 @@ void Painted() {
     std::printf("after a re-save:\n");
     CHECK(!Layer(after, "chunk")->found);
     CHECK(Found(after, "pixel bits (rgb)", Print));
-    Found(after, "transparent pixels", Print);  // SDL keeps their colour; other editors may not
+    Found(after, "transparent pixels", Print);  // SDL keeps their colour. Other editors may not
 
     // Crops at odd offsets, re-saved: the tiles line up somewhere, and the reader finds where.
     // Reading an unknown fingerprint takes two whole tiles each way, about 75x75.
@@ -201,7 +201,7 @@ void PixelArt() {
         CHECK(b[p * 4 + 3] >= 254);
         marks += b[p * 4 + 3] == 254 ? 1 : 0;
     }
-    std::printf("  colours after marking: %zu (palette of 4); %d pixels at alpha 254\n", colours.size(), marks);
+    std::printf("  colours after marking: %zu (palette of 4), %d pixels at alpha 254\n", colours.size(), marks);
     CHECK(colours.size() == 4 && marks > 0);
 }
 
@@ -241,7 +241,7 @@ void Sound() {
         changed += s != samples[i] ? 1 : 0;
         if (samples[i] == 0) silenceKept = silenceKept && s == 0;
     }
-    std::printf("  samples changed: %d of %zu, by at most %d; silence untouched: %s\n", changed, samples.size(), worst,
+    std::printf("  samples changed: %d of %zu, by at most %d, silence untouched: %s\n", changed, samples.size(), worst,
                 silenceKept ? "yes" : "NO");
     CHECK(worst == 1 && silenceKept);
     // Still a WAV every player reads: coldx decodes it to the same number of frames.
@@ -268,7 +268,7 @@ std::vector<std::uint8_t> ReadAll(const fs::path& path) {
     return std::vector<std::uint8_t>(std::istreambuf_iterator<char>(file), {});
 }
 
-// Build marks a section only when it asks and there is a build id; two ids, two marks.
+// Build marks a section only when it asks and there is a build id. Two ids, two marks.
 void Pipeline() {
     const fs::path dir = fs::temp_directory_path() / "coldx_watermark_test";
     fs::remove_all(dir);

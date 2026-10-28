@@ -86,7 +86,7 @@ Texture2D& Texture2D::operator=(Texture2D&&) noexcept = default;
 std::shared_ptr<Texture2D::Impl> Texture2D::Make(GraphicsDevice& graphics, int width, int height, bool renderTarget) {
     SDL_GPUDevice* device = detail::GraphicsAccess::Device(graphics);
     if (!device) {
-        SDL_Log("coldx.core: texture created before the graphics device exists; create it in LoadContent");
+        SDL_Log("coldx.core: texture created before the graphics device exists. Create it in LoadContent");
         return nullptr;
     }
     if (width <= 0 || height <= 0) {
@@ -133,7 +133,7 @@ RenderTarget2D RenderTarget2D::Create(GraphicsDevice& graphics, int width, int h
     result.impl_ = Make(graphics, width, height, true);
     if (!result.impl_) return result;
 
-    // GPU memory starts undefined; clear once so an unused target draws as nothing.
+    // GPU memory starts undefined. Clear once so an unused target draws as nothing.
     SDL_GPUDevice* device = result.impl_->token->device;
     SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device);
     if (!commands) {
@@ -172,7 +172,7 @@ static Texture2D FromSurface(GraphicsDevice& graphics, SDL_Surface* loaded, cons
         return {};
     }
 
-    // Rows can be padded; FromPixels wants them packed.
+    // Rows can be padded. FromPixels wants them packed.
     std::unique_ptr<Color[]> pixels(new Color[static_cast<size_t>(rgba->w) * rgba->h]);
     for (int y = 0; y < rgba->h; ++y) {
         SDL_memcpy(&pixels[static_cast<size_t>(y) * rgba->w],
@@ -197,7 +197,7 @@ Texture2D Texture2D::FromMemory(GraphicsDevice& graphics, const void* png, std::
             SDL_Log("coldx.core: %s: a stored texture with the wrong size", name.c_str());
             return {};
         }
-        // Pixels are not aligned for Color here; copy them out.
+        // Pixels are not aligned for Color here. Copy them out.
         std::vector<Color> pixels(std::size_t{w} * h);
         SDL_memcpy(pixels.data(), bytes + rime::RawTextureHeader, pixels.size() * 4);
         return FromPixels(graphics, static_cast<int>(w), static_cast<int>(h), pixels.data());

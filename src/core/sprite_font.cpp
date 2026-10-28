@@ -26,13 +26,13 @@ constexpr int TableSize = 256;
 constexpr int MaxAtlasSize = 4096;
 
 struct Glyph {
-    Rectangle source;  // in the atlas; empty for a space
+    Rectangle source;  // in the atlas, empty for a space
     int xOffset;       // from the pen to the left edge
     int yOffset;       // from the baseline to the top edge, negative above it
     float advance;
 };
 
-// Next code point of UTF-8 text; malformed input gives U+FFFD and moves one byte on.
+// Next code point of UTF-8 text. Malformed input gives U+FFFD and moves one byte on.
 char32_t NextCodePoint(std::string_view text, size_t& i) {
     const auto byte = [&](size_t k) { return static_cast<unsigned char>(text[k]); };
     const unsigned char lead = byte(i);
@@ -64,7 +64,7 @@ char32_t NextCodePoint(std::string_view text, size_t& i) {
 } // namespace
 
 struct SpriteFont::Impl {
-    std::vector<unsigned char> fontData;  // stbtt_fontinfo points into this; kept for kerning
+    std::vector<unsigned char> fontData;  // stbtt_fontinfo points into this, kept for kerning
     stbtt_fontinfo info{};
     float scale = 0.0f;
     float pixelHeight = 0.0f;
@@ -184,7 +184,7 @@ SpriteFont SpriteFont::FromMemory(GraphicsDevice& graphics, const void* data, st
     for (size_t r = 0; r < std::size(BakedRanges); ++r) {
         for (int k = 0; k < BakedRanges[r].count; ++k) {
             const int cp = BakedRanges[r].first + k;
-            // Code points the font lacks still pack, as glyph 0; leave them out so the default
+            // Code points the font lacks still pack, as glyph 0. Leave them out so the default
             // character stands in.
             if (stbtt_FindGlyphIndex(&impl->info, cp) == 0) continue;
             const stbtt_packedchar& p = packed[r][static_cast<size_t>(k)];

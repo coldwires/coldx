@@ -44,7 +44,7 @@ void SetStorageNames(const std::string& companyName, const std::string& gameName
 
 std::string Storage::Folder() {
     if (!named) {
-        SDL_Log("coldx.core: Storage used before Run started; the folder is not known yet");
+        SDL_Log("coldx.core: Storage used before Run started. The folder is not known yet");
         return {};
     }
     char* path = SDL_GetPrefPath(company.c_str(), name.c_str());

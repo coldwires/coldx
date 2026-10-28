@@ -80,7 +80,7 @@ private:
                 c = s_[at_++];
                 if (c == 'n') c = '\n';
                 else if (c == 't') c = '\t';
-                else if (c == 'u') {  // names are ASCII; keep the escape as text
+                else if (c == 'u') {  // names are ASCII. Keep the escape as text
                     out += "\\u";
                     continue;
                 }
@@ -233,8 +233,8 @@ bool TypeOf(const std::string& reflected, ParameterType& type) {
 bool Reflect(const Json& r, effect_format::Compiled& out, std::string& error) {
     for (const char* unsupported : {"separate_images", "separate_samplers", "images", "ssbos", "push_constants"}) {
         if (const Json* v = r.Get(unsupported); v && !v->items.empty()) {
-            error = std::string("an effect takes textures declared with CX_FRAGMENT_TEXTURE and one CX_FRAGMENT_UNIFORMS block; "
-                                "this one also declares ") + unsupported;
+            error = std::string("an effect takes textures declared with CX_FRAGMENT_TEXTURE and one CX_FRAGMENT_UNIFORMS block. "
+                                "This one also declares ") + unsupported;
             return false;
         }
     }
@@ -269,8 +269,8 @@ bool Reflect(const Json& r, effect_format::Compiled& out, std::string& error) {
     }
     for (size_t i = 0; i < slots.size(); ++i) {
         if (slots[i].slot != i) {
-            error = "texture slots must run 0, 1, 2... without a gap, and each must be sampled; slot " + std::to_string(i) +
-                    " is missing";
+            error = "texture slots must run 0, 1, 2... without a gap, and each must be sampled (slot " + std::to_string(i) +
+                    " is missing)";
             return false;
         }
     }
@@ -310,10 +310,10 @@ bool Reflect(const Json& r, effect_format::Compiled& out, std::string& error) {
         }
         if (!TypeOf(reflected, p.type)) {
             error = "parameter " + p.name + ": " + (reflected.rfind('_', 0) == 0 ? std::string("a struct") : reflected) +
-                    " is not supported; use float, float2, float3, float4, float4x4, int, uint or bool";
+                    " is not supported. Use float, float2, float3, float4, float4x4, int, uint or bool";
             return false;
         }
-        // spirv-cross reports HLSL's default (column_major) as row_major: that is the one
+        // spirv-cross reports HLSL's default (column_major) as row_major. That is the one
         // Effect::Set(Matrix) writes for.
         if (p.type == ParameterType::Float4x4 && !m.Flag("row_major")) {
             error = "parameter " + p.name + ": declare float4x4 without row_major";
@@ -353,7 +353,7 @@ bool CompileEffect(const std::string& path, std::vector<std::uint8_t>& out, std:
         bool started = false;
         if (!RunProgram(step, output, started)) {
             if (!started)
-                error = "cannot run " + step[0] + " (" + output + "); install the Vulkan SDK, or set " +
+                error = "cannot run " + step[0] + " (" + output + "). Either install the Vulkan SDK or set " +
                         (step[0] == dxc ? "COLDX_DXC" : "COLDX_SPIRV_CROSS");
             else
                 error = fs::path(step[0]).stem().string() + ": " + output;

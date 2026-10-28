@@ -1,4 +1,4 @@
-// GFX-01 to GFX-09. Automated where the result can be measured; each automated test runs
+// GFX-01 to GFX-09. Automated where the result can be measured. Each automated test runs
 // a real game and checks its numbers or its exit capture.
 
 #include "framework_test.h"
@@ -51,7 +51,7 @@ Result WindowResize() {
             SDL_GetWindowSizeInPixels(OnlyWindow(), &pw, &ph);
             const int bw = p.Graphics().BackBufferWidth(), bh = p.Graphics().BackBufferHeight();
             if (bw != pw || bh != ph)
-                mismatches += Format(" asked %dx%d: window %dx%d px, back buffer %dx%d;", sizes[step - 1].first,
+                mismatches += Format(" asked %dx%d: window %dx%d px, back buffer %dx%d.", sizes[step - 1].first,
                                      sizes[step - 1].second, pw, ph, bw, bh);
         }
         if (step == static_cast<int>(std::size(sizes))) {
@@ -82,15 +82,15 @@ Result WindowResize() {
     }
     const bool ok = rc == 0 && mismatches.empty() && pixels;
     r.status = ok ? Status::NeedsHuman : Status::Fail;
-    r.notes = ok ? "Programmatic resizes to 1x1 .. 2400x1300 keep the back buffer equal to the window's pixel size; "
-                   "corners and render target correct at the end. Dragging the edge by hand still needs a person."
-                 : "Problems:" + mismatches + (pixels ? "" : " final frame wrong or capture missing;");
+    r.notes = ok ? "Programmatic resizes to 1x1 .. 2400x1300 keep the back buffer equal to the window's pixel size. "
+                   "Corners and render target correct at the end. Dragging the edge by hand still needs a person."
+                 : "Problems:" + mismatches + (pixels ? "" : " final frame wrong or capture missing.");
     std::filesystem::remove(capture);
     return r;
 }
 
-// GFX-02: fullscreen on and off repeatedly; back buffer follows; a render target made
-// before keeps its contents.
+// GFX-02: fullscreen on and off repeatedly. The back buffer follows, and a render target
+// made before keeps its contents.
 Result Fullscreen() {
     Result r{"GFX-02", "P0"};
     const std::string capture = TempPath("gfx02.png");
@@ -107,10 +107,10 @@ Result Fullscreen() {
         int pw = 0, ph = 0;
         SDL_GetWindowSizeInPixels(OnlyWindow(), &pw, &ph);
         if (p.Graphics().BackBufferWidth() != pw || p.Graphics().BackBufferHeight() != ph)
-            problems += Format(" back buffer %dx%d vs window %dx%d;", p.Graphics().BackBufferWidth(),
+            problems += Format(" back buffer %dx%d vs window %dx%d.", p.Graphics().BackBufferWidth(),
                                p.Graphics().BackBufferHeight(), pw, ph);
         if (toggles == 6) {
-            if (p.IsFullscreen()) problems += " still fullscreen after an even number of toggles;";
+            if (p.IsFullscreen()) problems += " still fullscreen after an even number of toggles.";
             p.Exit();
             return;
         }
@@ -129,10 +129,10 @@ Result Fullscreen() {
     const bool pixels = c.Load(capture) && Near(c.At(102, 102), Color::Blue, 0) && Near(c.At(100 + 20, 100 + 20), Color::Yellow, 0);
     const bool ok = rc == 0 && problems.empty() && pixels;
     r.status = ok ? Status::NeedsHuman : Status::Fail;
-    r.notes = ok ? "6 toggles: back buffer always matched the window (desktop resolution when fullscreen); a render "
-                   "target made before the toggles kept its contents. These toggles are borderless; exclusive mode "
+    r.notes = ok ? "6 toggles: back buffer always matched the window (desktop resolution when fullscreen). A render "
+                   "target made before the toggles kept its contents. These toggles are borderless. Exclusive mode "
                    "is FS-01. Alt-tab and moving between monitors need a person."
-                 : "Problems:" + problems + (pixels ? "" : " render target contents lost or capture missing;");
+                 : "Problems:" + problems + (pixels ? "" : " render target contents lost or capture missing.");
     std::filesystem::remove(capture);
     return r;
 }
@@ -168,7 +168,7 @@ Result HighDpi() {
                      pw, ph, game.Settings().width, game.Settings().height, mouseNote.c_str()) +
               (sizeOk ? "" : "Window pixel size is not width x density. ") +
               "Windows sizes the window in pixels at any scaling, so at 125% it is smaller on screen than the "
-              "same size at 100%; output is drawn 1:1, not upscaled. Sharpness and macOS Retina need a person.";
+              "same size at 100%. Output is drawn 1:1, not upscaled. Sharpness and macOS Retina need a person.";
     return r;
 }
 
@@ -240,7 +240,7 @@ Result Backends() {
 }
 
 // GFX-05: 64 render targets drawn once, switched 256 times a frame for a minute, through a
-// resize and a fullscreen round trip; each must keep its contents.
+// resize and a fullscreen round trip. Each must keep its contents.
 Result RenderTargetCache() {
     Result r{"GFX-05", "P0"};
     const std::string capture = TempPath("gfx05.png");
@@ -302,14 +302,14 @@ Result RenderTargetCache() {
     r.status = rc == 0 && wrong == 0 ? Status::Pass : Status::Fail;
     r.notes = Format("64 targets drawn once, switched 256 times a frame for %d updates, through a resize and a "
                      "fullscreen round trip: %d lost contents. Targets always keep their contents (XNA's "
-                     "PreserveContents); there is no RenderTargetUsage to choose DiscardContents.",
+                     "PreserveContents). There is no RenderTargetUsage to choose DiscardContents.",
                      game.updates, wrong);
     std::filesystem::remove(capture);
     return r;
 }
 
 // GFX-06: a soft-edged premultiplied sprite, scaled with linear filtering over two
-// backgrounds: no pixel may be darker than both the sprite and the background.
+// backgrounds. No pixel may be darker than both the sprite and the background.
 Result BlendFringes() {
     Result r{"GFX-06", "P1"};
     const std::string capture = TempPath("gfx06.png");
@@ -371,9 +371,9 @@ Result BlendFringes() {
     r.status = fringe == 0 ? Status::NeedsHuman : Status::Fail;
     r.notes = Format("Premultiplied sprite scaled 4x with linear filtering over grey and blue: %d pixels darker than "
                      "both sprite and background (0 means no halo). For contrast, straight-alpha art with black "
-                     "transparent texels under NonPremultiplied shows %d darkened edge pixels, the usual XNA artifact; "
-                     "FromFile premultiplies PNGs, which avoids it. Blend equations are checked exactly by core.sprite; "
-                     "comparing against FNA screenshots needs FNA.",
+                     "transparent texels under NonPremultiplied shows %d darkened edge pixels, the usual XNA artifact. "
+                     "FromFile premultiplies PNGs, which avoids it. Blend equations are checked exactly by core.sprite. "
+                     "Comparing against FNA screenshots needs FNA.",
                      fringe, straightFringe);
     std::filesystem::remove(capture);
     return r;

@@ -21,7 +21,7 @@ struct Game::Impl {
     SDL_Window* window = nullptr;
     bool headless = false;
     bool exitRequested = false;
-    // The size OnResize last reported, so it fires on changes only: SDL also sends a size
+    // The size OnResize last reported, so it fires on changes only. SDL also sends a size
     // event when the window is created.
     int reportedWidth = 0;
     int reportedHeight = 0;
@@ -55,7 +55,7 @@ void Game::Impl::ApplyFullscreenMode() {
     const int w = settings.fullscreenWidth > 0 ? settings.fullscreenWidth : (desktop ? desktop->w : 0);
     const int h = settings.fullscreenHeight > 0 ? settings.fullscreenHeight : (desktop ? desktop->h : 0);
     if (!SDL_GetClosestFullscreenDisplayMode(display, w, h, settings.fullscreenRefreshRate, false, &mode)) {
-        SDL_Log("coldx.core: no fullscreen mode near %dx%d (%s); using borderless", w, h, SDL_GetError());
+        SDL_Log("coldx.core: no fullscreen mode near %dx%d (%s). Using borderless", w, h, SDL_GetError());
         SDL_SetWindowFullscreenMode(window, nullptr);
         return;
     }
@@ -82,7 +82,7 @@ void Game::Impl::ApplyPresentation() {
 // The device outlives Run and goes here, after the derived game's members (its textures and
 // batches) have been destroyed, so they release against a live device.
 Game::~Game() {
-    // Components may hold GPU resources: they go before the device.
+    // Components may hold GPU resources. They go before the device.
     impl_->components.reset();
     impl_->content.reset();
     impl_->graphics.reset();
@@ -256,7 +256,7 @@ int Game::Run() {
     s.ApplyFullscreenMode();
     if (startFullscreen && !SDL_SetWindowFullscreen(s.window, true))
         SDL_Log("coldx.core: could not start fullscreen: %s", SDL_GetError());
-    // A windowed start stays hidden until its first frame is presented (below): shown now, it
+    // A windowed start stays hidden until its first frame is presented (below). Shown now, it
     // would sit empty while the GPU starts and the game loads, then snap to the first frame.
     // A fullscreen start is shown now, so the mode change happens before the swapchain exists.
     bool shown = debug.headless;
@@ -323,7 +323,7 @@ int Game::Run() {
                 s.exitRequested = true;
                 break;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-                // Headless, the back buffer does not follow the hidden window; with a virtual
+                // Headless, the back buffer does not follow the hidden window. With a virtual
                 // resolution it does not follow the window at all.
                 if (!s.headless && s.settings.virtualWidth <= 0) s.ReportSize(*this, event.window.data1, event.window.data2);
                 break;

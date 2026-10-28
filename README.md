@@ -77,9 +77,9 @@ batch.Draw(texture, position, source, Color::White, rotation, origin, scale,
 batch.End();
 ```
 
-`SamplerState::PointClamp` keeps pixel art sharp when scaled; the default, `LinearClamp`,
+`SamplerState::PointClamp` keeps pixel art sharp when scaled. The default, `LinearClamp`,
 smooths it. Rotation is in radians, clockwise on screen. Deferred sprites are drawn at
-`End`, into whatever render target is current then; `Immediate` draws at each call.
+`End`, into whatever render target is current then. `Immediate` draws at each call.
 
 `RenderTarget2D` is a texture that can be drawn into:
 
@@ -104,11 +104,11 @@ batch.End();
 
 A `SpriteFont` is a TrueType font baked at one pixel height into an atlas: printable ASCII
 and Latin-1. Text is UTF-8. Glyphs land on whole pixels, so at a whole-pixel position with
-`PointClamp` the text is exactly the rasterized font. For another size, bake another font;
-scaling a bake blurs it. Characters the font lacks draw as `DefaultCharacter`, `?` by
+`PointClamp` the text is exactly the rasterized font. For another size, bake another font.
+Scaling a bake blurs it. Characters the font lacks draw as `DefaultCharacter`, `?` by
 default. `MeasureString` gives the size `DrawString` will cover.
 
-`samples/hello_text` shows it at 18 px; Up and Down change the size.
+`samples/hello_text` shows it at 18 px. Up and Down change the size.
 
 `Log` writes a printf-style line to the same log as coldx's own messages.
 
@@ -124,7 +124,7 @@ public:
 Components().Emplace<Hud>(*this).SetDrawOrder(10);
 ```
 
-A `GameComponent` has its own `Initialize` and `Update`; a `DrawableGameComponent` adds
+A `GameComponent` has its own `Initialize` and `Update`. A `DrawableGameComponent` adds
 `LoadContent`, `UnloadContent` and `Draw`. The game owns them. They run after the game's
 own methods, in `UpdateOrder` and `DrawOrder`. Adding, removing or reordering in the middle
 of an update or draw takes effect after it.
@@ -140,10 +140,10 @@ position += pad.leftStick * speed * time.Delta();
 
 `Keyboard`, `Mouse` and `GamePad` return the state as of the start of the current
 `Update`, so it does not change halfway through one. `WasPressed` and `WasReleased` compare
-it with the previous `Update`. Keys are physical positions: `Key::W` is the same key on
-QWERTY and AZERTY. Mouse positions are back buffer pixels; the wheel counts notches, up
-positive. Up to four pads, by player index, connect and disconnect while the game runs;
-sticks are -1 to 1 with up positive, after a dead zone (`GamePadDeadZone`).
+it with the previous `Update`. Keys are physical positions. `Key::W` is the same key on
+QWERTY and AZERTY. Mouse positions are back buffer pixels. The wheel counts notches, up
+positive. Up to four pads, by player index, connect and disconnect while the game runs.
+Sticks are -1 to 1 with up positive, after a dead zone (`GamePadDeadZone`).
 
 ## Sound and music
 
@@ -159,7 +159,7 @@ theme = Music::FromFile("content/theme.ogg");     // OGG, decoded as it plays
 MediaPlayer::Play(theme);                          // loops by default
 ```
 
-Up to 64 sounds play at once, plus one music track. Sounds load any time; playing needs
+Up to 64 sounds play at once, plus one music track. Sounds load any time. Playing needs
 `Run` started. Headless runs use SDL's silent dummy audio driver. `samples/hello_audio`
 shows all of it.
 
@@ -187,7 +187,7 @@ font = Content().LoadFont("fonts/main", 18.0f);           // .ttf, baked at 18 p
 The `ContentManager` finds the extension itself and caches by name. It reads a
 `content.rime` package beside the executable if there is one, then loose files from
 `content/`. Games teach it their own types with `RegisterDataLoader`. `Texture2D`,
-`SpriteFont` and the audio types are handles: a copy shares the loaded data, which is
+`SpriteFont` and the audio types are handles. A copy shares the loaded data, which is
 freed when the last copy and the cache let go.
 
 ### Packing content
@@ -210,21 +210,21 @@ coldx_add_content(my_game PROJECT content/content.coldx)
 
 `coldxc` builds `content.rime` beside the game whenever a file in the folder changes, and
 leaves it alone when nothing did. Entries that compress (WAV, fonts, data) are stored with
-LZ4; `format = raw` under a `[texture]` section stores decoded pixels, which load without
+LZ4. `format = raw` under a `[texture]` section stores decoded pixels, which load without
 a PNG decode for a little more space. Names in the package are hashed, never stored. The same
-`Load` calls work packed and loose; release builds stop reading loose files once a
+`Load` calls work packed and loose. Release builds stop reading loose files once a
 package is mounted. A game adds its own asset types with a `coldx::content::Processor`
 and a tool of its own that calls `coldx::content::RunTool` with it (see
 `include/coldx/content/build.h`).
 
-Put `content/** -text` in the game's `.gitattributes`: Git otherwise rewrites line endings
+Put `content/** -text` in the game's `.gitattributes`. Git otherwise rewrites line endings
 in text content on Windows checkouts, and the package then differs from machine to machine.
 
 ## Textures and colors
 
-Textures hold premultiplied alpha. `Texture2D::FromFile` loads a PNG and premultiplies it;
+Textures hold premultiplied alpha. `Texture2D::FromFile` loads a PNG and premultiplies it.
 `FromPixels` and `SetData` expect pixels that already are. A relative path in `FromFile` is
-taken from the executable's folder. Tints are premultiplied too: `Color::White * 0.5f` is
+taken from the executable's folder. Tints are premultiplied too. `Color::White * 0.5f` is
 white at half opacity.
 
 ## Writing shaders
@@ -234,7 +234,7 @@ Shaders are HLSL, compiled ahead of time to SPIR-V (Vulkan), DXIL (Direct3D 12) 
 
 Compiling needs `dxc` and `spirv-cross`, both in the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
 for Windows, Linux and macOS. CMake finds them through the `VULKAN_SDK` environment variable
-the installer sets. Only shader authors need it: compiled shaders are committed as headers, so
+the installer sets. Only shader authors need it. Compiled shaders are committed as headers, so
 building coldx does not.
 
 Include `coldx.hlsli` from `shaders/include/`. Its macros declare textures and uniform
@@ -258,7 +258,7 @@ float4 main(Input input) : SV_Target0 {
 }
 ```
 
-Name files `*.vert.hlsl` or `*.frag.hlsl`; the entry point is `main`. A fragment shader's
+Name files `*.vert.hlsl` or `*.frag.hlsl`. The entry point is `main`. A fragment shader's
 input must list the same members as its vertex shader's output, in order, `SV_Position`
 included. The comments at the top of `coldx.hlsli` give the rest of the rules.
 
@@ -291,18 +291,18 @@ coldx_harden(my_game)
 
 `COLDX_HARDEN` builds coldx and its samples in Release without RTTI and with whole-program
 optimization, and leaves out what identifies the build machine: tool versions, the build
-time, folder paths. `coldx_harden` does the same for a game's own executable; the game
+time, folder paths. `coldx_harden` does the same for a game's own executable. The game
 then cannot use `dynamic_cast` or `typeid` on its own types. Symbols go to a `.pdb` beside
-the executable: keep it for crash reports, do not ship it. The flags are listed in
+the executable. Keep it for crash reports. Do not ship it. The flags are listed in
 `cmake/coldx_harden.cmake`.
 
 ```
-coldxc --new-key game.key          # once; keep it out of public repositories
+coldxc --new-key game.key          # once, and keep it out of public repositories
 ```
 
 ```cmake
 coldx_add_content(my_game PROJECT content/content.coldx
-    KEY_FILE game.key              # encrypt the package; the game gets the key itself
+    KEY_FILE game.key              # encrypt the package (the game gets the key itself)
     BUILD_ID "beta-tester-07")     # fingerprint the package and the game
 ```
 
@@ -326,11 +326,11 @@ watermark = on             # lowest bits of non-silent samples
 this project's mark, with the odds that it is chance (add `--key-file` for an encrypted
 game, `--build-id` to check for a build's fingerprint). A single sprite of about 24x24
 cut from an alpha-marked sheet is enough. The marks change nothing a player can see or
-hear, and survive a lossless re-save, cropping and trimming; not resizing or lossy
-re-encoding.
+hear, and survive a lossless re-save, cropping and trimming. They do not survive resizing or
+lossy re-encoding.
 
 `COLDX_HIDDEN("text")` (link `coldx::protect`) keeps a string out of the executable as
-text. None of this stops a determined reader of the game: the key and the strings are in
+text. None of this stops a determined reader of the game. The key and the strings are in
 the client. It stops casual extraction and makes leaked builds traceable.
 
 ## Console window
@@ -338,7 +338,7 @@ the client. It stops casual extraction and makes leaked builds traceable.
 On Windows, debug builds open a console window for log output and release builds do not.
 `GameSettings::console` changes that per game: `ConsoleMode::DebugBuilds` (the default),
 `Always` or `Never`. No console opens when stdout and stderr are already redirected to a file
-or pipe; output goes there instead. Other platforms log to the terminal that launched the game.
+or pipe. Output goes there instead. Other platforms log to the terminal that launched the game.
 
 ## Debug options
 
@@ -370,15 +370,15 @@ and total game time.
 `coldx_framework_tests` (in `tests/framework/`) stress-tests the framework the way a large
 game would: resizing and fullscreen, dozens of cached render targets, sprite throughput,
 timestep accuracy and stalls, sound bursts, loop seams, gamepads through SDL's virtual pads,
-save locations. `--auto` runs everything that can be measured and writes a report; with no
+save locations. `--auto` runs everything that can be measured and writes a report. With no
 arguments it opens a menu of the checks a person has to judge (sharpness, hearing, real
 controllers), each with on-screen instructions. It opens real windows and goes fullscreen.
 
-`samples/stress` draws 10,000 moving sprites with vsync off and logs frames per second; pass
+`samples/stress` draws 10,000 moving sprites with vsync off and logs frames per second. Pass
 a count as its first argument for more.
 
 `check` runs `tools/check.py`, which enforces the module boundaries
-between its folders; it needs Python 3 and is skipped without it. `core.math` covers the
+between its folders. It needs Python 3 and is skipped without it. `core.math` covers the
 value types and `Matrix`. `core.render.<backend>` and `core.sprite.<backend>` draw scenes
 headless and compare every pixel that matters to a value computed from the same inputs:
 every sort mode, blend and sampler state, transforms, rotation, flips and render targets.
@@ -401,7 +401,7 @@ They run once per GPU backend
 
 Early. Tested on Windows 11
 with MSVC, on the Direct3D 12 and Vulkan backends. Builds and passes its tests on Linux
-with GCC, on a software Vulkan driver only so far; macOS has not been built.
+with GCC, on a software Vulkan driver only so far. macOS has not been built.
 
 ## License
 

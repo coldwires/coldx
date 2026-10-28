@@ -17,7 +17,7 @@ constexpr int Tile = 32;
 
 constexpr std::string_view Names[] = {"ship", "star", "gem", "meteor", "spark", "heart"};
 
-// The tile's rectangle in the sheet. An unknown name is a bug: it returns the first tile.
+// The tile's rectangle in the sheet. An unknown name is a bug. It returns the first tile.
 constexpr coldx::Rectangle Get(std::string_view name) {
     int index = 0;
     for (int i = 0; i < static_cast<int>(std::size(Names)); ++i)

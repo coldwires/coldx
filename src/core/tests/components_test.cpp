@@ -1,6 +1,6 @@
 // GameComponent and DrawableGameComponent: the order of every lifecycle call, and what
 // happens when components are added, removed or reordered in the middle of a pass. Each
-// call appends to one log; the test compares the log with the expected sequence.
+// call appends to one log. The test compares the log with the expected sequence.
 
 #include <coldx/coldx.h>
 
@@ -79,7 +79,7 @@ protected:
     void LoadContent() override { calls.push_back("game.load"); }
     void UnloadContent() override { calls.push_back("game.unload"); }
     void Update(const GameTime&) override {
-        // The previous frame is complete here: its update and draw passes have both run.
+        // The previous frame is complete here. Its update and draw passes have both run.
         if (check) check(frame);
         ++frame;
         calls.push_back("game.update");
@@ -95,7 +95,7 @@ int main() {
 
     {
         TestGame game;
-        // Update order: c 0, b 1, a 2. Draw order: c 1, b 5; a draws at 9 but is hidden.
+        // Update order: c 0, b 1, a 2. Draw order: c 1, b 5 (a draws at 9 but is hidden).
         auto& a = game.Components().Emplace<Logged>(game, "a", 2, 9);
         auto& b = game.Components().Emplace<Logged>(game, "b", 1, 5);
         auto& c = game.Components().Emplace<Logged>(game, "c", 0, 1);

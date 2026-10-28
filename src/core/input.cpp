@@ -141,7 +141,7 @@ void Input::HandleEvent(const SDL_Event& event) {
         break;
     case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
     case SDL_EVENT_GAMEPAD_BUTTON_UP:
-        // Pads are read whole at each Update; these only catch the presses in between.
+        // Pads are read whole at each Update. These only catch the presses in between.
         for (int player = 0; player < GamePad::MaxPlayers; ++player) {
             if (!pads[player] || SDL_GetGamepadID(pads[player]) != event.gbutton.which) continue;
             for (const ButtonMap& b : PadButtons) {
@@ -160,7 +160,7 @@ void Input::HandleEvent(const SDL_Event& event) {
         compositionCursor = event.edit.start;
         break;
     case SDL_EVENT_MOUSE_WHEEL: {
-        // "Natural" scrolling reports the opposite sign; undo it so up is always up.
+        // "Natural" scrolling reports the opposite sign. Undo it so up is always up.
         const float flip = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.0f : 1.0f;
         liveMouse.scrollWheel += event.wheel.y * flip;
         liveMouse.horizontalScrollWheel += event.wheel.x * flip;

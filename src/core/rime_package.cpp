@@ -60,7 +60,7 @@ bool Package::Parse(std::uint64_t fileSize) {
     if (!std::equal(std::begin(rime::Magic), std::end(rime::Magic), h)) return fail("wrong magic");
     const std::uint16_t version = Get16(h + 4);
     if (version != rime::Version) {
-        SDL_Log("coldx.core: %s: package version %u; this coldx reads version %u", label_.c_str(), version, rime::Version);
+        SDL_Log("coldx.core: %s: package version %u, but this coldx reads version %u", label_.c_str(), version, rime::Version);
         return false;
     }
     if (Get16(h + 6) != rime::HeaderSize) return fail("unexpected header size");
@@ -86,7 +86,7 @@ bool Package::Parse(std::uint64_t fileSize) {
         entry.originalSize = Get64(e + 32);
         if (entry.offset > fileSize || entry.size > fileSize - entry.offset) return fail("an entry lies outside the file");
         if (entry.flags & rime::Compressed) {
-            // LZ4 expands at most about 255 to 1; anything claiming more is damaged or hostile,
+            // LZ4 expands at most about 255 to 1. Anything claiming more is damaged or hostile,
             // and must not be allowed to ask for a huge allocation.
             if (entry.originalSize > entry.size * 255 + 64 || entry.originalSize > std::uint64_t{LZ4_MAX_INPUT_SIZE})
                 return fail("an entry's sizes disagree");

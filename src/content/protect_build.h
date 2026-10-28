@@ -28,7 +28,7 @@ std::uint64_t FingerprintMarker(std::uint64_t seed);
 bool WriteGameSource(const std::string& path, std::uint64_t seed, const rime::Key* key, const std::uint64_t* fingerprint,
                      std::string& error);
 
-// Looks for the fingerprint in a game executable or a package: prints what it finds.
+// Looks for the fingerprint in a game executable or a package. Prints what it finds.
 // Returns false if there is none.
 bool Identify(const std::string& file, std::uint64_t seed);
 

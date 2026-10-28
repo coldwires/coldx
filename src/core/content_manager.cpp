@@ -143,7 +143,7 @@ bool ContentManager::FindBytes(const std::vector<std::string>& candidates, std::
     } else {
         tried += " (loose files are off)";
     }
-    SDL_Log("coldx.core: content not found; tried %s", tried.c_str());
+    SDL_Log("coldx.core: content not found, tried %s", tried.c_str());
     return false;
 }
 
@@ -164,7 +164,7 @@ std::shared_ptr<void> ContentManager::Find(const Loader& loader, const std::stri
             tried += (tried.empty() ? "" : ", ") + path;
         }
     }
-    SDL_Log("coldx.core: content \"%s\" not found; tried %s (a path loader reads loose files only)", name.c_str(),
+    SDL_Log("coldx.core: content \"%s\" not found, tried %s (a path loader reads loose files only)", name.c_str(),
             tried.empty() ? "nothing, loose files are off" : tried.c_str());
     return nullptr;
 }
@@ -183,7 +183,7 @@ std::string ContentManager::Key(const void* type, const std::string& name) const
 }
 
 void ContentManager::NoLoader(const std::string& name) const {
-    SDL_Log("coldx.core: no content loader for the type asked for (loading \"%s\"); register one with RegisterDataLoader",
+    SDL_Log("coldx.core: no content loader for the type asked for (loading \"%s\"). Register one with RegisterDataLoader",
             name.c_str());
 }
 

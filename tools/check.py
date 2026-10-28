@@ -64,7 +64,7 @@ def check_layers(modules):
 
 
 def coldx_module_of(include):
-    """'coldx/core/game.h' -> 'core'; umbrella 'coldx/coldx.h' -> 'core'; 'coldx/net.h' -> 'net'."""
+    """'coldx/core/game.h' -> 'core', umbrella 'coldx/coldx.h' -> 'core', 'coldx/net.h' -> 'net'."""
     parts = include.split("/")
     if parts[0] != "coldx":
         return None
@@ -87,12 +87,12 @@ def check_includes(path, allowed_modules, allowed_third_party, quoted_roots, own
             if quoted_roots is None:
                 problem(path, f'quoted include "{include}" not allowed here')
                 continue
-            # Resolve first: "../" can walk out of the allowed folders.
+            # Resolve first. "../" can walk out of the allowed folders.
             found = [(base / include).resolve() for base in [path.parent] + quoted_roots
                      if (base / include).exists()]
             roots = [r.resolve() for r in quoted_roots]
             if not any(any(f.is_relative_to(r) for r in roots) for f in found):
-                problem(path, f'"{include}" is outside {owner}; include another module by its public header')
+                problem(path, f'"{include}" is outside {owner}. Include another module by its public header')
             continue
         module = coldx_module_of(include)
         if module is not None:
@@ -133,7 +133,7 @@ def check_files():
         data = path.read_bytes()
         lines = data.count(b"\n")
         if lines > LINE_CAP:
-            problem(path, f"{lines} lines, over the {LINE_CAP}-line cap; split it")
+            problem(path, f"{lines} lines, over the {LINE_CAP}-line cap. Split it")
         if any(b > 127 for b in data):
             problem(path, "non-ASCII bytes")
 

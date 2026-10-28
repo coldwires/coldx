@@ -11,7 +11,7 @@ namespace coldx::content::detail {
 // A content project file:
 //
 //     # comments run to the end of the line
-//     seed = my game              # seeds the package's name hashes; optional
+//     seed = my game              # seeds the package's name hashes, optional
 //     [texture] sprites/*.png ui/**/*.png
 //     [font] fonts/*.ttf
 //     [maps] levels/*.tmx         # a game's own processor

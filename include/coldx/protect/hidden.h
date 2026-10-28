@@ -11,8 +11,8 @@
 //
 // The literal is scrambled at compile time with a key made from the file, line and a
 // counter, and unscrambled each time the expression runs. Strings are how a reader of a
-// binary finds and names its code; this takes that away for the ones that matter. It is
-// not encryption: the key is beside the data, and the text is in memory once revealed.
+// binary finds and names its code. This takes that away for the ones that matter. It is
+// not encryption. The key is beside the data, and the text is in memory once revealed.
 // Use it for a few telling strings, not every one.
 namespace coldx::protect::detail {
 

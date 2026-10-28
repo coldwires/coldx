@@ -17,7 +17,7 @@ namespace detail {
 struct EffectAccess;
 }
 
-// A custom fragment shader for SpriteBatch, with named parameters: pass it to Begin and
+// A custom fragment shader for SpriteBatch, with named parameters. Pass it to Begin and
 // every sprite in that batch is drawn with it. Written in HLSL against coldx.hlsli and
 // compiled by coldxc, into a package ([effect] in a content project, then
 // Content().Load<Effect>("name")) or into a C++ header (coldx_compile_effects, then
@@ -51,10 +51,10 @@ public:
     void Set(const std::string& name, Vector2 value);
     void Set(const std::string& name, float x, float y, float z);
     void Set(const std::string& name, float x, float y, float z, float w);
-    // A float4, each channel 0 to 1. Colors are premultiplied: Color::White * 0.5f is half
+    // A float4, each channel 0 to 1. Colors are premultiplied. Color::White * 0.5f is half
     // transparent white.
     void Set(const std::string& name, Color value);
-    // A float4x4, in the same row-vector convention as the rest of coldx: in the shader,
+    // A float4x4, in the same row-vector convention as the rest of coldx. In the shader,
     // mul(matrix, v) is v transformed by it.
     void Set(const std::string& name, const Matrix& value);
     // int, uint or bool.

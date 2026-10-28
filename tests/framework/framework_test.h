@@ -28,7 +28,7 @@ const char* StatusName(Status status);
 
 struct Result {
     Result() = default;
-    // A constructor, not aggregate initialisation: GCC warns on every Result{id, priority}
+    // A constructor, not aggregate initialisation. GCC warns on every Result{id, priority}
     // that leaves the rest out.
     Result(std::string id_, std::string priority_, Status status_ = Status::Skipped, std::string notes_ = {})
         : id(std::move(id_)), priority(std::move(priority_)), status(status_), notes(std::move(notes_)) {}
@@ -45,7 +45,7 @@ struct AutoTest {
     std::string title;
     std::function<Result()> run;
     // Changes the desktop (the display mode), which can leave Windows' taskbar laid out for
-    // the wrong resolution: run only when asked for by --only.
+    // the wrong resolution. Run only when asked for by --only.
     bool onlyWhenNamed = false;
 };
 
@@ -74,7 +74,7 @@ void RegisterPlatform();
 void RegisterHuman();
 void RegisterFeatures();
 
-// The scene a HumanTest runs in. Tests fill in the hooks; the runner draws the
+// The scene a HumanTest runs in. Tests fill in the hooks. The runner draws the
 // instructions and readout lines over whatever the scene draws, and ends the scene on
 // P (pass), F (fail) or Escape (skip). Scenes must not use those keys.
 class HumanScene : public coldx::Game {
@@ -111,7 +111,7 @@ private:
 std::string Format(const char* format, ...);
 // The game's window during a Run, or null.
 SDL_Window* OnlyWindow();
-// Same RGB within tolerance; alpha ignored.
+// Same RGB within tolerance. Alpha is ignored.
 bool Near(coldx::Color a, coldx::Color b, int tolerance);
 // A 1x1 texture of one color.
 coldx::Texture2D Solid(coldx::GraphicsDevice& graphics, coldx::Color color);

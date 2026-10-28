@@ -19,8 +19,8 @@ struct TextureAccess;
 // texture, which is freed when the last copy goes, as in XNA. An empty Texture2D
 // (default-constructed, moved from, or a failed load) draws nothing.
 //
-// Create textures from Initialize or LoadContent on: the graphics device does not exist
-// before Run starts. Release them before the Game is destroyed; members of the game class
+// Create textures from Initialize or LoadContent on. The graphics device does not exist
+// before Run starts. Release them before the Game is destroyed. Members of the game class
 // are, automatically.
 class Texture2D {
 public:

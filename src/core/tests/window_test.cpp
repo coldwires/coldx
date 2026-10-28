@@ -1,5 +1,5 @@
 // Window control: settings before Run, and size, title and fullscreen changes while it
-// runs. Headless, where a size change resizes the back buffer and calls OnResize; the
+// runs. Headless, where a size change resizes the back buffer and calls OnResize. The
 // captured frame's dimensions confirm the back buffer followed.
 
 #include <coldx/coldx.h>

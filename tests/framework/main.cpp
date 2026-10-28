@@ -1,7 +1,7 @@
 // coldx_framework_tests: runs the framework stress tests and writes the report.
 //
 //   coldx_framework_tests --auto              every automated test, then the report
-//   coldx_framework_tests --auto --only ID    one test; FS-01 runs only this way, since
+//   coldx_framework_tests --auto --only ID    one test. FS-01 runs only this way, since
 //                                             switching the display mode can upset the taskbar
 //   coldx_framework_tests --auto --soak 240   include TIME-04 for that many minutes
 //   coldx_framework_tests                     menu of the tests a person judges
@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
         for (const AutoTest& t : AutoTests()) {
             if (!only.empty() && t.id != only) continue;
             if (only.empty() && t.onlyWhenNamed) {
-                std::printf("%s %s ... not run: changes the display mode; run it with --only %s\n", t.id.c_str(),
+                std::printf("%s %s ... not run: changes the display mode. Run it with --only %s\n", t.id.c_str(),
                             t.title.c_str(), t.id.c_str());
                 continue;
             }
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
             if (menu.choice < 0) break;
             const HumanTest& test = HumanTests()[static_cast<size_t>(menu.choice)];
             if (!test.setup) {
-                // Nothing to show on this machine; record it as still to do.
+                // Nothing to show on this machine. Record it as still to do.
                 human[test.id] = Status::NeedsHuman;
                 continue;
             }

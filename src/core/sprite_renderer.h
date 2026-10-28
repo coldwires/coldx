@@ -27,7 +27,7 @@ struct SpriteVertex {
     float x, y;
     float u, v;
     Color color;
-    // The source rectangle's UV limits (min u, min v, max u, max v); the fragment shader
+    // The source rectangle's UV limits (min u, min v, max u, max v). The fragment shader
     // clamps sampling to them so atlas neighbours never bleed in.
     float bounds[4];
 };
@@ -55,7 +55,7 @@ public:
 
     // Draws quads in order into the current target, in the current frame. One GPU draw per
     // run of quads sharing a texture. With a non-empty effect, its fragment shader and its
-    // parameters as they are now; one that cannot be used is logged and the built-in shader
+    // parameters as they are now. An effect that cannot be used is logged and the built-in shader
     // draws instead. Logs and returns false outside a frame or on failure.
     bool Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std::uint32_t count, BlendState blend,
               SamplerState sampler, const Effect& effect, const Matrix& transform);

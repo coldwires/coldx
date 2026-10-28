@@ -1,6 +1,6 @@
 #pragma once
 
-// Minimal assertions for coldx's tests. A failed check prints and is counted; the test's
+// Minimal assertions for coldx's tests. A failed check prints and is counted. The test's
 // main returns CheckResult(), nonzero if anything failed, which is what CTest reads.
 
 #include <cstdio>

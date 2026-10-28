@@ -169,7 +169,7 @@ struct World {
         toastLeft = 2.5f;
     }
 
-    // Shake moves everything by whole pixels: a fractional camera would undo the snapping.
+    // Shake moves everything by whole pixels. A fractional camera would undo the snapping.
     Matrix ShakeTransform() const {
         if (shake <= 0.0f) return Matrix::Identity();
         const float strength = 6.0f * shake;

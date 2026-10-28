@@ -22,7 +22,7 @@ constexpr std::size_t FingerprintBits = 40;
 constexpr std::size_t CheckBits = PayloadSize - FingerprintBits;
 constexpr std::uint64_t FingerprintMask = (std::uint64_t{1} << FingerprintBits) - 1;
 // Pixels: every Tile x Tile window holds the payload. A prime, so sprite sheets on 8, 16, 32
-// or 64 pixel grids never line up with it: each sprite lands on different places, and more
+// or 64 pixel grids never line up with it. Each sprite lands on different places, and more
 // sprites bring more evidence rather than the same places again.
 constexpr std::size_t Tile = 37;
 constexpr std::size_t Block = 2048;      // samples: every Block samples hold the payload
@@ -93,7 +93,7 @@ public:
     }
 
     // A layer whose alignment was searched for asks for several copies of every bit and
-    // near-total agreement; the 40-bit check is what makes a chance pass negligible.
+    // near-total agreement. The 40-bit check is what makes a chance pass negligible.
     Finding Decide(const char* layer, std::uint64_t secret, std::size_t minCopies = 1, double minAgreement = 0.0) const {
         Finding f;
         f.layer = layer;
@@ -119,8 +119,8 @@ private:
 
 // The places one period (a tile of pixels, a block of samples) marks, chosen by a shuffle
 // keyed with the secret: place i carries payload bit i % 80, so 240 places hold three copies.
-// Every period uses the same places, which is what lets a crop or a trimmed clip be read:
-// any window one period long holds each place exactly once, wherever it starts. Each place
+// Every period uses the same places, which is what lets a crop or a trimmed clip be read.
+// Any window one period long holds each place exactly once, wherever it starts. Each place
 // also has its own whitening bit and (pixels) channel.
 class Layout {
 public:
@@ -271,7 +271,7 @@ bool Candidate(std::uint8_t alpha, PixelMark mode) {
 
 // The transparent-pixel layer: each fully transparent pixel describes itself, so it reads
 // from any crop without alignment. R names which payload byte it holds, G holds it, B is
-// an 8-bit check of both; all three whitened.
+// an 8-bit check of both. All three are whitened.
 struct ClearCode {
     std::uint8_t r = 0, g = 0, b = 0;
     std::array<std::array<std::uint8_t, 256>, PayloadSize / 8> check{};
@@ -333,7 +333,7 @@ std::vector<Match> MatchAll(const char* layer, std::size_t alignments, std::size
         best.layer = layer;
         best.fingerprint = fp & FingerprintMask;
         double bestLog = 0.0;
-        // Evidence is counted per distinct place, not per read: the copies of one place in
+        // Evidence is counted per distinct place, not per read. The copies of one place in
         // different tiles of a flat colour read alike whatever is there, so they are one
         // coin flip, not many.
         std::vector<std::size_t> yes, seen;
@@ -497,7 +497,7 @@ std::vector<Finding> ReadPng(const std::vector<std::uint8_t>& png, std::uint64_t
         }
         found.push_back(t.Decide("transparent pixels", secret, 1, 0.9));
     }
-    // Pixel bits: the image may be a crop, so every alignment of the tiles is tried; the
+    // Pixel bits: the image may be a crop, so every alignment of the tiles is tried. The
     // one that decodes with several copies and near-total agreement wins.
     for (PixelMark mode : {PixelMark::Rgb, PixelMark::Alpha}) {
         const Layout layout = PixelLayout(mode, secret);
@@ -555,7 +555,7 @@ std::string WavChunkName(std::uint64_t secret) {
     return name;
 }
 
-// Ignoring the bit being written, as with pixels; quiet samples stay untouched, so silence
+// Ignoring the bit being written, as with pixels. Quiet samples stay untouched, so silence
 // stays exactly silent.
 bool Loud(const std::vector<std::uint8_t>& b, std::size_t at) {
     return std::abs(static_cast<int>(static_cast<std::int16_t>(Get16LE(&b[at]) & 0xFFFE))) >= 64;
@@ -613,7 +613,7 @@ std::vector<Finding> ReadWav(const std::vector<std::uint8_t>& wav, std::uint64_t
         found.push_back(t.Decide("chunk", secret));
     }
     if (file.pcm16) {
-        // The clip may be trimmed: every alignment of the blocks is tried, over at most the
+        // The clip may be trimmed, so every alignment of the blocks is tried, over at most the
         // first million samples, which hold hundreds of copies.
         const Layout layout = SampleLayout(secret);
         const std::size_t samples = std::min<std::size_t>(file.size / 2, std::size_t{1} << 20);

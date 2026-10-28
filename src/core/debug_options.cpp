@@ -66,7 +66,7 @@ void SDLCALL LogToFile(void* userdata, int category, SDL_LogPriority priority, c
 bool StartLogFile(const std::string& path) {
     if (logFile) return true;
 #ifdef _WIN32
-    // fopen_s denies other readers; this lets the log be read while the game runs.
+    // fopen_s denies other readers. This lets the log be read while the game runs.
     logFile = _fsopen(path.c_str(), "w", _SH_DENYWR);
 #else
     logFile = std::fopen(path.c_str(), "w");

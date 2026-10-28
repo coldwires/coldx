@@ -11,7 +11,7 @@ Audio& Audio::Get() {
     return audio;
 }
 
-// SDL's audio thread asks for more output; mix it in chunks.
+// SDL's audio thread asks for more output. Mix it in chunks.
 void Audio::Feed(void* self, SDL_AudioStream* stream, int additional, int /*total*/) {
     Audio& a = *static_cast<Audio*>(self);
     constexpr int ChunkFrames = static_cast<int>(std::tuple_size_v<decltype(chunk_)> / 2);
@@ -26,7 +26,7 @@ void Audio::Feed(void* self, SDL_AudioStream* stream, int additional, int /*tota
 
 void Audio::Start(bool headless) {
     Stop();
-    // Headless runs are tests and scripts: mix in real time, play nothing aloud.
+    // Headless runs are tests and scripts. Mix in real time and play nothing aloud.
     if (headless && !SDL_GetHint(SDL_HINT_AUDIO_DRIVER)) SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
         SDL_Log("coldx.core: audio off: %s", SDL_GetError());
@@ -65,7 +65,7 @@ void Audio::Stop() {
 
 void Audio::Pump() {
     if (!mixer_) return;
-    // A slot is free once its voice has ended, whether or not its holder let go: an
+    // A slot is free once its voice has ended, whether or not its holder let go. An
     // instance that finished keeps nothing busy. Ended() tells such a holder its voice is
     // gone even after the slot has been reused, because generations only go up.
     for (int i = 0; i < MixerVoices; ++i) {
@@ -110,7 +110,7 @@ void Audio::Release(int slot, std::uint32_t generation) {
     } else if (mixer_->Submit(stop)) {
         s.released = true;
     } else {
-        // Cannot tell the mixer to stop: keep the data until the voice ends on its own.
+        // The mixer cannot be told to stop. Keep the data until the voice ends on its own.
         s.released = true;
     }
 }
@@ -122,7 +122,7 @@ bool Audio::Ended(int slot, std::uint32_t generation) const {
 bool Audio::Submit(const MixCommand& command) {
     if (!mixer_) return false;
     if (mixer_->Submit(command)) return true;
-    if (!warnedFull_) SDL_Log("coldx.core: audio command queue full; commands dropped");
+    if (!warnedFull_) SDL_Log("coldx.core: audio command queue full, commands dropped");
     warnedFull_ = true;
     return false;
 }

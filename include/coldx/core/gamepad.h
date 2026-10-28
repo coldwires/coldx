@@ -7,7 +7,7 @@
 
 namespace coldx {
 
-// Named for the Xbox layout. SDL maps other pads onto it by position: A is the bottom face
+// Named for the Xbox layout. SDL maps other pads onto it by position. A is the bottom face
 // button, whatever it is labelled.
 enum class Buttons : std::uint32_t {
     A = 1u << 0,
@@ -30,8 +30,8 @@ enum class Buttons : std::uint32_t {
 // How stick input near the center is ignored. Worn sticks rarely rest at exactly zero.
 enum class GamePadDeadZone {
     None,
-    IndependentAxes,  // each axis on its own; good for menus and 4-way movement. The default.
-    Circular,         // the stick's distance from center; good for free 2D aiming
+    IndependentAxes,  // each axis on its own. Good for menus and 4-way movement. The default.
+    Circular,         // the stick's distance from center. Good for free 2D aiming
 };
 
 // The kind of pad, for showing matching button prompts.
@@ -92,7 +92,7 @@ struct GamePadState {
 // player's hand does not act on a game in the background.
 class GamePad {
 public:
-    // Players 0 to 3. Pads take the lowest free player as they connect; a disconnect frees
+    // Players 0 to 3. Pads take the lowest free player as they connect. A disconnect frees
     // its player for the next pad.
     static constexpr int MaxPlayers = 4;
 
@@ -103,13 +103,13 @@ public:
     static bool WasPressed(int player, Buttons button);
     static bool WasReleased(int player, Buttons button);
 
-    // Motor strength 0 to 1, low and high frequency; holds until changed. False when the
+    // Motor strength 0 to 1, low and high frequency. Holds until changed. False when the
     // player has no pad or the pad cannot rumble.
     static bool SetVibration(int player, float lowFrequency, float highFrequency);
 
     // The pad on player now, live rather than per Update. Not connected for an unused player.
     static GamePadCapabilities GetCapabilities(int player);
-    // How the pad labels a face button (A, B, X, Y); Unknown for other buttons or no pad.
+    // How the pad labels a face button (A, B, X, Y). Unknown for other buttons or no pad.
     static ButtonLabel FaceButtonLabel(int player, Buttons button);
 };
 

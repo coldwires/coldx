@@ -94,7 +94,7 @@ public:
     static bool WasReleased(Key key);
 
     // What the key is called on the current layout, for showing bindings: Key::Q is "A"
-    // on AZERTY, "Q" on QWERTY; non-character keys have their usual names ("Left Shift",
+    // on AZERTY, "Q" on QWERTY. Non-character keys have their usual names ("Left Shift",
     // "F5"). Empty for a key with no name. From Initialize on.
     static std::string KeyName(Key key);
     // The key that types character on the current layout, unshifted, or Key::Unknown. 'a'

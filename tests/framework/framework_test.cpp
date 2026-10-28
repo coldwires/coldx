@@ -131,7 +131,7 @@ void HumanScene::LoadContent() {
 }
 
 void HumanScene::Update(const GameTime& time) {
-    // A scene taking typed text needs P and F as letters: F1 and F2 judge it instead.
+    // A scene taking typed text needs P and F as letters, so F1 and F2 judge it instead.
     const bool typing = TextInput::IsActive();
     if (Keyboard::WasPressed(typing ? Key::F1 : Key::P)) {
         verdict_ = Status::Pass;

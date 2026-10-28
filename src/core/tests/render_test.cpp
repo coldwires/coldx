@@ -56,7 +56,7 @@ int main() {
         CheckSprite(f, 28, 4, Color::White);
         for (auto [x, y] : {std::pair{0, 0}, {3, 3}, {6, 6}, {63, 31}, {30, 4}}) CheckPixel(f, x, y, Color::Black);
 
-        // Outlives the game and its GPU device; destroying it afterwards must not crash.
+        // Outlives the game and its GPU device. Destroying it afterwards must not crash.
         survivor = std::move(scene.textures[0]);
     }
     survivor.reset();

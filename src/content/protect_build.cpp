@@ -76,7 +76,7 @@ bool ReadKeyFile(const std::string& path, rime::Key& key, std::string& error) {
 bool WriteNewKey(const std::string& path, std::string& error) {
     const fs::path file(std::u8string(path.begin(), path.end()));
     if (fs::exists(file)) {
-        error = path + " exists; a new key would make every package built with the old one unreadable";
+        error = path + " exists. A new key would make every package built with the old one unreadable";
         return false;
     }
     // random_device draws from the operating system's generator on the platforms coldx

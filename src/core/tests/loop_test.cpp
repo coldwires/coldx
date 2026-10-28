@@ -1,5 +1,5 @@
-// The fixed-timestep loop drawing between updates: off, every draw follows an update and
-// Alpha is 0; on, frames are drawn between updates with Alpha rising from 0 toward 1, while
+// The fixed-timestep loop drawing between updates. Off, every draw follows an update and
+// Alpha is 0. On, frames are drawn between updates with Alpha rising from 0 toward 1, while
 // updates keep their own rate. Headless, so nothing paces the drawing but the loop itself.
 
 #include <coldx/coldx.h>
@@ -63,7 +63,7 @@ int main() {
         CHECK(game.lastAlpha == 0.0f || game.lastAlpha == -1.0f);
         CHECK(game.alphaInRange && game.updateAlphaZero);
     }
-    {   // On: many draws between updates, Alpha climbing within each step; updates stay at 60.
+    {   // On: many draws between updates, Alpha climbing within each step. Updates stay at 60.
         LoopGame game;
         game.Settings().console = ConsoleMode::Never;
         game.Settings().drawBetweenUpdates = true;
@@ -71,7 +71,7 @@ int main() {
         std::printf("on: %d updates, %d draws in %.2f s, up to %d draws between updates\n", game.updates, game.draws,
                     game.seconds, game.maxDrawsBetween);
         // How many frames fit between updates depends on the GPU and what else the machine is
-        // doing (35 to 90 here); that there are some is what is being tested.
+        // doing (35 to 90 here). That there are some is what is being tested.
         CHECK(game.draws > game.updates);
         CHECK(game.maxDrawsBetween >= 2);
         CHECK(game.updates >= 28 && game.updates <= 33);  // 0.5 s at 60 per second

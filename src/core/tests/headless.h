@@ -107,7 +107,7 @@ inline coldx::Color Tint(coldx::Color texel, coldx::Color tint) {
     return {channel(texel.r, tint.r), channel(texel.g, tint.g), channel(texel.b, tint.b), channel(texel.a, tint.a)};
 }
 
-// Opaque results must match exactly; anything blended may round one step either way.
+// Opaque results must match exactly. Anything blended may round one step either way.
 inline void CheckPixel(const Frame& frame, int x, int y, coldx::Color expected, int tolerance = 0) {
     if (!frame.Valid()) return;
     const coldx::Color got = frame.At(x, y);

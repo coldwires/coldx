@@ -13,7 +13,7 @@
 #   /EMITTOOLVERSIONINFO:NO   no record of the tools that built it
 #   /Brepro                   a hash in place of the build time
 #   /DEBUG /PDBALTPATH:%_PDB% symbols in a .pdb kept beside the build (archive it, do not
-#                             ship it); the executable names it without a path
+#                             ship it). The executable names it without a path
 #
 # With GCC or Clang:
 #   -fno-rtti                 the same as /GR-
@@ -25,9 +25,9 @@
 #   symbols split off         an executable's symbols go to <name>.debug beside it (archive
 #                             it, do not ship it), and the executable is stripped
 #
-# A game built this way needs coldx built with COLDX_HARDEN=ON too: a library built with
-# RTTI carries its class names into the game. With GCC or Clang the reverse holds as well:
-# everything that derives from a coldx class must be built without RTTI, so COLDX_HARDEN
+# A game built this way needs coldx built with COLDX_HARDEN=ON too. A library built with
+# RTTI carries its class names into the game. With GCC or Clang the reverse holds as well.
+# Everything that derives from a coldx class must be built without RTTI, so COLDX_HARDEN
 # turns it off for all C++ in the build, and a game hardening itself does the same.
 option(COLDX_HARDEN "Release builds of coldx and its samples without RTTI and build-machine details" OFF)
 

@@ -125,7 +125,7 @@ void KeyboardEdges() {
             PushEvent(SDL_EVENT_WINDOW_FOCUS_LOST);
             break;
         case 6:
-            // Losing focus lets go of everything: the key-up would go to another window.
+            // Losing focus lets go of everything. The key-up would go to another window.
             CHECK(Keyboard::GetState().IsKeyUp(Key::A) && Keyboard::GetState().IsKeyUp(Key::LeftShift));
             CHECK(Keyboard::WasReleased(Key::A));
             return false;
@@ -172,7 +172,7 @@ void MouseState_() {
             CHECK(Near(Mouse::ScrollWheelDelta(), 2.5f));
             CHECK(Near(Mouse::HorizontalScrollWheelDelta(), -1.0f));
             CHECK(Near(Mouse::GetState().scrollWheel, 2.5f));
-            // A "natural scrolling" device reports the opposite sign; up must still be up.
+            // A "natural scrolling" device reports the opposite sign. Up must still be up.
             PushWheel(-1.0f, 0.0f, true);
             break;
         case 6:
@@ -242,7 +242,7 @@ float ExpectAxis(float v) {  // IndependentAxes dead zone, as documented
 void GamePads() {
     Headless();
     // SDL drops pad button presses while no window has focus, and a headless window never
-    // has it. A real game keeps that default; the test needs the presses.
+    // has it. A real game keeps that default. The test needs the presses.
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
     Driver game;
     VirtualPad first, second, third;
@@ -294,7 +294,7 @@ void GamePads() {
             third.Attach("coldx test pad 3");
             break;
         case 5:
-            // The freed player 0 goes to the next pad; player 1 keeps its pad.
+            // The freed player 0 goes to the next pad. Player 1 keeps its pad.
             CHECK(GamePad::GetState(0).isConnected && GamePad::GetState(1).isConnected);
             third.Button(SDL_GAMEPAD_BUTTON_NORTH, true);
             break;

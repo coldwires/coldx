@@ -34,7 +34,7 @@ struct SpriteBatch::Impl {
     SamplerState sampler = SamplerState::LinearClamp;
     Effect effect;
     Matrix transform;
-    std::optional<bool> snapChoice;  // SetPixelSnap's; unset follows the game's pixelArt
+    std::optional<bool> snapChoice;  // SetPixelSnap's, unset follows the game's pixelArt
     bool snap = false;               // in force since Begin
 
     explicit Impl(GraphicsDevice& g) : graphics(g) {}
@@ -237,7 +237,7 @@ void SpriteBatch::DrawString(const SpriteFont& font, std::string_view text, Vect
     }
     detail::FontAccess::ForEachGlyph(font, text, [&](const Rectangle& source, float x, float y) {
         // A flipped string is mirrored as a whole, across its measured size rounded so glyphs
-        // stay on whole pixels: each glyph moves to its mirror position and is drawn flipped.
+        // stay on whole pixels. Each glyph moves to its mirror position and is drawn flipped.
         if (flipX) x = size.x - x - source.width;
         if (flipY) y = size.y - y - source.height;
         impl_->Add(atlas, position.x, position.y, source.width * scale.x, source.height * scale.y,

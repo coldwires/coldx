@@ -28,7 +28,7 @@ std::vector<unsigned char> ReadWhole(const std::string& path, bool& ok) {
     return bytes;
 }
 
-// Sounds skipped for lack of a voice. A burst can skip hundreds in a frame; one log line
+// Sounds skipped for lack of a voice. A burst can skip hundreds in a frame. One log line
 // each would cost more than the sounds, so they are summed and logged once a second.
 void NoteSkipped() {
     static int skipped = 0;
@@ -41,7 +41,7 @@ void NoteSkipped() {
     lastLog = now;
 }
 
-// Starts sound on a fresh slot with the given settings; the slot is held by the caller.
+// Starts sound on a fresh slot with the given settings. The slot is held by the caller.
 int Start(const std::shared_ptr<const detail::SoundData>& sound, float volume, float pitch, float pan, bool looped,
           std::uint32_t& generation) {
     detail::Audio& audio = detail::Audio::Get();

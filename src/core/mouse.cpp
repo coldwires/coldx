@@ -38,7 +38,7 @@ void Mouse::SetPosition(int x, int y) {
     float wx = 0, wy = 0;
     in.BackBufferToWindow(x, y, wx, wy);
     SDL_WarpMouseInWindow(in.window, wx, wy);
-    // Warping also queues a motion event; setting it here as well means the next Update sees
+    // Warping also queues a motion event. Setting it here as well means the next Update sees
     // the position even where the platform does not report warps.
     in.liveMouse.x = x;
     in.liveMouse.y = y;

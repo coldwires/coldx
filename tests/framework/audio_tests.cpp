@@ -1,5 +1,5 @@
 // AUD-01 to AUD-05. Where the question is about the samples themselves (loop seams,
-// clicks), the test drives the mixer directly and measures its output; the device cannot be
+// clicks), the test drives the mixer directly and measures its output. The device cannot be
 // listened to from here.
 
 #include "framework_test.h"
@@ -66,7 +66,7 @@ Result ManySounds() {
     std::string notes;
     double worst = 0;
     for (int i = 0; i < 3; ++i) {
-        notes += Format("%d per burst: %d of %d played, burst took %.2f ms average, %.2f ms worst; ", levels[i], stats[i].played,
+        notes += Format("%d per burst: %d of %d played, burst took %.2f ms average, %.2f ms worst. ", levels[i], stats[i].played,
                         stats[i].asked, stats[i].totalMs / std::max(1, stats[i].bursts), stats[i].worstMs);
         worst = std::max(worst, stats[i].worstMs);
     }
@@ -237,12 +237,12 @@ Result LiveParameters() {
               (ratio < 2.0 ? "No jumps beyond the tone's own."
                            : "Gain changes land as a step at a block boundary instead of a ramp: an audible zipper or "
                              "click when volume or pan is moved continuously. Likely cause: Mixer::Apply sets volume "
-                             "and pan at once (src/core/mixer.cpp); ramping them across the next block would fix it.") +
+                             "and pan at once (src/core/mixer.cpp). Ramping them across the next block would fix it.") +
               " Ranges match XNA's (volume 0..1, pitch and pan -1..1, clamped).";
     return r;
 }
 
-// AUD-05: no audio device at all; the game must run, silently.
+// AUD-05: no audio device at all. The game must run, silently.
 Result NoDevice() {
     Result r{"AUD-05", "P2"};
     SetEnv("COLDX_HEADLESS", "1");
@@ -258,7 +258,7 @@ Result NoDevice() {
     SetEnv("SDL_AUDIO_DRIVER", nullptr);
     SetEnv("COLDX_HEADLESS", nullptr);
     r.status = rc == 0 && !played && game.updates == 10 ? Status::Pass : Status::Fail;
-    r.notes = Format("With an audio driver that does not exist the game ran %d updates, exit code %d; Play returned %s. "
+    r.notes = Format("With an audio driver that does not exist the game ran %d updates, exit code %d. Play returned %s. "
                      "coldx logs \"audio off\" and carries on.",
                      game.updates, rc, played ? "true" : "false");
     return r;

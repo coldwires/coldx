@@ -1,7 +1,7 @@
 // Sound effects, an instance you control, and streaming music.
 //
 // 1-5 play notes: one generated sound, pitched up and down. Space starts or stops a
-// looping hum; P pauses it; Left and Right pan it. M starts or stops the music; Up and
+// looping hum. P pauses it. Left and Right pan it. M starts or stops the music. Up and
 // Down change its volume.
 
 #include <coldx/coldx.h>

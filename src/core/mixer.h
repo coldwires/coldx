@@ -44,7 +44,7 @@ struct MixCommand {
 // fixed output rate, with linear resampling, pitch, pan and volume. Volume and pan changes
 // ramp across the next block, so moving them every frame does not click.
 //
-// Two threads: the game thread calls Submit, Ended, MusicEnded and TakeRetiredMusic; the
+// Two threads: the game thread calls Submit, Ended, MusicEnded and TakeRetiredMusic. The
 // audio thread calls Mix. They meet only through lock-free queues and atomics, and the
 // audio thread never allocates or frees.
 class Mixer {
@@ -57,7 +57,7 @@ public:
     std::uint32_t Ended(int slot) const { return ended_[static_cast<size_t>(slot)].load(std::memory_order_acquire); }
     // Game thread. The generation of the last music stream to stop or finish.
     std::uint32_t MusicEnded() const { return musicEnded_.load(std::memory_order_acquire); }
-    // Game thread. A stream the mixer is done with, to destroy; null when there is none.
+    // Game thread. A stream the mixer is done with, to destroy. Null when there is none.
     MusicStream* TakeRetiredMusic();
 
     // Audio thread. Applies queued commands, then writes frames stereo frames.
@@ -101,7 +101,7 @@ private:
     float master_ = 1.0f;
     MusicStream* music_ = nullptr;
     // The track being faded out, while music_ fades in (or nothing plays, after a fading
-    // stop). Frames done of each fade, out of its total; a total of 0 is no fade.
+    // stop). Frames done of each fade, out of its total. A total of 0 is no fade.
     MusicStream* fading_ = nullptr;
     std::int64_t fadeInDone_ = 0, fadeInFrames_ = 0;
     std::int64_t fadeOutDone_ = 0, fadeOutFrames_ = 0;

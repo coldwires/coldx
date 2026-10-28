@@ -9,7 +9,7 @@ Rectangle FitRectangle(int outWidth, int outHeight, int width, int height, Scale
     if (outWidth <= 0 || outHeight <= 0 || width <= 0 || height <= 0) return {0, 0, std::max(0, outWidth), std::max(0, outHeight)};
     if (mode == ScaleMode::Stretch) return {0, 0, outWidth, outHeight};
     const double fit = std::min(static_cast<double>(outWidth) / width, static_cast<double>(outHeight) / height);
-    // Integer scaling below 1x would be nothing at all; it shrinks as Fit does instead.
+    // Integer scaling below 1x would be nothing at all. It shrinks as Fit does instead.
     const double scale = mode == ScaleMode::Integer && fit >= 1.0 ? std::floor(fit) : fit;
     const int w = std::clamp(static_cast<int>(std::lround(width * scale)), 1, outWidth);
     const int h = std::clamp(static_cast<int>(std::lround(height * scale)), 1, outHeight);

@@ -33,7 +33,7 @@ public:
         batch_.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointWrap);
         batch_.Draw(world_.nebula, Vector2(0, 0), Rectangle(0, -static_cast<int>(scroll_), Width, Height), Color::White);
         batch_.End();
-        // One texture for every star, so Texture sorting changes nothing; it is the
+        // One texture for every star, so Texture sorting changes nothing. It is the
         // cheapest mode when a batch mixes many.
         batch_.Begin(SpriteSortMode::Texture, BlendState::Additive);
         for (const Star& s : stars_)
@@ -120,7 +120,7 @@ public:
             it.position.y = Height + 100.0f;
             const int points = it.kind == Kind::Gem ? 5 : 1;
             world_.score += points;
-            // Higher for a gem and as the score climbs; panned to where it was caught.
+            // Higher for a gem and as the score climbs, panned to where it was caught.
             const float pan = (world_.player.x / Width) * 2.0f - 1.0f;
             world_.pickup.Play(0.6f, std::min(1.0f, (points == 5 ? 0.5f : 0.0f) + world_.score * 0.005f), pan * 0.7f);
             for (int i = 0; i < (points == 5 ? 14 : 6); ++i) {

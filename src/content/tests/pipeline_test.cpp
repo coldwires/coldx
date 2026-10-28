@@ -264,7 +264,7 @@ void Protection(const fs::path& dir) {
     CHECK(Read(o.output).find("PLAINTEXT") == std::string::npos);
     const std::string source = Read(o.gameSource);
     CHECK(source.find("SetDefaultKey") != std::string::npos && source.find("f[16]") != std::string::npos);
-    // The key is in the source only scattered: its hex never appears in order.
+    // The key is in the source only scattered. Its hex never appears in order.
     char hex[3];
     std::string keyHex;
     for (std::uint8_t b : key) {

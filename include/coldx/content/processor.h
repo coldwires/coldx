@@ -16,14 +16,14 @@ struct Source {
     std::string path;  // where it is on disk
     std::vector<std::uint8_t> bytes;
     // What a processor that watermarks its output writes: this build's fingerprint
-    // (BuildOptions::buildId), or without one the project's own mark; and the secret that
+    // (BuildOptions::buildId), or without one the project's own mark. Also the secret that
     // places the marks.
     std::uint64_t fingerprint = 0;
     std::uint64_t watermarkSecret = 0;
 };
 
 // One package entry a processor made. name is what the game loads it by, extension
-// included; most processors keep the source's name.
+// included. Most processors keep the source's name.
 struct Output {
     std::string name;
     rime::AssetType type = rime::AssetType::Data;
@@ -36,7 +36,7 @@ struct Output {
 using Settings = std::map<std::string, std::string>;
 
 // Turns a source into package entries. The built-in ones are texture, sound, music, font,
-// data and effect. A game adds its own by subclassing and passing it to RunTool or Build; its
+// data and effect. A game adds its own by subclassing and passing it to RunTool or Build. Its
 // section in the project file is [Name()].
 class Processor {
 public:
@@ -46,12 +46,12 @@ public:
     virtual std::string Name() const = 0;
     // Bump when the output for the same input changes, so cached results are rebuilt.
     virtual int Version() const { return 1; }
-    // The setting keys this processor reads; any other key in its section is an error,
+    // The setting keys this processor reads. Any other key in its section is an error,
     // so a typo does not go unnoticed.
     virtual std::vector<std::string> SettingKeys() const { return {}; }
 
     // Appends what source becomes to outputs (usually one entry, possibly none or
-    // several). On failure returns false with error set; the build fails, naming the file.
+    // several). On failure returns false with error set, and the build fails, naming the file.
     virtual bool Process(const Source& source, const Settings& settings, std::vector<Output>& outputs,
                          std::string& error) const = 0;
 };

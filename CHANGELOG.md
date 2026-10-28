@@ -22,7 +22,7 @@
 - `COLDX_LOG` files can be read while the game runs.
 - `SpriteFont` baked from a TTF, `SpriteBatch::DrawString`, `MeasureString`: UTF-8,
   kerning, newlines, Latin-1, a default character.
-- `Mouse` and `GamePad`; `WasPressed`/`WasReleased` on all three input devices. Input is
+- `Mouse` and `GamePad`. `WasPressed`/`WasReleased` on all three input devices. Input is
   event-driven and snapshotted per Update.
 - `Storage` for settings and saves, and `GameSettings::company`/`name`.
 - `COLDX_INPUT` scripted input.
@@ -31,27 +31,27 @@
   fires only on a real change.
 - `ContentManager` (`Game::Content()`): loose files by name, a cache, `LoadFont`,
   `RegisterLoader` for game types.
-- `Texture2D`, `RenderTarget2D` and `SpriteFont` are copyable handles: copies share.
+- `Texture2D`, `RenderTarget2D` and `SpriteFont` are copyable handles. Copies share.
 - Audio: `SoundEffect` (WAV, OGG), `SoundEffectInstance`, streaming `Music` and
   `MediaPlayer`, on a lock-free software mixer. Headless runs use a silent driver.
 - `hello_audio` sample. Every test has a CTest timeout.
 - `demo` sample: a small game using components, ContentManager, input, sound, music,
   text, a named-tile sprite sheet and Storage.
 - `coldx_framework_tests`: automated and human-judged stress tests with a report.
-- Fixes from the stress tests: volume, pan and music volume ramp instead of stepping; 256
-  voices, and skipped sounds are logged once a second; stereo OGG sound effects keep their
+- Fixes from the stress tests. Volume, pan and music volume ramp instead of stepping. 256
+  voices, and skipped sounds are logged once a second. Stereo OGG sound effects keep their
   last frame.
 - Virtual resolution: a fixed back buffer scaled into the window (`ScaleMode` Fit, Integer,
   Stretch), with the mouse mapped into it.
-- `Texture2D::GetData`, `SaveAsPng`; `GraphicsDevice::GetBackBufferData`.
-- Exclusive fullscreen at a chosen mode; `DisplayModes`, `DesktopDisplayMode`.
+- `Texture2D::GetData`, `SaveAsPng` and `GraphicsDevice::GetBackBufferData`.
+- Exclusive fullscreen at a chosen mode, with `DisplayModes` and `DesktopDisplayMode`.
 - `GameSettings::drawBetweenUpdates` and `GameTime::Alpha` for interpolated drawing.
 - `TextInput` (typed UTF-8, IME composition), `Clipboard`, `Keyboard::KeyName` and
   `KeyForCharacter`.
 - `GamePad::GetCapabilities` (name, type, rumble) and `FaceButtonLabel`.
 - `MediaPlayer::CrossFade` and `FadeOut`.
 - `.rime` packages: `coldx/core/rime.h`, `ContentManager::Mount`, the default
-  `content.rime`, `LooseFiles`, `RegisterDataLoader`, `ReadBytes`; `FromMemory` for
+  `content.rime`, `LooseFiles`, `RegisterDataLoader`, `ReadBytes`. `FromMemory` for
   textures, sounds and music.
 - The `content` module and `coldxc`: content projects, processors (built-in and a game's
   own), a build cache, `coldx_add_content`. The `demo` sample loads from a package.
@@ -64,22 +64,22 @@
 - `Effect`: custom fragment shaders for `SpriteBatch` with named parameters and extra
   textures. `SpriteBatch::Begin` takes one before the transform (calls that passed a
   transform now pass `Effect()` first). `[effect]` in content projects,
-  `coldxc --compile-effect` and `coldx_compile_effects`; `CX_SPRITE_EFFECT`, `CX_SAMPLE`
-  and `CX_SAMPLE_AT` in `coldx.hlsli`; grayscale, flash and wave in `shaders/examples/`.
+  `coldxc --compile-effect` and `coldx_compile_effects`. `CX_SPRITE_EFFECT`, `CX_SAMPLE`
+  and `CX_SAMPLE_AT` in `coldx.hlsli`. Grayscale, flash and wave in `shaders/examples/`.
 - `SpriteBatch::SetPixelSnap` and `FontSmoothing::Sharp` for pixel-perfect games, and
-  `GameSettings::pixelArt` to turn on the whole recipe at once (`SamplerState::Default`);
-  the `demo` sample is pixel-perfect (640x360, integer scaling) with the Silkscreen pixel
+  `GameSettings::pixelArt` to turn on the whole recipe at once (`SamplerState::Default`).
+  The `demo` sample is pixel-perfect (640x360, integer scaling) with the Silkscreen pixel
   font.
 - Sprites sample only their own source rectangle (with the clamp samplers), so atlas
   neighbours never bleed in, through filtering or rounding on shrunk sprites.
-- LZ4 compression of package entries where it helps; `[texture] format = raw`.
+- LZ4 compression of package entries where it helps, and `[texture] format = raw`.
 - Package encryption (ChaCha20) with `coldxc --key-file`, `--new-key` and
-  `coldx_add_content(... KEY_FILE)`; `ContentManager::SetKey`, `SetDefaultKey`.
+  `coldx_add_content(... KEY_FILE)`. `ContentManager::SetKey`, `SetDefaultKey`.
 - Build fingerprints: `--build-id`, `BUILD_ID`, `COLDX_BUILD_ID`, `coldxc --identify`.
 - The `protect` module: `COLDX_HIDDEN`.
 - Watermarks: `[texture] watermark = rgb | alpha`, `[sound] watermark = on`, read by
   `coldxc --identify`.
-- `COLDX_HARDEN` and `coldx_harden` for release builds; coldx no longer uses RTTI.
+- `COLDX_HARDEN` and `coldx_harden` for release builds, and coldx no longer uses RTTI.
   `ContentManager::IsLoaded` is now `IsLoaded<T>(name)`.
 - `hello_sprite`, `hello_text`, `quickstart` and `stress` samples. `hello_text` saves its
   text size.

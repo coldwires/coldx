@@ -16,12 +16,12 @@ struct Input;
 //     20 mouse move 100 200   back buffer pixels
 //     21 mouse down left      left, right, middle, x1, x2
 //     22 mouse up left
-//     30 wheel 1              notches up; optional second number is horizontal
+//     30 wheel 1              notches up (an optional second number is horizontal)
 //     35 text hello there     typed text, if the game has TextInput on
 //     40 exit
 class InputScript {
 public:
-    // Reads path; bad lines are logged with their number and skipped. An empty path is no
+    // Reads path. Bad lines are logged with their number and skipped. An empty path is no
     // script.
     void Load(const std::string& path);
     bool Empty() const { return commands_.empty(); }

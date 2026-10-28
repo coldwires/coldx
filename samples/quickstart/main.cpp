@@ -28,7 +28,7 @@ protected:
         if (keys.IsKeyDown(Key::Right)) move.x += 1;
         if (keys.IsKeyDown(Key::Up)) move.y -= 1;
         if (keys.IsKeyDown(Key::Down)) move.y += 1;
-        // Sticks are up-positive; screen y grows downward.
+        // Sticks are up-positive. Screen y grows downward.
         const Vector2 stick = GamePad::GetState(0).leftStick;
         move += Vector2(stick.x, -stick.y);
         position += move * 300.0f * time.Delta();
@@ -49,7 +49,7 @@ protected:
     }
 
 private:
-    SpriteBatch batch{Graphics()};  // fine before Run: GPU objects are made on first use
+    SpriteBatch batch{Graphics()};  // fine before Run, since GPU objects are made on first use
     Texture2D square;
     SpriteFont font;
     Vector2 position{100, 100};

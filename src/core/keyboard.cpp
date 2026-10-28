@@ -26,7 +26,7 @@ KeyboardState Keyboard::GetState() {
 }
 
 // The edges since the previous Update, including any that went and came back between
-// two (a tap); the state comparison as well, for changes with no event (focus lost).
+// two (a tap). Also the state comparison, for changes with no event (focus lost).
 bool Keyboard::WasPressed(Key key) {
     const detail::Input& in = detail::Input::Get();
     return in.keysPressed.IsKeyDown(key) || (in.currentKeys.IsKeyDown(key) && in.previousKeys.IsKeyUp(key));

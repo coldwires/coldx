@@ -1,5 +1,5 @@
 // SpriteBatch states and geometry, and render targets. Every expected pixel is computed
-// from the texels and the blend equation; opaque results must match exactly.
+// from the texels and the blend equation. Opaque results must match exactly.
 
 #include <cmath>
 
@@ -81,7 +81,7 @@ void Geometry() {
     Block(f, 4, 0, 4, 4, G);
     Block(f, 0, 4, 4, 4, B);
     Block(f, 4, 4, 4, 4, W);
-    // Clamp repeats the edge texels past the texture: columns 2 and 3 copy column 1.
+    // Clamp repeats the edge texels past the texture. Columns 2 and 3 copy column 1.
     CheckPixel(f, 22, 0, G);
     CheckPixel(f, 23, 1, W);
 
@@ -91,7 +91,7 @@ void Geometry() {
     const Color mid = f.At(13, 3);
     CHECK(mid.r > 0 && mid.g > 0 && mid.b > 0 && !(mid == R) && !(mid == W));
 
-    // Wrap repeats: columns 2 and 3 copy columns 0 and 1. 1:1 linear sampling hits texel
+    // Wrap repeats. Columns 2 and 3 copy columns 0 and 1. 1:1 linear sampling hits texel
     // centers, so LinearWrap is exact too.
     for (int x0 : {20, 26}) {
         CheckPixel(f, x0 + 0, 4, R);
@@ -104,7 +104,7 @@ void Geometry() {
     Block(f, 34, 0, 2, 2, G);
     CheckPixel(f, 36, 0, Black);
 
-    // Rotation: texel 0 at (40, 8), texel 1 at (40, 9); nothing right of the position.
+    // Rotation: texel 0 at (40, 8), texel 1 at (40, 9), nothing right of the position.
     CheckPixel(f, 40, 8, R);
     CheckPixel(f, 40, 9, G);
     CheckPixel(f, 41, 8, Black);
@@ -277,7 +277,7 @@ void RenderTargets() {
 }
 
 // Nearest-neighbour sprites from an atlas must never show the texel next to their source
-// rectangle, at any position or scale: the demo's ship picked up its sheet's magenta
+// rectangle, at any position or scale. The demo's ship picked up its sheet's magenta
 // outline when moving at 1.5x. A green tile between two magenta columns, drawn at 1.5x and
 // 2.25x at many sub-pixel positions: no magenta anywhere.
 void AtlasEdges() {
@@ -316,7 +316,7 @@ void AtlasEdges() {
 }
 
 // The demo's starfield: a 32x32 atlas tile shrunk to a few pixels (scale 0.03 to 0.27),
-// origin at its centre, additive. The texels around the tile are magenta; a shrunk sprite
+// origin at its centre, additive. The texels around the tile are magenta. A shrunk sprite
 // must still only show its own texels, with point or linear sampling.
 void ShrunkSprites() {
     const Color M(255, 0, 255);
@@ -363,7 +363,7 @@ void ShrunkSprites() {
 }
 
 // SetPixelSnap: sprites at fractional positions draw exactly as at the rounded positions,
-// unrotated ones only; without it, a fractional position draws differently.
+// unrotated ones only. Without it, a fractional position draws differently.
 void PixelSnap() {
     auto run = [](bool snap, bool rounded, const char* name) {
         Scene scene(96, 32);
@@ -397,13 +397,13 @@ void PixelSnap() {
             differ += loose.At(x, y) == exact.At(x, y) ? 0 : 1;
         }
     }
-    std::printf("pixel snap: %d of %d pixels match the rounded drawing; unsnapped differs in %d\n", same, 96 * 32, differ);
+    std::printf("pixel snap: %d of %d pixels match the rounded drawing, unsnapped differs in %d\n", same, 96 * 32, differ);
     CHECK(same == 96 * 32);
     CHECK(differ > 0);
 }
 
 // GameSettings::pixelArt: a batch begun with every default draws exactly as one told
-// PointClamp and pixel snapping; an explicit sampler still wins.
+// PointClamp and pixel snapping. An explicit sampler still wins.
 void PixelArtDefaults() {
     auto run = [](bool pixelArt, const char* name) {
         Scene scene(96, 32);

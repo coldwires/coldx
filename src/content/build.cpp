@@ -194,7 +194,7 @@ BuildResult Build(const BuildOptions& options, const std::vector<const Processor
     }
     if (!result.errors.empty()) return result;
     if (!project.seedSet && options.verbose)
-        std::printf("coldx.content: no seed set; set seed = <your game> so this package's name hashes are its own\n");
+        std::printf("coldx.content: no seed set. Set seed = <your game> so this package's name hashes are its own\n");
 
     if (!options.cacheDirectory.empty()) fs::create_directories(Utf8Path(options.cacheDirectory), ec);
     const std::uint64_t seed = rime::HashName(0, project.seed);

@@ -1,7 +1,7 @@
 // Virtual resolution: where a fixed-size back buffer lands in the window, mouse positions
 // mapped into it, and a headless game whose back buffer keeps the virtual size while the
 // window changes. What reaches the screen is a blit of a frame the render tests already
-// check; the placement arithmetic is checked here directly.
+// check. The placement arithmetic is checked here directly.
 
 #include <coldx/coldx.h>
 
@@ -24,7 +24,7 @@ void Placement() {
     // 320x180 into 1280x720: exactly 4x, no bars.
     CHECK(FitRectangle(1280, 720, 320, 180, ScaleMode::Fit) == Rectangle(0, 0, 1280, 720));
     CHECK(FitRectangle(1280, 720, 320, 180, ScaleMode::Integer) == Rectangle(0, 0, 1280, 720));
-    // Into 1000x1000: Fit scales 3.125 (1000x563, bars above and below); Integer 3x, centred.
+    // Into 1000x1000: Fit scales 3.125 (1000x563, bars above and below). Integer is 3x, centred.
     CHECK(FitRectangle(1000, 1000, 320, 180, ScaleMode::Fit) == Rectangle(0, 218, 1000, 563));
     CHECK(FitRectangle(1000, 1000, 320, 180, ScaleMode::Integer) == Rectangle(20, 230, 960, 540));
     // A tall window: bars left and right.
@@ -88,7 +88,7 @@ protected:
             motion.motion.y = 203.0f;
             SDL_free(windows);
             SDL_PushEvent(&motion);
-            SetWindowSize(640, 480);  // the back buffer keeps its size; no OnResize
+            SetWindowSize(640, 480);  // the back buffer keeps its size, no OnResize
         } else if (frame == 2) {
             mouse = Mouse::GetState();
             CHECK(Graphics().BackBufferWidth() == 320 && Graphics().BackBufferHeight() == 180);

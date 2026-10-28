@@ -1,4 +1,4 @@
-// Text with SpriteFont. Up and Down, or the mouse wheel, change the size; each size is a
+// Text with SpriteFont. Up and Down, or the mouse wheel, change the size. Each size is a
 // fresh bake, so text stays sharp at every size instead of being scaled. The size is saved
 // with Storage and comes back next run.
 
@@ -57,7 +57,7 @@ protected:
         const Vector2 measured = font.MeasureString(text);
 
         char label[80];
-        std::snprintf(label, sizeof(label), "%d px  (Up / Down or the wheel to change; it is saved)", size);
+        std::snprintf(label, sizeof(label), "%d px  (Up / Down or the wheel to change. It is saved.)", size);
 
         batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp);
         batch.Draw(pixel, Rectangle(static_cast<int>(at.x), static_cast<int>(at.y), static_cast<int>(measured.x),
@@ -67,7 +67,7 @@ protected:
         batch.DrawString(font, label, Vector2(40, at.y + measured.y + 20), Color(255, 210, 120));
         batch.End();
 
-        // Rotation and scale need smoothing; point sampling would make them jagged.
+        // Rotation and scale need smoothing. Point sampling would make them jagged.
         batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::LinearClamp);
         const char* spinning = "turning about its center";
         const Vector2 spinSize = font.MeasureString(spinning);

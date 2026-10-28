@@ -146,7 +146,7 @@ SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
 }
 
 SDL_GPUSampler* SpriteRenderer::Impl::Sampler(SamplerState sampler) {
-    // SpriteBatch resolves Default before drawing; the real samplers follow it in the enum.
+    // SpriteBatch resolves Default before drawing. The real samplers follow it in the enum.
     static_assert(static_cast<int>(SamplerState::LinearWrap) - static_cast<int>(SamplerState::PointClamp) + 1 == SamplerCount);
     if (sampler == SamplerState::Default) sampler = SamplerState::LinearClamp;
     const int index = static_cast<int>(sampler) - static_cast<int>(SamplerState::PointClamp);
@@ -235,7 +235,7 @@ bool SpriteRenderer::Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std
     SDL_GPUCommandBuffer* commands = GraphicsAccess::Commands(graphics);
     SDL_GPUTexture* target = GraphicsAccess::CurrentTarget(graphics);
     if (!commands || !target) {
-        SDL_Log("coldx.core: SpriteBatch drawn outside Draw; nothing drawn");
+        SDL_Log("coldx.core: SpriteBatch drawn outside Draw, nothing drawn");
         return false;
     }
 

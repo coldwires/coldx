@@ -8,7 +8,7 @@ namespace coldx::detail {
 
 namespace {
 
-// Balance: centre is full volume on both sides; panning fades the far side only.
+// Balance: centre is full volume on both sides. Panning fades the far side only.
 void PanGains(float pan, float& left, float& right) {
     left = pan > 0.0f ? 1.0f - pan : 1.0f;
     right = pan < 0.0f ? 1.0f + pan : 1.0f;
@@ -37,7 +37,7 @@ void Mixer::Retire(MusicStream* stream) {
 
 void Mixer::EndMusic(std::int64_t fadeFrames) {
     if (fadeFrames > 0 && music_ && !musicPaused_) {
-        // The playing track fades out from where it is. Only one track fades at a time: one
+        // The playing track fades out from where it is. Only one track fades at a time. One
         // already fading is cut.
         Retire(fading_);
         fading_ = music_;
@@ -54,8 +54,8 @@ void Mixer::EndMusic(std::int64_t fadeFrames) {
 }
 
 void Mixer::RetireMusic() {
-    // If the return queue is somehow full, the stream leaks rather than being freed here:
-    // the audio thread must not free.
+    // If the return queue is somehow full, the stream leaks rather than being freed here.
+    // The audio thread must not free.
     if (music_) {
         retired_.Push(music_);
         musicEnded_.store(musicGeneration_, std::memory_order_release);
@@ -66,14 +66,14 @@ void Mixer::RetireMusic() {
 
 void Mixer::Apply(const MixCommand& c) {
     Voice* v = c.slot >= 0 && c.slot < MixerVoices ? &voices_[static_cast<size_t>(c.slot)] : nullptr;
-    // Commands for a voice that has since been replaced are stale; drop them.
+    // Commands for a voice that has since been replaced are stale. Drop them.
     const bool current = v && v->sound && v->generation == c.generation;
     switch (c.type) {
     case MixCommandType::Play:
         if (!v) break;
         if (v->sound) End(*v, c.slot);
         *v = Voice{c.sound, c.generation, 0.0, c.volume, c.pitch, c.pan, 0.0f, 0.0f, c.looped, false};
-        // A new sound starts at its gain; only changes after that ramp.
+        // A new sound starts at its gain. Only changes after that ramp.
         PanGains(c.pan, v->gainLeft, v->gainRight);
         v->gainLeft *= c.volume * master_;
         v->gainRight *= c.volume * master_;

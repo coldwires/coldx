@@ -13,7 +13,7 @@ struct MusicData;
 
 // Background music: an OGG Vorbis file kept compressed in memory and decoded as it plays,
 // so a long track costs its file size, not minutes of samples. Play it with MediaPlayer.
-// Loading works any time; copies share the data.
+// Loading works any time. Copies share the data.
 class Music {
 public:
     Music();
@@ -22,7 +22,7 @@ public:
     // A relative path is taken from the executable's folder. Empty on failure, with the
     // reason logged.
     static Music FromFile(const std::string& path);
-    // An OGG file already in memory; the Music keeps the bytes. name is for log lines.
+    // An OGG file already in memory. The Music keeps the bytes. name is for log lines.
     static Music FromMemory(std::vector<std::uint8_t> ogg, const std::string& name = "memory");
 
     float Duration() const;  // seconds
@@ -33,7 +33,7 @@ private:
     std::shared_ptr<const detail::MusicData> data_;
 };
 
-// Plays one Music at a time, alongside any sound effects; during a crossfade the old track
+// Plays one Music at a time, alongside any sound effects. During a crossfade the old track
 // fades out under the new one.
 class MediaPlayer {
 public:

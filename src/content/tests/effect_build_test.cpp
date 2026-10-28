@@ -1,7 +1,7 @@
 // The [effect] processor and coldxc --compile-effect: both give the bytes committed in the
 // example headers, the cache skips unchanged effects, a game loads what was packed, and
 // shaders SpriteBatch cannot feed fail the build with a reason. Needs dxc and spirv-cross
-// (COLDX_DXC and COLDX_SPIRV_CROSS); without them the test is skipped.
+// (COLDX_DXC and COLDX_SPIRV_CROSS). Without them the test is skipped.
 
 #include <coldx/coldx.h>
 #include <coldx/content/build.h>
@@ -93,7 +93,7 @@ void Packed(const fs::path& dir) {
     CHECK(ReadBytes(fx) == Committed);
 }
 
-// Each shader is built alone; the build fails naming the file, with why.
+// Each shader is built alone. The build fails naming the file, with why.
 void Refused(const fs::path& dir) {
     Built tools;
     const fs::path project = dir / "bad" / "content.coldx";

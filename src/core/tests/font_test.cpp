@@ -94,7 +94,7 @@ void Metrics(const Reference& ref) {
         CHECK(lines.y == 3 * ref.lineSpacing);
         CHECK(font.MeasureString("").y == 0.0f);
 
-        // Latin-1 is baked; beyond it the default character stands in, as does broken UTF-8.
+        // Latin-1 is baked. Beyond it the default character stands in, as does broken UTF-8.
         CHECK(font.HasCharacter(char32_t{0xE9}) && !font.HasCharacter(char32_t{0x100}));
         CHECK(Near(font.MeasureString("\xc3\xa9").x, ref.Advance(0xe9)));
         CHECK(Near(font.MeasureString("\xc4\x80").x, ref.Advance('?')));
@@ -143,7 +143,7 @@ void Drawing(const Reference& ref) {
 }
 
 // FontSmoothing::Sharp: every pixel of drawn text is either the text colour or the
-// background, never between; Smooth has in-between pixels at the edges.
+// background, never between. Smooth has in-between pixels at the edges.
 void Sharpness() {
     auto count = [](FontSmoothing smoothing, const char* name) {
         SpriteFont font;

@@ -1,6 +1,6 @@
 // Text input, the clipboard and key names. Typed text arrives as SDL text events, pushed
-// here the way the platform would send them; the input script's text command takes the
-// same path. Runs headless with a variable timestep: an event pushed in Update N is seen
+// here the way the platform would send them. The input script's text command takes the
+// same path. Runs headless with a variable timestep. An event pushed in Update N is seen
 // by Update N + 1.
 
 #include <coldx/coldx.h>

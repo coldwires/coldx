@@ -24,7 +24,7 @@ struct GamePadRaw {
     float leftTrigger = 0, rightTrigger = 0;             // 0..1
 };
 
-// Everything the public input classes read. "live" follows SDL events as they arrive;
+// Everything the public input classes read. "live" follows SDL events as they arrive.
 // "current" and "previous" are copies taken at the start of each Update, so a game sees one
 // consistent state per Update and can tell what changed since the last one.
 struct Input {
@@ -34,7 +34,7 @@ struct Input {
     KeyboardState liveKeys, currentKeys, previousKeys;
     MouseState liveMouse, currentMouse, previousMouse;
     // Presses and releases as they happen, so a tap that goes down and up between two
-    // Updates is still seen by the next one: "live" gathers them, BeginUpdate moves them to
+    // Updates is still seen by the next one. "live" gathers them, and BeginUpdate moves them to
     // the per-Update sets that WasPressed and WasReleased read. Mouse buttons and pad
     // buttons one bit each (MouseButton's value, Buttons' bit).
     KeyboardState liveKeysPressed, liveKeysReleased, keysPressed, keysReleased;
@@ -57,7 +57,7 @@ struct Input {
 
     static Input& Get();
 
-    // Run start and end. Start forgets all state; Stop closes the pads.
+    // Run start and end. Start forgets all state. Stop closes the pads.
     void Start(SDL_Window* window);
     void Stop();
 

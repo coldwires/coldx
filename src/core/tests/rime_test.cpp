@@ -129,7 +129,7 @@ void Malformed() {
     CHECK(hurt && !hurt->Read(*hurt->Find("x"), out));
 }
 
-// Entries that shrink are stored as LZ4 blocks; ones that do not (already compressed
+// Entries that shrink are stored as LZ4 blocks. Ones that do not (already compressed
 // data) are stored as they are. Compressed entries that lie about their size, or do not
 // decompress, are refused without reading past anything.
 void Compression() {
@@ -256,7 +256,7 @@ void Encryption() {
     CHECK(!package->Read(*a, out));          // no key
     CHECK(!package->Read(*a, out, &other));  // another key
 
-    // The same name with other content gets another nonce: the two ciphertexts do not
+    // The same name with other content gets another nonce. The two ciphertexts do not
     // XOR to the XOR of the plaintexts, as they would under a reused nonce.
     rime::PackageWriter w2(11);
     w2.SetKey(k);
@@ -325,7 +325,7 @@ void Loading(const fs::path& dir) {
 
         auto hello = c.ReadBytes("text/hello.txt");
         CHECK(hello && *hello == Bytes("hello from a package"));
-        // LooseFiles::Auto: a debug build still reads loose files beside a package; a
+        // LooseFiles::Auto: a debug build still reads loose files beside a package. A
         // release build does not.
         auto loose = c.ReadBytes("loose.txt");
 #ifdef NDEBUG
@@ -344,7 +344,7 @@ void Loading(const fs::path& dir) {
         });
         CHECK(c.Load<Level>("levels/one").text == "packed level");
 
-        // A later mount wins; Unload drops the cache so the patched texture is seen.
+        // A later mount wins. Unload drops the cache so the patched texture is seen.
         CHECK(c.Mount((dir / "patch.rime").string()));
         CHECK(c.Load<Texture2D>("sprites/player").Width() == 4);  // still cached
         c.Unload();

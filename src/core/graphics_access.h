@@ -25,7 +25,7 @@ struct DeviceToken {
 struct GraphicsAccess {
     static std::unique_ptr<GraphicsDevice> Create();
 
-    // Creates the GPU device on first call; later calls reuse it. window is null in headless
+    // Creates the GPU device on first call. Later calls reuse it. window is null in headless
     // mode, and the back buffer is then width x height with nothing presented.
     static bool Open(GraphicsDevice& graphics, SDL_Window* window, bool vsync, int width, int height);
     // Lets go of the window. The device stays until Close, so GPU resources the game still
@@ -36,7 +36,7 @@ struct GraphicsAccess {
     // Headless only: the back buffer size, which with a window follows the window.
     static void ResizeHeadless(GraphicsDevice& graphics, int width, int height);
     // A fixed back buffer size scaled into the window, or inactive for one that follows the
-    // window. Takes effect at the next frame; headless, at once.
+    // window. Takes effect at the next frame, or at once when headless.
     static void SetPresentation(GraphicsDevice& graphics, const Presentation& presentation);
     static void SetPixelArt(GraphicsDevice& graphics, bool pixelArt);
     static void Close(GraphicsDevice& graphics);

@@ -21,7 +21,7 @@ public:
 
     static Audio& Get();
 
-    // Run start and end. Start opens the default output; if that fails, audio is off for
+    // Run start and end. Start opens the default output. If that fails, audio is off for
     // the run and every play call returns false.
     void Start(bool headless);
     void Stop();
@@ -32,7 +32,7 @@ public:
 
     // A free slot for data, or -1. The slot is held until Release.
     int Acquire(std::shared_ptr<const SoundData> data, std::uint32_t& generation);
-    // Lets the slot go, stopping its voice; it is reused once the voice has ended. A slot
+    // Lets the slot go, stopping its voice. It is reused once the voice has ended. A slot
     // whose voice ended on its own is reused even if never released.
     void Release(int slot, std::uint32_t generation);
     // True once that generation's voice has ended, including after the slot is reused.

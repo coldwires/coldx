@@ -29,7 +29,7 @@ enum class FullscreenMode {
 struct DisplayMode {
     int width = 0;
     int height = 0;
-    float refreshRate = 0.0f;  // Hz; 0 where the display does not say
+    float refreshRate = 0.0f;  // Hz, 0 where the display does not say
     friend bool operator==(const DisplayMode&, const DisplayMode&) = default;
 };
 
@@ -37,7 +37,7 @@ struct DisplayMode {
 struct GameSettings {
     std::string title = "coldx";
     // Name the Storage folder: <per-user app data>/<company>/<name>. name defaults to the
-    // title. Pick them once; changing them later moves the player's saves out of reach.
+    // title. Pick them once. Changing them later moves the player's saves out of reach.
     std::string company;
     std::string name;
     int width = 1280;
@@ -102,21 +102,21 @@ public:
 
     GameSettings& Settings();
 
-    // The window while the game runs. Before Run they set Settings(); during Run they
-    // change the window at once. Headless, there is no window to change: a size change
+    // The window while the game runs. Before Run they set Settings(). During Run they
+    // change the window at once. Headless, there is no window to change. A size change
     // resizes the back buffer and calls OnResize, and fullscreen is only remembered.
     // Fullscreen is borderless at the desktop's resolution unless the mode says otherwise.
     void SetFullscreen(bool fullscreen);
     void ToggleFullscreen();
     bool IsFullscreen() const;
-    // How fullscreen looks from now on; applied at once if the game is fullscreen. Width
+    // How fullscreen looks from now on. Applied at once if the game is fullscreen. Width
     // and height 0 mean the desktop's resolution.
     void SetFullscreenMode(FullscreenMode mode, int width = 0, int height = 0, float refreshRate = 0.0f);
     // The modes the window's display offers, largest first, and its desktop mode. Empty
     // before Run and headless.
     std::vector<DisplayMode> DisplayModes() const;
     DisplayMode DesktopDisplayMode() const;
-    // In window coordinates; the back buffer follows in pixels, which differ on high-DPI
+    // In window coordinates. The back buffer follows in pixels, which differ on high-DPI
     // displays.
     void SetWindowSize(int width, int height);
     void SetWindowTitle(const std::string& title);

@@ -1,12 +1,12 @@
 # Shader compilation needs dxc and spirv-cross, both in the Vulkan SDK. Only regenerating
-# shaders needs them; the compiled headers are committed, so a normal build does not.
+# shaders needs them. The compiled headers are committed, so a normal build does not.
 
 find_program(COLDX_DXC dxc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
 find_program(COLDX_SPIRV_CROSS spirv-cross HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
 
 # Adds a target that compiles each .vert.hlsl / .frag.hlsl in SOURCES into a header in
 # OUTPUT_DIR, named after the shader (sprite.vert.hlsl -> sprite_vert.h). The target is not
-# part of the default build; build it by name after editing a shader.
+# part of the default build. Build it by name after editing a shader.
 function(coldx_compile_shaders target)
     cmake_parse_arguments(ARG "" "OUTPUT_DIR" "SOURCES;INCLUDE_DIRS" ${ARGN})
     if(NOT COLDX_DXC OR NOT COLDX_SPIRV_CROSS)
@@ -43,7 +43,7 @@ function(coldx_compile_shaders target)
     add_custom_target(${target} DEPENDS ${outputs})
 endfunction()
 
-# Adds a target that compiles each effect in SOURCES (HLSL against coldx.hlsli; see
+# Adds a target that compiles each effect in SOURCES (HLSL against coldx.hlsli, see
 # coldx/core/effect.h) into a header in OUTPUT_DIR for Effect::FromMemory: glow.hlsl ->
 # glow.h, holding effects::glow. Like coldx_compile_shaders it is not part of the default
 # build, so the headers are committed and nobody else needs the Vulkan SDK. The same compiler

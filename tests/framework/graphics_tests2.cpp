@@ -56,9 +56,9 @@ Result TextureEdges() {
         tNpot = Texture2D::FromFile(g, npot);
         tTiny = Texture2D::FromFile(g, tiny);
         tClear = Texture2D::FromFile(g, clear);
-        if (tNpot.Width() != 37 || tNpot.Height() != 23) problems += " 37x23 PNG loaded wrong;";
-        if (tTiny.Width() != 1) problems += " 1x1 PNG failed;";
-        if (tClear.Width() != 8) problems += " transparent PNG failed;";
+        if (tNpot.Width() != 37 || tNpot.Height() != 23) problems += " 37x23 PNG loaded wrong.";
+        if (tTiny.Width() != 1) problems += " 1x1 PNG failed.";
+        if (tClear.Width() != 8) problems += " transparent PNG failed.";
 
         // Atlas: two 16x16 cells, red then blue.
         std::vector<Color> cells(32 * 16);
@@ -71,16 +71,16 @@ Result TextureEdges() {
             px.back() = Color::Yellow;  // bottom-right texel, sampled below
             const double t0 = Now();
             Texture2D t = Texture2D::FromPixels(g, size, size, px.data());
-            notes += Format("%dx%d atlas %s in %.0f ms; ", size, size, t.IsEmpty() ? "FAILED" : "loaded", (Now() - t0) * 1000);
-            if (t.IsEmpty()) problems += Format(" %d atlas failed;", size);
+            notes += Format("%dx%d atlas %s in %.0f ms. ", size, size, t.IsEmpty() ? "FAILED" : "loaded", (Now() - t0) * 1000);
+            if (t.IsEmpty()) problems += Format(" %d atlas failed.", size);
             (size == 4096 ? big4k : big8k) = t;
         }
-        // Past any GPU's limit: must come back empty with a log line, not crash.
+        // Past any GPU's limit. It must come back empty with a log line, not crash.
         const double t0 = Now();
         RenderTarget2D huge = RenderTarget2D::Create(g, 32768, 32768);
         tooBigSeconds = Now() - t0;
-        if (!huge.IsEmpty()) problems += " a 32768x32768 target was accepted;";
-        notes += huge.IsEmpty() ? "32768x32768 refused cleanly (logged); " : "";
+        if (!huge.IsEmpty()) problems += " a 32768x32768 target was accepted.";
+        notes += huge.IsEmpty() ? "32768x32768 refused cleanly (logged). " : "";
     };
     game.update = [](Probe& p, const GameTime&) {
         if (p.updates == 3) p.Exit();
@@ -108,29 +108,29 @@ Result TextureEdges() {
     Capture c;
     int pointBleed = 0, linearBleed = 0;
     if (c.Load(capture)) {
-        if (!Near(c.At(10, 10), Color(60, 110, 90), 0)) problems += " NPOT texel wrong;";
-        if (!Near(c.At(41, 1), Color(255, 0, 255), 0)) problems += " 1x1 texel wrong;";
-        if (!Near(c.At(61, 1), Color::Yellow, 0) || !Near(c.At(71, 1), Color::Yellow, 0)) problems += " big atlas edge texel wrong;";
+        if (!Near(c.At(10, 10), Color(60, 110, 90), 0)) problems += " NPOT texel wrong.";
+        if (!Near(c.At(41, 1), Color(255, 0, 255), 0)) problems += " 1x1 texel wrong.";
+        if (!Near(c.At(61, 1), Color::Yellow, 0) || !Near(c.At(71, 1), Color::Yellow, 0)) problems += " big atlas edge texel wrong.";
         for (int y = 40; y < 104; ++y) {
             pointBleed += c.At(63, y).b > 10 ? 1 : 0;
             linearBleed += c.At(163, y).b > 10 ? 1 : 0;
         }
     } else {
-        problems += " no capture;";
+        problems += " no capture.";
     }
-    if (pointBleed) problems += Format(" %d bleeding pixels with point sampling;", pointBleed);
-    if (linearBleed) problems += Format(" %d bleeding pixels with linear filtering;", linearBleed);
+    if (pointBleed) problems += Format(" %d bleeding pixels with point sampling.", pointBleed);
+    if (linearBleed) problems += Format(" %d bleeding pixels with linear filtering.", linearBleed);
     r.status = rc == 0 && problems.empty() ? Status::Pass : Status::Fail;
-    r.notes = notes + Format("refusal took %.0f ms. Atlas cell drawn 4x: point sampling at whole pixels, %d bled pixels; "
-                             "linear filtering at a half pixel, %d pick up the neighbouring cell (XNA and FNA bleed "
-                             "here; coldx keeps sampling inside each source rectangle).",
+    r.notes = notes + Format("refusal took %.0f ms. Atlas cell drawn 4x: point sampling at whole pixels, %d bled pixels. "
+                             "Linear filtering at a half pixel, %d pick up the neighbouring cell (XNA and FNA bleed "
+                             "here. coldx keeps sampling inside each source rectangle.)",
                              tooBigSeconds * 1000, pointBleed, linearBleed) +
               (problems.empty() ? "" : " Problems:" + problems);
     for (const std::string& f : {npot, tiny, clear, capture}) std::filesystem::remove(f);
     return r;
 }
 
-// GFX-08: 10k, 50k and 100k sprites a frame, vsync off, in a visible window; frame times,
+// GFX-08: 10k, 50k and 100k sprites a frame, vsync off, in a visible window. Frame times,
 // and memory over a repeated 50k run to see whether anything grows per frame.
 Result Throughput() {
     Result r{"GFX-08", "P0"};
@@ -191,10 +191,10 @@ Result Throughput() {
 
     std::string notes;
     for (const Level& lv : levels)
-        notes += Format("%dk: %.0f fps, worst frame %.1f ms, memory %.1f -> %.1f MB; ", lv.count / 1000, lv.fps, lv.worstMs,
+        notes += Format("%dk: %.0f fps, worst frame %.1f ms, memory %.1f -> %.1f MB. ", lv.count / 1000, lv.fps, lv.worstMs,
                         lv.memStart, lv.memEnd);
     // Per-frame growth shows within a level. Between levels memory follows the largest batch
-    // so far: buffers grown for 100k sprites are kept for reuse, which is not a leak.
+    // so far. Buffers grown for 100k sprites are kept for reuse, which is not a leak.
     double worstGrowth = 0;
     for (const Level& lv : levels) worstGrowth = std::max(worstGrowth, lv.memEnd - lv.memStart);
     const bool fast = levels[1].fps >= 60;

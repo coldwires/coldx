@@ -90,7 +90,7 @@ int main() {
             CHECK(detail::TextureAccess::Handle(again) == detail::TextureAccess::Handle(player));
             CHECK(!content.Load<Texture2D>("sprites/player.png").IsEmpty());  // with extension
 
-            // A miss is not cached: once the file exists, the next Load finds it.
+            // A miss is not cached. Once the file exists, the next Load finds it.
             CHECK(content.Load<Texture2D>("sprites/enemy").IsEmpty());
             CHECK(!content.IsLoaded<Texture2D>("sprites/enemy"));
             WritePng(root / "sprites" / "enemy.png", 2, 2);
@@ -120,7 +120,7 @@ int main() {
 
             CHECK(content.Load<NoLoaderType>("anything").value == 0);  // logged, empty
 
-            // Copies outlive Unload; the next Load reads the file again.
+            // Copies outlive Unload. The next Load reads the file again.
             survivor = player;
             content.Unload();
             CHECK(!content.IsLoaded<Texture2D>("sprites/player"));
