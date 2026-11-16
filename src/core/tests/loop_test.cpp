@@ -70,9 +70,11 @@ int main() {
         CHECK(game.Run() == 0);
         std::printf("on: %d updates, %d draws in %.2f s, up to %d draws between updates\n", game.updates, game.draws,
                     game.seconds, game.maxDrawsBetween);
-        // How many frames fit between updates depends on the GPU and what else the machine is
-        // doing (35 to 90 here). That there are some is what is being tested.
-        CHECK(game.draws > game.updates);
+        // How many frames fit between updates depends on the GPU. Headless, a frame waits for
+        // the GPU to finish the one two before it, and some GPUs finish work only at the
+        // display's rate (an Intel UHD 620 at 60 Hz: one frame per Update, so the total
+        // draws do not exceed the updates). That some Update is followed by more than one
+        // draw is what is being tested.
         CHECK(game.maxDrawsBetween >= 2);
         CHECK(game.updates >= 28 && game.updates <= 33);  // 0.5 s at 60 per second
         CHECK(game.alphaInRange && game.alphaRises && game.updateAlphaZero);
