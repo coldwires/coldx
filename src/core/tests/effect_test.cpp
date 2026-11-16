@@ -4,7 +4,9 @@
 #include <coldx/core/effect_format.h>
 
 #include <cmath>
+#include <cstddef>
 #include <fstream>
+#include <string>
 
 #include "headless.h"
 
@@ -12,6 +14,9 @@
 #include "compiled/grayscale.h"
 #include "compiled/wave.h"
 #include "effects/compiled/params.h"
+#include "effects/params_cpu.h"
+
+#include "cpu_effects.h"
 
 using namespace coldx;
 using namespace coldx_test;
@@ -113,7 +118,7 @@ void Parameters() {
         s.AddTexture(2, 2, {W, W, W, W});  // 0: the sprite
         s.AddTexture(2, 2, {R, G, B, W});  // 1: the mask
         fx = Load(s, effects::params, "params");
-        unset = Load(s, effects::params, "params, no mask");
+        unset = Load(s, effects::params, "params");
         for (const char* name : {"A", "B", "C", "D", "E", "M", "Mode", "Invert", "Mask"}) CHECK(fx.Has(name));
         fx.Set("A", K(51));
         fx.Set("B", Vector2(K(10), K(102)));
@@ -190,6 +195,45 @@ void Flash() {
     const Frame f = RunAndCapture(scene, "effect_flash");
     Block(f, 0, 0, 8, 8, Color(255, 128, 128, 255), 1);
     Block(f, 16, 0, 8, 8, Over(Color(128, 128, 128, 128), Black), 1);
+}
+
+// A CPU version whose parameter layout differs from the shader's is refused, and the
+// built-in shader draws instead. Only the CPU renderer runs CPU versions, so on the GPU the
+// flash is drawn as compiled. Also: names are matched without folder or extension.
+struct BadFlashParams {
+    Float4 Color;
+    float gap;
+    float Amount;  // the shader has it at 16, not 20
+};
+
+Float4 BadFlash(const CpuPixel&, const BadFlashParams&) {
+    return {0.0f, 0.0f, 1.0f, 1.0f};
+}
+
+void CpuVersionChecked() {
+    CpuEffects::Register<BadFlashParams>("badflash", BadFlash,
+                                         {{"Color", offsetof(BadFlashParams, Color)}, {"Amount", offsetof(BadFlashParams, Amount)}});
+    CHECK(CpuEffects::Has("effects/badflash.fx"));
+    CHECK(!CpuEffects::Has("nothing"));
+    const char* renderer = SDL_getenv("COLDX_RENDERER");
+    const bool cpu = renderer && std::string(renderer) == "cpu";
+    Scene scene(8, 8);
+    Effect flash;
+    scene.load = [&](Scene& s) {
+        s.AddTexture(1, 1, {R});
+        flash = Load(s, effects::flash, "effects/badflash");
+        flash.Set("Color", Color::White);
+        flash.Set("Amount", 1.0f);
+    };
+    scene.draw = [&](Scene& s) {
+        s.Graphics().Clear(Black);
+        s.batch.Begin(SpriteSortMode::Deferred, BlendState::Opaque, SamplerState::PointClamp, flash);
+        s.batch.Draw(s.textures[0], Rectangle(0, 0, 8, 8), Color::White);
+        s.batch.End();
+    };
+    const Frame f = RunAndCapture(scene, "effect_cpu_refused");
+    // Refused on the CPU: the built-in shader's red, never the version's blue.
+    Block(f, 0, 0, 8, 8, cpu ? R : W);
 }
 
 // Wave moves pixels, and never past the sprite's source rectangle. A red tile beside a
@@ -280,7 +324,7 @@ void FromPackage() {
     const std::string path = (std::filesystem::temp_directory_path() / "coldx_effect_test.rime").string();
     {
         rime::PackageWriter writer(rime::HashName(0, "effect test"));
-        CHECK(writer.Add("fx/gray.fx", rime::AssetType::Effect,
+        CHECK(writer.Add("fx/grayscale.fx", rime::AssetType::Effect,
                          std::vector<std::uint8_t>(std::begin(effects::grayscale), std::end(effects::grayscale))));
         const std::vector<std::uint8_t> bytes = writer.Finish();
         std::ofstream file(path, std::ios::binary);
@@ -292,7 +336,7 @@ void FromPackage() {
         scene.load = [&](Scene& s) {
             s.AddTexture(1, 1, {R});
             CHECK(s.Content().Mount(path));
-            gray = s.Content().Load<Effect>("fx/gray");
+            gray = s.Content().Load<Effect>("fx/grayscale");
             CHECK(!gray.IsEmpty());
             CHECK(gray.Has("Amount"));
             gray.Set("Amount", 1.0f);
@@ -315,11 +359,15 @@ void FromPackage() {
 } // namespace
 
 int main() {
+    // Used only when the test runs on the CPU renderer.
+    examples::RegisterExampleCpuEffects();
+    test_effects::RegisterParamsCpuEffect();
     Grayscale();
     Parameters();
     Flash();
     Wave();
     BadData();
     FromPackage();
+    CpuVersionChecked();
     return CheckResult();
 }

@@ -39,6 +39,7 @@
 #include "compiled/flash.h"
 #include "compiled/grayscale.h"
 #include "compiled/wave.h"
+#include "cpu_effects.h"
 #include "play.h"
 #include "screens.h"
 
@@ -279,6 +280,8 @@ private:
 
 int main(int argc, char** argv) {
     const std::string profile = argc == 3 && std::string(argv[1]) == "--profile" ? argv[2] : "";
+    // The effects' CPU versions, used when the game runs with COLDX_RENDERER=cpu.
+    examples::RegisterExampleCpuEffects();
     Demo game(profile);
     return game.Run();
 }

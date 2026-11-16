@@ -1,4 +1,7 @@
 #include <coldx/coldx.h>
+#include <coldx/core/cpu_math.h>
+
+#include <cmath>
 
 #include "check.h"
 
@@ -106,7 +109,23 @@ static void Helpers() {
     CHECK(Near(MathHelper::ToDegrees(MathHelper::PiOver2), 90.0f));
 }
 
+// CpuMath against the double-precision library, over a range effects use.
+void CpuSinCos() {
+    double worst = 0.0;
+    for (int i = -200000; i <= 200000; ++i) {
+        const float x = static_cast<float>(i) * 0.0005f;  // -100 to 100 radians
+        worst = std::fmax(worst, std::fabs(CpuMath::Sin(x) - std::sin(static_cast<double>(x))));
+        worst = std::fmax(worst, std::fabs(CpuMath::Cos(x) - std::cos(static_cast<double>(x))));
+    }
+    std::printf("CpuMath Sin and Cos: worst error %.3g\n", worst);
+    CHECK(worst < 3e-7);
+    CHECK(CpuMath::Sin(0.0f) == 0.0f);
+    CHECK(CpuMath::Cos(0.0f) == 1.0f);
+    CHECK(CpuMath::Sin(-1.0f) == -CpuMath::Sin(1.0f));
+}
+
 int main() {
+    CpuSinCos();
     Vectors();
     Rectangles();
     Colors();

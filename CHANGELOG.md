@@ -90,5 +90,9 @@
 - Log lines name their module: `coldx.core:`.
 - A CPU renderer, `COLDX_RENDERER=cpu`: SpriteBatch, render targets, readback and
   presentation without a GPU, matching the GPU path pixel for pixel apart from rounding
-  ties (`COLDX_CPU_TIES`). `core.backend_diff` compares the two. Effects are not run on it
-  yet.
+  ties (`COLDX_CPU_TIES`). `core.backend_diff` compares the two.
+- Effects on the CPU renderer: `CpuEffects::Register` a C++ version of the shader, checked
+  against the compiled effect's parameters. `CpuPixel`, `Float4`, and `CpuMath::Sin`/`Cos`,
+  the same on every machine. The example effects' versions are in
+  `shaders/examples/cpu_effects.h`. `tests/cpu_reference.txt` holds the CPU's own captures
+  as hashes.

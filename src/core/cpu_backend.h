@@ -1,9 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <coldx/core/cpu_effect.h>
+#include <coldx/core/effect_format.h>
 
 #include "render_backend.h"
 
@@ -46,16 +50,41 @@ private:
     const std::uint64_t* currentFrame_ = nullptr;
 };
 
+// An effect's CPU version as registered (CpuEffects::Register).
+struct CpuPort {
+    std::size_t size = 0;
+    std::map<std::string, std::uint32_t> parameters;  // name to offset
+    CpuEffects::Function function;
+};
+
+// The key a port is registered and found under: the name without folder or extension.
+std::string CpuEffectKey(const std::string& name);
+
 class CpuEffect final : public BackendEffect {
 public:
     CpuEffect(const effect_format::Compiled& compiled, const std::string& name) : compiled_(compiled), name_(name) {}
-    const effect_format::Compiled& Compiled() const { return compiled_; }
-    const std::string& Name() const { return name_; }
-    bool warned = false;
+    // The registered CPU version, checked against the compiled effect on first use. Null
+    // when there is none or it does not match, logged once.
+    const CpuPort* Port();
 
 private:
     const effect_format::Compiled& compiled_;
     const std::string& name_;
+    const CpuPort* port_ = nullptr;
+    bool resolved_ = false;
+};
+
+// What a CpuPixel samples: the textures by slot (0 is the sprite's), the source rectangle's
+// UV limits and the batch's sampler. tie, when not null, is set by any read of a tie texel.
+struct CpuPixelSource {
+    const CpuTexture* textures[effect_format::MaxTextures] = {};
+    std::size_t count = 1;
+    const float* bounds = nullptr;
+    SamplerState sampler = SamplerState::PointClamp;
+    bool* tie = nullptr;
+
+    void Attach(CpuPixel& pixel) const { pixel.source_ = this; }
+    static const CpuPixelSource& Of(const CpuPixel& pixel) { return *pixel.source_; }
 };
 
 class CpuBackend final : public RenderBackend {
@@ -113,11 +142,8 @@ std::unique_ptr<SpriteRenderer> CreateCpuSpriteRenderer(CpuBackend& backend);
 inline constexpr int SubpixelBits = 8;
 
 // One texel fetch with the sampler's filter and address mode, from UV, as the GPU's
-// sampler does. Channels 0 to 1, premultiplied.
-struct Float4 {
-    float r, g, b, a;
-};
-// tie, when not null, is set if a texel read is marked as a tie.
+// sampler does. Channels 0 to 1, premultiplied. tie, when not null, is set if a texel read
+// is marked as a tie.
 Float4 Sample(const CpuTexture& texture, SamplerState sampler, float u, float v, bool* tie);
 
 // How close to halfway between two 8-bit steps, in steps, a value counts as a tie. GPUs

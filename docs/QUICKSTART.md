@@ -403,6 +403,41 @@ nothing. `coldx_compile_effects` is not part of the default build, so committed 
 let anyone build the game without the SDK. The content cache tracks the effect's own file,
 not files it includes. After changing an include of your own, touch the effects using it.
 
+### On the CPU renderer
+
+With `COLDX_RENDERER=cpu` no shader runs. Each effect needs a C++ version of its shader,
+written once and registered under the effect's name before the first frame. Without one,
+the sprites draw with the built-in shader and a line is logged.
+
+```cpp
+#include <coldx/core/cpu_effect.h>
+#include <coldx/core/cpu_math.h>
+
+struct GrayscaleParams { float Amount; };   // laid out as the CX_FRAGMENT_UNIFORMS block
+
+Float4 Grayscale(const CpuPixel& in, const GrayscaleParams& p) {
+    const Float4 c = in.Sample() * in.color;
+    const float grey = c.r * 0.299f + c.g * 0.587f + c.b * 0.114f;
+    return {c.r + p.Amount * (grey - c.r), c.g + p.Amount * (grey - c.g), c.b + p.Amount * (grey - c.b), c.a};
+}
+
+CpuEffects::Register<GrayscaleParams>("grayscale", Grayscale, {{"Amount", offsetof(GrayscaleParams, Amount)}});
+```
+
+- The name is matched without folder or extension, so `"grayscale"` serves
+  `Load<Effect>("fx/grayscale")`. Renaming the asset breaks the match, which is logged.
+- `in.Sample()` and `in.SampleAt(uv)` are `CX_SAMPLE` and `CX_SAMPLE_AT`.
+  `in.SampleTexture(slot, uv)` reads an extra texture. `in.position`, `in.uv` and
+  `in.color` are the shader's input. `in.TextureWidth()` is `GetDimensions`.
+- List every parameter with `offsetof`. HLSL packs the block in 16-byte rows a member may
+  not cross, so a `float3` after a `float2` starts a new row and the struct needs a gap
+  there. A version whose names or offsets differ from the compiled effect is refused,
+  logged, and the built-in shader draws.
+- Use `CpuMath::Sin` and `CpuMath::Cos`, not `std::sin`, so the result is the same on
+  every machine. GPUs approximate these functions each their own way, so an effect that
+  uses them matches the GPU closely, not exactly. Everything else matches to the byte.
+- `shaders/examples/cpu_effects.h` has the three examples.
+
 ## Packing content
 
 A content project, `content/content.coldx`, lists what goes in the package. Names inside
@@ -471,6 +506,6 @@ the first):
     90 exit                # stops before Update 90 runs
 
 `SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU backend. `COLDX_RENDERER=cpu` draws on
-the CPU instead, with no GPU needed (effects fall back to the built-in shader). Headless audio is silent,
+the CPU instead, with no GPU needed (effects need CPU versions, see "Custom shaders"). Headless audio is silent,
 so check sounds through the game's own log lines. Read the log and look at the captured PNG
 to check a change. The README has the full list, and how to write shaders.

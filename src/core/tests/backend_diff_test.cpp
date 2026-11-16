@@ -3,11 +3,20 @@
 // a pixel the CPU reports as near a rounding tie (COLDX_CPU_TIES) may differ by one step per
 // channel: GPUs blend at slightly less than float precision. Cases go where the two could
 // part: fractional positions, scaling, rotation, linear filtering, tints, every blend state
-// over noise, render targets, transforms and text.
+// over noise, render targets, transforms, text and effects.
+//
+// An effect that calls sin or cos cannot be held to that: each GPU driver approximates them
+// its own way, and Direct3D 12 and Vulkan disagree with each other on the same chip. Those
+// cases are marked approximate and may differ at up to 1 pixel in 200.
+//
+// The CPU's own captures must also hash to what tests/cpu_reference.txt records, so the CPU
+// renderer gives the same bytes on every compiler and machine. After a change that is meant
+// to alter them, run this test with --write-reference and commit the file.
 
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
+#include <map>
 #include <fstream>
 #include <set>
 #include <string>
@@ -15,6 +24,13 @@
 #include <vector>
 
 #include "headless.h"
+
+#include "compiled/flash.h"
+#include "compiled/grayscale.h"
+#include "compiled/wave.h"
+#include "cpu_effects.h"
+#include "effects/compiled/params.h"
+#include "effects/params_cpu.h"
 
 using namespace coldx;
 using namespace coldx_test;
@@ -49,11 +65,13 @@ class DiffScene : public Scene {
 public:
     using Scene::Scene;
     SpriteFont font;
+    Effect gray, flash, wave, params;
 };
 
 struct Case {
     const char* name;
     std::function<void(DiffScene&)> draw;
+    bool approximate = false;  // uses sin or cos
 };
 
 std::uint8_t Hash(int x, int y, std::uint32_t seed) {
@@ -192,6 +210,50 @@ std::vector<Case> Cases() {
              }
              s.batch.End();
          }},
+        {"effect_grayscale", [=](DiffScene& s) {
+             s.Graphics().Clear(back);
+             s.gray.Set("Amount", 0.6f);
+             s.batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::LinearClamp, s.gray);
+             s.batch.Draw(s.textures[0], Rectangle(3, 3, 70, 50), Color(255, 230, 200, 220));
+             s.batch.Draw(s.textures[2], Vector2(80, 0), Rectangle(0, 0, 80, 120), Color::White);
+             s.batch.End();
+         }},
+        {"effect_flash", [=](DiffScene& s) {
+             s.Graphics().Clear(back);
+             s.flash.Set("Color", Color(255, 200, 50, 255));
+             s.flash.Set("Amount", 0.4f);
+             s.batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, SamplerState::PointClamp, s.flash);
+             s.batch.Draw(s.textures[0], Rectangle(3, 3, 64, 64), Color::White);
+             s.batch.Draw(s.textures[2], Vector2(80, 0), Rectangle(0, 0, 80, 120), Color(255, 255, 255, 200));
+             s.batch.End();
+         }},
+        {"effect_wave", [=](DiffScene& s) {
+             s.Graphics().Clear(back);
+             s.wave.Set("Time", 0.37f);
+             s.wave.Set("Amplitude", 2.5f);
+             s.wave.Set("Frequency", 0.45f);
+             for (SamplerState sampler : {SamplerState::PointClamp, SamplerState::LinearClamp}) {
+                 const int x = sampler == SamplerState::PointClamp ? 3 : 82;
+                 s.batch.Begin(SpriteSortMode::Deferred, BlendState::AlphaBlend, sampler, s.wave);
+                 s.batch.Draw(s.textures[0], Rectangle(x, 3, 72, 72), Color::White);
+                 s.batch.Draw(s.textures[1], Vector2(x + 10.5f, 80.25f), std::nullopt, Color::White, 0.3f, Vector2(4, 4), 3.0f,
+                              SpriteEffects::None, 0.0f);
+                 s.batch.End();
+             }
+         },
+         true},
+        {"effect_params", [=](DiffScene& s) {
+             s.Graphics().Clear(back);
+             s.params.Set("Mask", s.textures[0]);
+             s.params.Set("B", Vector2(0.2f, 0.7f));
+             s.params.Set("C", 0.31f, 0.88f, 0.45f);
+             s.batch.Begin(SpriteSortMode::Immediate, BlendState::AlphaBlend, SamplerState::LinearClamp, s.params);
+             for (int mode = 3; mode <= 4; ++mode) {
+                 s.params.Set("Mode", mode);
+                 s.batch.Draw(s.textures[1], Rectangle(3 + (mode - 3) * 78, 3, 75, 110), Color::White);
+             }
+             s.batch.End();
+         }},
         {"text", [=](DiffScene& s) {
              s.Graphics().Clear(back);
              begin(s, BlendState::AlphaBlend, SamplerState::LinearClamp);
@@ -242,6 +304,11 @@ bool Capture(const Case& c, const std::string& backend, std::vector<Color>& out)
         s.AddTexture(W, H, Noise(11));
         s.targets.push_back(RenderTarget2D::Create(s.Graphics(), 32, 32));
         s.font = SpriteFont::FromFile(s.Graphics(), COLDX_TEST_FONT, 15.0f);
+        s.gray = Effect::FromMemory(s.Graphics(), effects::grayscale, sizeof(effects::grayscale), "grayscale");
+        s.flash = Effect::FromMemory(s.Graphics(), effects::flash, sizeof(effects::flash), "flash");
+        s.wave = Effect::FromMemory(s.Graphics(), effects::wave, sizeof(effects::wave), "wave");
+        s.params = Effect::FromMemory(s.Graphics(), effects::params, sizeof(effects::params), "params");
+        CHECK(s.gray && s.flash && s.wave && s.params);
         CHECK(!s.font.IsEmpty());
     };
     scene.draw = [&c](Scene& s) { c.draw(static_cast<DiffScene&>(s)); };
@@ -255,8 +322,9 @@ bool Capture(const Case& c, const std::string& backend, std::vector<Color>& out)
 
 // Prints how the GPU's capture differs from the CPU's and returns whether every difference
 // is one step at a pixel the CPU reported as a tie.
-bool Matches(const char* name, const std::vector<Color>& cpu, const Ties& ties, const std::string& gpu,
+bool Matches(const Case& c, const std::vector<Color>& cpu, const Ties& ties, const std::string& gpu,
              const std::vector<Color>& g) {
+    const char* name = c.name;
     int atTies = 0;
     int wrong = 0;
     for (int i = 0; i < W * H; ++i) {
@@ -272,26 +340,68 @@ bool Matches(const char* name, const std::vector<Color>& cpu, const Ties& ties, 
                         q.r, q.g, q.b, q.a);
         ++wrong;
     }
-    std::printf("%s: cpu vs %s: %d differ one step at ties (%zu ties), %d differ otherwise\n", name, gpu.c_str(), atTies,
-                ties.size(), wrong);
-    return wrong == 0;
+    std::printf("%s: cpu vs %s: %d differ one step at ties (%zu ties), %d differ otherwise%s\n", name, gpu.c_str(), atTies,
+                ties.size(), wrong, c.approximate ? " (approximate: up to 1 in 200 allowed)" : "");
+    return c.approximate ? wrong * 200 <= W * H : wrong == 0;
+}
+
+// FNV-1a over the pixels' bytes.
+std::uint64_t Hash(const std::vector<Color>& pixels) {
+    std::uint64_t h = 14695981039346656037ull;
+    for (const Color& c : pixels)
+        for (std::uint8_t byte : {c.r, c.g, c.b, c.a}) h = (h ^ byte) * 1099511628211ull;
+    return h;
+}
+
+std::map<std::string, std::uint64_t> ReadReference() {
+    std::map<std::string, std::uint64_t> hashes;
+    std::ifstream in(COLDX_TEST_CPU_REFERENCE);
+    std::string name, hex;
+    while (in >> name >> hex) hashes[name] = std::stoull(hex, nullptr, 16);
+    return hashes;
 }
 
 } // namespace
 
 int main(int argc, char** argv) {
+    examples::RegisterExampleCpuEffects();
+    test_effects::RegisterParamsCpuEffect();
     const std::vector<std::string> gpus = {COLDX_TEST_DRIVERS};
-    const std::string only = argc > 1 ? argv[1] : "";
+    const bool write = argc > 1 && std::string(argv[1]) == "--write-reference";
+    const std::string only = argc > 1 && !write ? argv[1] : "";
+    const std::map<std::string, std::uint64_t> reference = ReadReference();
+    std::map<std::string, std::uint64_t> hashes;
     for (const Case& c : Cases()) {
         if (!only.empty() && only != c.name) continue;
         std::vector<Color> cpu;
         if (!Capture(c, "cpu", cpu)) continue;
         const Ties ties = ReadTies(TiesPath());
+        hashes[c.name] = Hash(cpu);
+        if (!write) {
+            const auto known = reference.find(c.name);
+            if (known == reference.end()) {
+                std::printf("%s: no reference hash. Run with --write-reference\n", c.name);
+                CHECK(false);
+            } else if (known->second != hashes[c.name]) {
+                std::printf("%s: the CPU drew different bytes from the reference (%016llx, expected %016llx)\n", c.name,
+                            static_cast<unsigned long long>(hashes[c.name]), static_cast<unsigned long long>(known->second));
+                CHECK(false);
+            }
+        }
         for (const std::string& gpu : gpus) {
             std::vector<Color> g;
             if (!Capture(c, gpu, g)) continue;
-            CHECK(Matches(c.name, cpu, ties, gpu, g));
+            CHECK(Matches(c, cpu, ties, gpu, g));
         }
+    }
+    if (write) {
+        std::ofstream out(COLDX_TEST_CPU_REFERENCE, std::ios::binary);
+        for (const auto& [name, hash] : hashes) {
+            char line[128];
+            std::snprintf(line, sizeof(line), "%s %016llx\n", name.c_str(), static_cast<unsigned long long>(hash));
+            out << line;
+        }
+        std::printf("wrote %zu hashes to %s\n", hashes.size(), COLDX_TEST_CPU_REFERENCE);
     }
     return CheckResult();
 }

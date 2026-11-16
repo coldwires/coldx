@@ -359,7 +359,7 @@ Two more are read when the `Game` is constructed, since the graphics device exis
 
 | Variable | Effect |
 |---|---|
-| `COLDX_RENDERER=cpu` | Draw every pixel on the CPU instead of through SDL_GPU, to the same rules, presented through SDL's window surface. No GPU or driver is needed. Effects are not run yet: sprites drawn with one use the built-in shader, logged once. There is no vertical blank to wait on, so vsync spaces frames at the display's refresh rate. `gpu` or unset is the default. |
+| `COLDX_RENDERER=cpu` | Draw every pixel on the CPU instead of through SDL_GPU, to the same rules, presented through SDL's window surface. No GPU or driver is needed. An effect runs from a C++ version registered with `CpuEffects::Register` (QUICKSTART, "Custom shaders"). Without one, its sprites use the built-in shader, logged once. There is no vertical blank to wait on, so vsync spaces frames at the display's refresh rate. `gpu` or unset is the default. |
 | `COLDX_CPU_TIES=<path>` | With the CPU renderer, write each frame's pixels whose value lands within 0.01 of a step of a rounding tie, one `x y` per line. A GPU blending at less than float precision may round those one step the other way. The backend tests use it. |
 
 Together they run a game unattended and leave a log and a picture of its last frame:
@@ -393,7 +393,11 @@ They run once per GPU backend
 (`COLDX_TEST_GPU_DRIVERS`: Direct3D 12 and Vulkan on Windows by default), and once on the CPU
 renderer. `core.backend_diff` draws the same scenes on every GPU backend and on the CPU and
 compares them byte for byte. The only difference it allows is one step at a pixel the CPU
-reports as a rounding tie (`COLDX_CPU_TIES`).
+reports as a rounding tie (`COLDX_CPU_TIES`), except in effects that call `sin` or `cos`,
+which GPUs approximate each their own way: there up to 1 pixel in 200 may differ. It also
+checks the CPU's captures against the hashes in `tests/cpu_reference.txt`, so the CPU
+renderer draws the same bytes on every compiler and machine. After a change meant to alter
+them, run `coldx_core_backend_diff_test --write-reference` and commit the file.
 
 ## Layout
 

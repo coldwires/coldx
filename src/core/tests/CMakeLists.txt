@@ -27,8 +27,7 @@ coldx_core_render_test(sprite sprite_test.cpp)
 coldx_core_render_test(font font_test.cpp)
 coldx_core_render_test(scaling scaling_test.cpp)
 coldx_core_render_test(readback readback_test.cpp)
-# Effects need their CPU versions, which are not written yet.
-coldx_core_render_test(effect effect_test.cpp NO_CPU)
+coldx_core_render_test(effect effect_test.cpp)
 target_include_directories(coldx_core_effect_test PRIVATE ${PROJECT_SOURCE_DIR}/shaders/examples)
 target_include_directories(coldx_core_scaling_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_include_directories(coldx_core_font_test PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
@@ -38,12 +37,13 @@ target_compile_definitions(coldx_core_font_test PRIVATE
 # The CPU renderer against every GPU driver, byte for byte, in one process.
 add_executable(coldx_core_backend_diff_test backend_diff_test.cpp)
 target_link_libraries(coldx_core_backend_diff_test PRIVATE coldx::core SDL3::SDL3-static)
-target_include_directories(coldx_core_backend_diff_test PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+target_include_directories(coldx_core_backend_diff_test PRIVATE ${PROJECT_SOURCE_DIR}/tests ${PROJECT_SOURCE_DIR}/shaders/examples)
 coldx_set_warnings(coldx_core_backend_diff_test)
 list(TRANSFORM COLDX_TEST_GPU_DRIVERS PREPEND "\"" OUTPUT_VARIABLE coldx_quoted_drivers)
 list(TRANSFORM coldx_quoted_drivers APPEND "\"")
 list(JOIN coldx_quoted_drivers "," coldx_quoted_drivers)
 target_compile_definitions(coldx_core_backend_diff_test PRIVATE COLDX_TEST_DRIVERS=${coldx_quoted_drivers}
+    COLDX_TEST_CPU_REFERENCE="${PROJECT_SOURCE_DIR}/tests/cpu_reference.txt"
     COLDX_TEST_FONT="${PROJECT_SOURCE_DIR}/third_party/fonts/liberation/LiberationSans-Regular.ttf")
 add_test(NAME core.backend_diff COMMAND coldx_core_backend_diff_test)
 

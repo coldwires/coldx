@@ -6,6 +6,8 @@ add_library(coldx_core STATIC
     content_manager.cpp
     content_path.cpp
     cpu_backend.cpp
+    cpu_effect.cpp
+    cpu_math.cpp
     cpu_sprite_renderer.cpp
     debug_options.cpp
     effect.cpp
@@ -50,6 +52,11 @@ target_include_directories(coldx_core
 )
 target_link_libraries(coldx_core PRIVATE SDL3::SDL3-static)
 coldx_set_warnings(coldx_core)
+# The CPU renderer and CpuMath give the same bits on every machine only if a * b + c is never
+# fused into one rounding. MSVC does not fuse by default. GCC and Clang may.
+if(NOT MSVC)
+    target_compile_options(coldx_core PRIVATE -ffp-contract=off)
+endif()
 if(COLDX_HARDEN)
     coldx_harden(coldx_core)
 endif()

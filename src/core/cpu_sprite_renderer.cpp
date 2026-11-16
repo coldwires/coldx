@@ -95,6 +95,16 @@ bool OwnsEdge(const Vertex& a, const Vertex& b) {
     return nx > 0 || (nx == 0 && ny > 0);
 }
 
+// How one quad's pixels get their colour: the built-in shader, or an effect's CPU version.
+struct Shading {
+    const CpuTexture* texture = nullptr;
+    const float* bounds = nullptr;
+    SamplerState sampler = SamplerState::PointClamp;
+    const CpuPort* port = nullptr;     // null: the built-in shader
+    const void* parameters = nullptr;  // the effect's uniform block, for port
+    CpuPixelSource source;             // what port samples
+};
+
 class CpuSpriteRenderer final : public SpriteRenderer {
 public:
     explicit CpuSpriteRenderer(CpuBackend& backend) : backend_(backend) {}
@@ -102,8 +112,7 @@ public:
               const Matrix& transform) override;
 
 private:
-    void Triangle(CpuTexture& target, Color* pixels, const CpuTexture& texture, const float bounds[4], Vertex a, Vertex b,
-                  Vertex c, BlendState blend, SamplerState sampler);
+    void Triangle(CpuTexture& target, Color* pixels, const Shading& shading, Vertex a, Vertex b, Vertex c, BlendState blend);
 
     CpuBackend& backend_;
 };
@@ -116,14 +125,18 @@ bool CpuSpriteRenderer::Draw(const SpriteQuad* quads, std::uint32_t count, Blend
         SDL_Log("coldx.core: SpriteBatch drawn outside Draw, nothing drawn");
         return false;
     }
+    if (sampler == SamplerState::Default) sampler = SamplerState::LinearClamp;
+    Shading shading;
+    shading.sampler = sampler;
+    shading.source.sampler = sampler;
     if (effect) {
-        auto& e = static_cast<CpuEffect&>(EffectAccess::Backend(effect));
-        if (!e.warned) {
-            SDL_Log("coldx.core: effect %s has no CPU version, drawn with the built-in shader", e.Name().c_str());
-            e.warned = true;
+        // The effect's parameters as they are now, as the GPU path pushes them at each draw.
+        shading.port = static_cast<CpuEffect&>(EffectAccess::Backend(effect)).Port();
+        if (shading.port) {
+            shading.parameters = EffectAccess::Uniforms(effect).data();
+            shading.source.count = EffectAccess::TextureCount(effect);
         }
     }
-    if (sampler == SamplerState::Default) sampler = SamplerState::LinearClamp;
 
     // The game's transform, then pixels of the target to clip space, then the viewport.
     const float w = static_cast<float>(target->Width());
@@ -150,10 +163,16 @@ bool CpuSpriteRenderer::Draw(const SpriteQuad* quads, std::uint32_t count, Blend
             v[i].color[2] = Unorm(s.color.b);
             v[i].color[3] = Unorm(s.color.a);
         }
-        const CpuTexture& texture = *static_cast<const CpuTexture*>(quad.texture);
+        shading.texture = static_cast<const CpuTexture*>(quad.texture);
+        shading.bounds = quad.vertices[0].bounds;
+        shading.source.bounds = shading.bounds;
+        shading.source.textures[0] = shading.texture;
+        if (shading.port)
+            for (std::size_t slot = 1; slot < shading.source.count; ++slot)
+                shading.source.textures[slot] = static_cast<const CpuTexture*>(EffectAccess::Texture(effect, slot, quad.texture));
         // The index buffer's two triangles: 0 1 2 and 1 3 2.
-        Triangle(*target, pixels, texture, quad.vertices[0].bounds, v[0], v[1], v[2], blend, sampler);
-        Triangle(*target, pixels, texture, quad.vertices[1].bounds, v[1], v[3], v[2], blend, sampler);
+        Triangle(*target, pixels, shading, v[0], v[1], v[2], blend);
+        Triangle(*target, pixels, shading, v[1], v[3], v[2], blend);
     }
     return true;
 }
@@ -176,8 +195,8 @@ void Span(std::int64_t e, std::int64_t step, std::int64_t& first, std::int64_t& 
 }
 
 template <BlendState Blend>
-void Raster(CpuTexture& target, Color* pixels, const CpuTexture& texture, const float bounds[4], const Vertex& a,
-            const Vertex& b, const Vertex& c, std::int64_t area, SamplerState sampler) {
+void Raster(CpuTexture& target, Color* pixels, const Shading& sh, const Vertex& a, const Vertex& b, const Vertex& c,
+            std::int64_t area) {
     const int tw = target.Width();
     const int th = target.Height();
     const auto lo = [](std::int64_t p) { return static_cast<int>((p - HalfPixel + SubpixelScale - 1) >> SubpixelBits); };
@@ -199,6 +218,11 @@ void Raster(CpuTexture& target, Color* pixels, const CpuTexture& texture, const 
     const std::int64_t stepC = -(b.y - a.y) * SubpixelScale;
     const float invArea = 1.0f / static_cast<float>(area);
     std::uint8_t* ties = target.Ties();
+    bool tie = false;
+    CpuPixelSource source = sh.source;
+    source.tie = ties ? &tie : nullptr;
+    CpuPixel pixel;
+    source.Attach(pixel);
 
     for (int y = y0; y <= y1; ++y) {
         const std::int64_t py = (static_cast<std::int64_t>(y) << SubpixelBits) + HalfPixel;
@@ -227,12 +251,27 @@ void Raster(CpuTexture& target, Color* pixels, const CpuTexture& texture, const 
             float tint[4];
             for (int i = 0; i < 4; ++i) tint[i] = a.color[i] + wb * (b.color[i] - a.color[i]) + wc * (c.color[i] - a.color[i]);
 
-            // The fragment shader: clamp to the source rectangle, sample, tint.
-            u = std::clamp(u, bounds[0], bounds[2]);
-            v = std::clamp(v, bounds[1], bounds[3]);
-            bool tie = false;
-            const Float4 t = Sample(texture, sampler, u, v, ties ? &tie : nullptr);
-            const float s[4] = {t.r * tint[0], t.g * tint[1], t.b * tint[2], t.a * tint[3]};
+            tie = false;
+            float s[4];
+            if (sh.port) {
+                pixel.position = Vector2(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f);
+                pixel.uv = Vector2(u, v);
+                pixel.color = Float4(tint[0], tint[1], tint[2], tint[3]);
+                const Float4 o = sh.port->function(pixel, sh.parameters);
+                s[0] = o.r;
+                s[1] = o.g;
+                s[2] = o.b;
+                s[3] = o.a;
+            } else {
+                // The built-in fragment shader: clamp to the source rectangle, sample, tint.
+                u = std::clamp(u, sh.bounds[0], sh.bounds[2]);
+                v = std::clamp(v, sh.bounds[1], sh.bounds[3]);
+                const Float4 t = Sample(*sh.texture, sh.sampler, u, v, source.tie);
+                s[0] = t.r * tint[0];
+                s[1] = t.g * tint[1];
+                s[2] = t.b * tint[2];
+                s[3] = t.a * tint[3];
+            }
 
             Color& out = row[x];
             const float d[4] = {Unorm(out.r), Unorm(out.g), Unorm(out.b), Unorm(out.a)};
@@ -256,8 +295,8 @@ void Raster(CpuTexture& target, Color* pixels, const CpuTexture& texture, const 
     }
 }
 
-void CpuSpriteRenderer::Triangle(CpuTexture& target, Color* pixels, const CpuTexture& texture, const float bounds[4],
-                                 Vertex a, Vertex b, Vertex c, BlendState blend, SamplerState sampler) {
+void CpuSpriteRenderer::Triangle(CpuTexture& target, Color* pixels, const Shading& shading, Vertex a, Vertex b, Vertex c,
+                                 BlendState blend) {
     std::int64_t area = Edge(a, b, c.x, c.y);
     if (area == 0) return;
     // No culling: either winding draws. Turn it so the inside is positive.
@@ -266,12 +305,10 @@ void CpuSpriteRenderer::Triangle(CpuTexture& target, Color* pixels, const CpuTex
         area = -area;
     }
     switch (blend) {
-    case BlendState::AlphaBlend: Raster<BlendState::AlphaBlend>(target, pixels, texture, bounds, a, b, c, area, sampler); break;
-    case BlendState::Additive: Raster<BlendState::Additive>(target, pixels, texture, bounds, a, b, c, area, sampler); break;
-    case BlendState::NonPremultiplied:
-        Raster<BlendState::NonPremultiplied>(target, pixels, texture, bounds, a, b, c, area, sampler);
-        break;
-    case BlendState::Opaque: Raster<BlendState::Opaque>(target, pixels, texture, bounds, a, b, c, area, sampler); break;
+    case BlendState::AlphaBlend: Raster<BlendState::AlphaBlend>(target, pixels, shading, a, b, c, area); break;
+    case BlendState::Additive: Raster<BlendState::Additive>(target, pixels, shading, a, b, c, area); break;
+    case BlendState::NonPremultiplied: Raster<BlendState::NonPremultiplied>(target, pixels, shading, a, b, c, area); break;
+    case BlendState::Opaque: Raster<BlendState::Opaque>(target, pixels, shading, a, b, c, area); break;
     }
 }
 
@@ -306,6 +343,45 @@ Float4 Sample(const CpuTexture& t, SamplerState sampler, float u, float v, bool*
     return {mix(p00.r, p10.r, p01.r, p11.r), mix(p00.g, p10.g, p01.g, p11.g), mix(p00.b, p10.b, p01.b, p11.b),
             mix(p00.a, p10.a, p01.a, p11.a)};
 }
+
+} // namespace coldx::detail
+
+// ---- CpuPixel, for effects' CPU versions
+
+namespace coldx {
+
+using detail::CpuPixelSource;
+
+Float4 CpuPixel::Sample() const {
+    return SampleAt(uv);
+}
+
+Float4 CpuPixel::SampleAt(Vector2 at) const {
+    const CpuPixelSource& s = CpuPixelSource::Of(*this);
+    const float u = std::clamp(at.x, s.bounds[0], s.bounds[2]);
+    const float v = std::clamp(at.y, s.bounds[1], s.bounds[3]);
+    return detail::Sample(*s.textures[0], s.sampler, u, v, s.tie);
+}
+
+Float4 CpuPixel::SampleTexture(int slot, Vector2 at) const {
+    const CpuPixelSource& s = CpuPixelSource::Of(*this);
+    if (slot < 0 || static_cast<std::size_t>(slot) >= s.count) return {};
+    return detail::Sample(*s.textures[slot], s.sampler, at.x, at.y, s.tie);
+}
+
+int CpuPixel::TextureWidth(int slot) const {
+    const CpuPixelSource& s = CpuPixelSource::Of(*this);
+    return slot >= 0 && static_cast<std::size_t>(slot) < s.count ? s.textures[slot]->Width() : 0;
+}
+
+int CpuPixel::TextureHeight(int slot) const {
+    const CpuPixelSource& s = CpuPixelSource::Of(*this);
+    return slot >= 0 && static_cast<std::size_t>(slot) < s.count ? s.textures[slot]->Height() : 0;
+}
+
+} // namespace coldx
+
+namespace coldx::detail {
 
 void ScaleInto(const CpuTexture& source, Color* out, int outWidth, const Rectangle& placed, bool smooth) {
     if (!smooth) {
