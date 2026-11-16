@@ -8,27 +8,19 @@
 #include "scaling.h"
 
 struct SDL_Window;
-struct SDL_GPUDevice;
-struct SDL_GPUCommandBuffer;
-struct SDL_GPUTexture;
 
 namespace coldx::detail {
 
-// Shared by the device and every GPU resource made from it. The device clears it when it
-// is destroyed, so a resource that outlives the device skips releasing instead of using a
-// dead pointer.
-struct DeviceToken {
-    SDL_GPUDevice* device = nullptr;
-};
+class RenderBackend;
 
 // The parts of GraphicsDevice that only coldx itself drives.
 struct GraphicsAccess {
     static std::unique_ptr<GraphicsDevice> Create();
 
-    // Creates the GPU device on first call. Later calls reuse it. window is null in headless
+    // Creates the device on first call. Later calls reuse it. window is null in headless
     // mode, and the back buffer is then width x height with nothing presented.
     static bool Open(GraphicsDevice& graphics, SDL_Window* window, bool vsync, int width, int height);
-    // Lets go of the window. The device stays until Close, so GPU resources the game still
+    // Lets go of the window. The device stays until Close, so resources the game still
     // holds stay valid until the game object is destroyed.
     static void ReleaseWindow(GraphicsDevice& graphics);
     // Present with or without waiting for the display. No effect headless.
@@ -49,18 +41,8 @@ struct GraphicsAccess {
     // Writes the back buffer as it was after the last frame to a PNG. Waits for the GPU.
     static bool SaveBackBuffer(GraphicsDevice& graphics, const std::string& path);
 
-    // Null before Open and after Close.
-    static SDL_GPUDevice* Device(GraphicsDevice& graphics);
-    static std::shared_ptr<DeviceToken> Token(GraphicsDevice& graphics);
-    // All null or zero outside a frame. The current target is the back buffer unless the
-    // game set a render target.
-    static SDL_GPUCommandBuffer* Commands(GraphicsDevice& graphics);
-    static SDL_GPUTexture* CurrentTarget(GraphicsDevice& graphics);
-    static int CurrentTargetWidth(GraphicsDevice& graphics);
-    static int CurrentTargetHeight(GraphicsDevice& graphics);
-
-private:
-    static bool ResizeBackBuffer(GraphicsDevice& graphics, unsigned width, unsigned height);
+    // What the device draws through. Exists from Create, before Open.
+    static RenderBackend& Backend(GraphicsDevice& graphics);
 };
 
 } // namespace coldx::detail

@@ -11,7 +11,9 @@ add_library(coldx_core STATIC
     game.cpp
     game_component.cpp
     gamepad.cpp
+    gpu_backend.cpp
     gpu_download.cpp
+    gpu_sprite_renderer.cpp
     graphics_device.cpp
     input.cpp
     input_script.cpp
@@ -24,11 +26,11 @@ add_library(coldx_core STATIC
     rime_package.cpp
     scaling.cpp
     music.cpp
+    png_file.cpp
     shader_blob.cpp
     sound_effect.cpp
     sprite_batch.cpp
     sprite_font.cpp
-    sprite_renderer.cpp
     stb_truetype_impl.cpp
     storage.cpp
     text_input.cpp

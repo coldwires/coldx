@@ -13,8 +13,4 @@ namespace coldx::detail {
 // is included. A frame still being recorded is not. False, logged, on failure.
 bool DownloadTexture(SDL_GPUDevice* device, SDL_GPUTexture* texture, const Rectangle& region, Color* out);
 
-// Writes width x height pixels to a PNG. straightAlpha undoes premultiplying first, so the
-// file loads back through Texture2D::FromFile as the same image. False, logged, on failure.
-bool WritePng(const char* path, int width, int height, const Color* pixels, bool straightAlpha);
-
 } // namespace coldx::detail

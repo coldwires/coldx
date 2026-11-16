@@ -8,7 +8,8 @@
 #include <SDL3/SDL.h>
 
 #include "font_access.h"
-#include "sprite_renderer.h"
+#include "graphics_access.h"
+#include "render_backend.h"
 #include "texture_access.h"
 
 namespace coldx {
@@ -24,7 +25,7 @@ struct QueuedSprite {
 
 struct SpriteBatch::Impl {
     GraphicsDevice& graphics;
-    detail::SpriteRenderer renderer;
+    std::unique_ptr<detail::SpriteRenderer> renderer;
 
     std::vector<QueuedSprite> queue;
     std::vector<detail::SpriteQuad> ordered;
@@ -37,7 +38,8 @@ struct SpriteBatch::Impl {
     std::optional<bool> snapChoice;  // SetPixelSnap's, unset follows the game's pixelArt
     bool snap = false;               // in force since Begin
 
-    explicit Impl(GraphicsDevice& g) : graphics(g) {}
+    explicit Impl(GraphicsDevice& g)
+        : graphics(g), renderer(detail::GraphicsAccess::Backend(g).CreateSpriteRenderer()) {}
 
     // x, y: where the origin lands. w, h: drawn size. ox, oy: origin in drawn units.
     void Add(const Texture2D& texture, float x, float y, float w, float h, float ox, float oy,
@@ -51,7 +53,7 @@ void SpriteBatch::Impl::Add(const Texture2D& texture, float x, float y, float w,
         SDL_Log("coldx.core: SpriteBatch::Draw called without Begin");
         return;
     }
-    SDL_GPUTexture* handle = detail::TextureAccess::Handle(texture);
+    const detail::BackendTexture* handle = detail::TextureAccess::Handle(texture);
     if (!handle) return;
 
     const float tw = static_cast<float>(texture.Width());
@@ -127,7 +129,7 @@ void SpriteBatch::Impl::Flush() {
     ordered.clear();
     ordered.reserve(queue.size());
     for (const QueuedSprite& q : queue) ordered.push_back(q.quad);
-    renderer.Draw(graphics, ordered.data(), static_cast<std::uint32_t>(ordered.size()), blend, sampler, effect, transform);
+    renderer->Draw(ordered.data(), static_cast<std::uint32_t>(ordered.size()), blend, sampler, effect, transform);
     queue.clear();
 }
 

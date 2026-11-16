@@ -1,12 +1,10 @@
-#include "sprite_renderer.h"
-
 #include <SDL3/SDL.h>
 
 #include <coldx/core/effect.h>
 #include <coldx/core/effect_format.h>
 
 #include "effect_access.h"
-#include "graphics_access.h"
+#include "gpu_backend.h"
 #include "shader_blob.h"
 #include "sprite_frag.h"
 #include "sprite_vert.h"
@@ -54,9 +52,23 @@ SDL_GPUSamplerCreateInfo SamplerFor(SamplerState sampler) {
     return info;
 }
 
+// The GPU half of SpriteBatch: pipelines, samplers, buffers, and the draw itself.
+class GpuSpriteRenderer final : public SpriteRenderer {
+public:
+    explicit GpuSpriteRenderer(GpuBackend& backend);
+    ~GpuSpriteRenderer() override;
+    bool Draw(const SpriteQuad* quads, std::uint32_t count, BlendState blend, SamplerState sampler, const Effect& effect,
+              const Matrix& transform) override;
+
+private:
+    struct Impl;
+    GpuBackend& backend_;
+    std::unique_ptr<Impl> impl_;
+};
+
 } // namespace
 
-struct SpriteRenderer::Impl {
+struct GpuSpriteRenderer::Impl {
     std::shared_ptr<DeviceToken> token;
     SDL_GPUShader* vertexShader = nullptr;
     SDL_GPUShader* fragmentShader = nullptr;
@@ -132,7 +144,7 @@ SDL_GPUGraphicsPipeline* CreateSpritePipeline(SDL_GPUDevice* device, SDL_GPUShad
 }
 
 // Pipelines differ only in blend state, so they are made on first use of each.
-SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
+SDL_GPUGraphicsPipeline* GpuSpriteRenderer::Impl::Pipeline(BlendState blend) {
     const int index = static_cast<int>(blend);
     if (pipelines[index]) return pipelines[index];
     SDL_GPUDevice* device = Device();
@@ -145,7 +157,7 @@ SDL_GPUGraphicsPipeline* SpriteRenderer::Impl::Pipeline(BlendState blend) {
     return pipelines[index];
 }
 
-SDL_GPUSampler* SpriteRenderer::Impl::Sampler(SamplerState sampler) {
+SDL_GPUSampler* GpuSpriteRenderer::Impl::Sampler(SamplerState sampler) {
     // SpriteBatch resolves Default before drawing. The real samplers follow it in the enum.
     static_assert(static_cast<int>(SamplerState::LinearWrap) - static_cast<int>(SamplerState::PointClamp) + 1 == SamplerCount);
     if (sampler == SamplerState::Default) sampler = SamplerState::LinearClamp;
@@ -160,7 +172,7 @@ SDL_GPUSampler* SpriteRenderer::Impl::Sampler(SamplerState sampler) {
 
 // Grows the buffers to hold quadCount quads. The index buffer never changes after it is
 // filled, so it is uploaded here on a command buffer of its own.
-bool SpriteRenderer::Impl::EnsureCapacity(Uint32 quadCount) {
+bool GpuSpriteRenderer::Impl::EnsureCapacity(Uint32 quadCount) {
     if (quadCount <= capacity) return true;
     SDL_GPUDevice* device = Device();
     Uint32 newCapacity = capacity ? capacity : InitialCapacity;
@@ -223,33 +235,38 @@ bool SpriteRenderer::Impl::EnsureCapacity(Uint32 quadCount) {
     return true;
 }
 
-SpriteRenderer::SpriteRenderer() : impl_(std::make_unique<Impl>()) {}
+GpuSpriteRenderer::GpuSpriteRenderer(GpuBackend& backend) : backend_(backend), impl_(std::make_unique<Impl>()) {}
 
-SpriteRenderer::~SpriteRenderer() = default;
+GpuSpriteRenderer::~GpuSpriteRenderer() = default;
 
-bool SpriteRenderer::Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std::uint32_t count, BlendState blend,
-                          SamplerState samplerState, const Effect& effect, const Matrix& transform) {
+std::unique_ptr<SpriteRenderer> CreateGpuSpriteRenderer(GpuBackend& backend) {
+    return std::make_unique<GpuSpriteRenderer>(backend);
+}
+
+bool GpuSpriteRenderer::Draw(const SpriteQuad* quads, std::uint32_t count, BlendState blend, SamplerState samplerState,
+                             const Effect& effect, const Matrix& transform) {
     Impl& r = *impl_;
     if (count == 0) return true;
 
-    SDL_GPUCommandBuffer* commands = GraphicsAccess::Commands(graphics);
-    SDL_GPUTexture* target = GraphicsAccess::CurrentTarget(graphics);
+    SDL_GPUCommandBuffer* commands = backend_.Commands();
+    SDL_GPUTexture* target = backend_.CurrentTarget();
     if (!commands || !target) {
         SDL_Log("coldx.core: SpriteBatch drawn outside Draw, nothing drawn");
         return false;
     }
 
     // A new device (a second Run) invalidates everything made on the old one.
-    SDL_GPUDevice* device = GraphicsAccess::Device(graphics);
+    SDL_GPUDevice* device = backend_.Device();
     if (r.Device() != device) {
         r.Release();
-        r.token = GraphicsAccess::Token(graphics);
+        r.token = backend_.Token();
         r.failed = false;
     }
     if (r.failed) return false;
 
     // An effect that fails is logged once by the effect, and the built-in shader draws.
-    SDL_GPUGraphicsPipeline* custom = effect ? EffectAccess::Pipeline(effect, graphics, blend) : nullptr;
+    SDL_GPUGraphicsPipeline* custom =
+        effect ? static_cast<GpuEffect&>(EffectAccess::Backend(effect)).Pipeline(backend_, blend) : nullptr;
     SDL_GPUGraphicsPipeline* pipeline = custom ? custom : r.Pipeline(blend);
     SDL_GPUSampler* sampler = r.Sampler(samplerState);
     if (!pipeline || !sampler || !r.EnsureCapacity(count)) {
@@ -275,8 +292,8 @@ bool SpriteRenderer::Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std
     SDL_EndGPUCopyPass(copy);
 
     // The game's transform, then pixels of the current target to clip space.
-    const float w = static_cast<float>(GraphicsAccess::CurrentTargetWidth(graphics));
-    const float h = static_cast<float>(GraphicsAccess::CurrentTargetHeight(graphics));
+    const float w = static_cast<float>(backend_.CurrentTargetWidth());
+    const float h = static_cast<float>(backend_.CurrentTargetHeight());
     const Matrix toClip = transform * Matrix::CreateOrthographicOffCenter(0.0f, w, h, 0.0f, 0.0f, 1.0f);
     SDL_PushGPUVertexUniformData(commands, 0, toClip.m, sizeof(toClip.m));
     // The effect's parameters as they are now: SDL copies them into the command buffer.
@@ -301,12 +318,13 @@ bool SpriteRenderer::Draw(GraphicsDevice& graphics, const SpriteQuad* quads, std
 
     std::uint32_t first = 0;
     while (first < count) {
-        SDL_GPUTexture* texture = quads[first].texture;
+        const BackendTexture* texture = quads[first].texture;
         std::uint32_t end = first + 1;
         while (end < count && quads[end].texture == texture) ++end;
         SDL_GPUTextureSamplerBinding bindings[effect_format::MaxTextures];
-        bindings[0] = {texture, sampler};
-        for (std::size_t slot = 1; slot < slots; ++slot) bindings[slot] = {EffectAccess::Texture(effect, slot, texture), sampler};
+        bindings[0] = {static_cast<const GpuTexture*>(texture)->Handle(), sampler};
+        for (std::size_t slot = 1; slot < slots; ++slot)
+            bindings[slot] = {static_cast<const GpuTexture*>(EffectAccess::Texture(effect, slot, texture))->Handle(), sampler};
         SDL_BindGPUFragmentSamplers(pass, 0, bindings, static_cast<Uint32>(slots));
         SDL_DrawGPUIndexedPrimitives(pass, (end - first) * 6, 1, first * 6, 0, 0);
         first = end;

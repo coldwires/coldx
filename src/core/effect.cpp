@@ -9,9 +9,7 @@
 
 #include "effect_access.h"
 #include "graphics_access.h"
-#include "shader_blob.h"
-#include "sprite_renderer.h"
-#include "sprite_vert.h"
+#include "render_backend.h"
 #include "texture_access.h"
 
 namespace coldx {
@@ -22,50 +20,9 @@ struct Effect::Impl {
     std::vector<std::uint8_t> uniforms;
     std::vector<Texture2D> textures;  // by slot, slot 0 (the sprite's) stays empty
 
-    std::shared_ptr<detail::DeviceToken> token;
-    SDL_GPUShader* vertex = nullptr;
-    SDL_GPUShader* fragment = nullptr;
-    SDL_GPUGraphicsPipeline* pipelines[detail::BlendStateCount] = {};
-    bool failed = false;
     std::unordered_set<std::string> warned;
-
-    ~Impl() { Release(); }
-
-    SDL_GPUDevice* Device() const { return token ? token->device : nullptr; }
-
-    void Release() {
-        if (SDL_GPUDevice* device = Device()) {
-            if (vertex) SDL_ReleaseGPUShader(device, vertex);
-            if (fragment) SDL_ReleaseGPUShader(device, fragment);
-            for (auto* p : pipelines)
-                if (p) SDL_ReleaseGPUGraphicsPipeline(device, p);
-        }
-        vertex = fragment = nullptr;
-        for (auto& p : pipelines) p = nullptr;
-    }
-
-    // Shaders for the device graphics has now. Remade after a second Run makes a new one.
-    bool Shaders(GraphicsDevice& graphics) {
-        SDL_GPUDevice* device = detail::GraphicsAccess::Device(graphics);
-        if (!device) return false;
-        if (Device() != device) {
-            Release();
-            token = detail::GraphicsAccess::Token(graphics);
-            failed = false;
-        }
-        if (failed) return false;
-        if (!vertex) vertex = detail::CreateShader(device, shaders::sprite_vert, detail::ShaderStage::Vertex, "sprite.vert");
-        if (!fragment) {
-            const ShaderBlob blob{compiled.spirv.data(), compiled.spirv.size(),
-                                  compiled.dxil.data(),  compiled.dxil.size(),
-                                  compiled.msl.data(),   compiled.msl.size(),
-                                  static_cast<unsigned>(compiled.textures.size()), 0, 0,
-                                  compiled.uniformSize ? 1u : 0u};
-            fragment = detail::CreateShader(device, blob, detail::ShaderStage::Fragment, name.c_str());
-        }
-        failed = !vertex || !fragment;
-        return !failed;
-    }
+    // Last, so it goes first: it refers to compiled and name.
+    std::unique_ptr<detail::BackendEffect> backend;
 
     void WarnOnce(const std::string& key, const char* format, const std::string& what) {
         if (warned.insert(key).second) SDL_Log(format, name.c_str(), what.c_str());
@@ -109,8 +66,8 @@ Effect Effect::FromMemory(GraphicsDevice& graphics, const void* data, std::size_
     // Rounded up to whole float4s, the unit every backend's uniform blocks come in.
     impl->uniforms.assign((impl->compiled.uniformSize + 15) / 16 * 16, 0);
     impl->textures.resize(impl->compiled.textures.size());
-    // Made now when the device exists, so a shader the driver rejects fails at load.
-    if (detail::GraphicsAccess::Device(graphics) && !impl->Shaders(graphics)) return {};
+    impl->backend = detail::GraphicsAccess::Backend(graphics).CreateEffect(impl->compiled, impl->name);
+    if (!impl->backend) return {};
     Effect effect;
     effect.impl_ = std::move(impl);
     return effect;
@@ -187,15 +144,8 @@ bool Effect::IsEmpty() const {
 
 namespace detail {
 
-SDL_GPUGraphicsPipeline* EffectAccess::Pipeline(const Effect& effect, GraphicsDevice& graphics, BlendState blend) {
-    Effect::Impl& e = *effect.impl_;
-    if (!e.Shaders(graphics)) return nullptr;
-    SDL_GPUGraphicsPipeline*& pipeline = e.pipelines[static_cast<int>(blend)];
-    if (!pipeline) {
-        pipeline = CreateSpritePipeline(e.Device(), e.vertex, e.fragment, blend);
-        e.failed = !pipeline;
-    }
-    return pipeline;
+BackendEffect& EffectAccess::Backend(const Effect& effect) {
+    return *effect.impl_->backend;
 }
 
 const std::vector<std::uint8_t>& EffectAccess::Uniforms(const Effect& effect) {
@@ -206,9 +156,9 @@ std::size_t EffectAccess::TextureCount(const Effect& effect) {
     return effect.impl_->textures.size();
 }
 
-SDL_GPUTexture* EffectAccess::Texture(const Effect& effect, std::size_t slot, SDL_GPUTexture* fallback) {
+const BackendTexture* EffectAccess::Texture(const Effect& effect, std::size_t slot, const BackendTexture* fallback) {
     Effect::Impl& e = *effect.impl_;
-    if (SDL_GPUTexture* set = TextureAccess::Handle(e.textures[slot])) return set;
+    if (const BackendTexture* set = TextureAccess::Handle(e.textures[slot])) return set;
     e.WarnOnce("#" + e.compiled.textures[slot].name, "coldx.core: effect %s: texture %s was never set. The sprite's own stands in",
                e.compiled.textures[slot].name);
     return fallback;
