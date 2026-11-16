@@ -355,6 +355,13 @@ Environment variables, read when `Run` starts. They work on any game without cha
 
 SDL's own `SDL_GPU_DRIVER=vulkan` (or `direct3d12`, `metal`) picks the GPU backend.
 
+Two more are read when the `Game` is constructed, since the graphics device exists from then:
+
+| Variable | Effect |
+|---|---|
+| `COLDX_RENDERER=cpu` | Draw every pixel on the CPU instead of through SDL_GPU, to the same rules, presented through SDL's window surface. No GPU or driver is needed. Effects are not run yet: sprites drawn with one use the built-in shader, logged once. There is no vertical blank to wait on, so vsync spaces frames at the display's refresh rate. `gpu` or unset is the default. |
+| `COLDX_CPU_TIES=<path>` | With the CPU renderer, write each frame's pixels whose value lands within 0.01 of a step of a rounding tie, one `x y` per line. A GPU blending at less than float precision may round those one step the other way. The backend tests use it. |
+
 Together they run a game unattended and leave a log and a picture of its last frame:
 
     COLDX_HEADLESS=1 COLDX_FRAMES=60 COLDX_LOG=run.log COLDX_CAPTURE=frame.png ./hello_sprite
@@ -383,7 +390,10 @@ value types and `Matrix`. `core.render.<backend>` and `core.sprite.<backend>` dr
 headless and compare every pixel that matters to a value computed from the same inputs:
 every sort mode, blend and sampler state, transforms, rotation, flips and render targets.
 They run once per GPU backend
-(`COLDX_TEST_GPU_DRIVERS`: Direct3D 12 and Vulkan on Windows by default).
+(`COLDX_TEST_GPU_DRIVERS`: Direct3D 12 and Vulkan on Windows by default), and once on the CPU
+renderer. `core.backend_diff` draws the same scenes on every GPU backend and on the CPU and
+compares them byte for byte. The only difference it allows is one step at a pixel the CPU
+reports as a rounding tie (`COLDX_CPU_TIES`).
 
 ## Layout
 

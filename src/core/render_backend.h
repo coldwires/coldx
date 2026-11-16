@@ -117,6 +117,8 @@ public:
 
 // SDL_GPU: Direct3D 12, Vulkan or Metal, as SDL picks or SDL_GPU_DRIVER says.
 std::unique_ptr<RenderBackend> CreateGpuBackend();
+// Every pixel on the CPU, to the same rules as the GPU. COLDX_RENDERER=cpu.
+std::unique_ptr<RenderBackend> CreateCpuBackend();
 
 } // namespace detail
 } // namespace coldx

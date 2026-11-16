@@ -470,6 +470,7 @@ the first):
     60 text hello          # typed text, if the game has TextInput on
     90 exit                # stops before Update 90 runs
 
-`SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU backend. Headless audio is silent,
+`SDL_GPU_DRIVER=vulkan` or `direct3d12` picks the GPU backend. `COLDX_RENDERER=cpu` draws on
+the CPU instead, with no GPU needed (effects fall back to the built-in shader). Headless audio is silent,
 so check sounds through the game's own log lines. Read the log and look at the captured PNG
 to check a change. The README has the full list, and how to write shaders.

@@ -88,3 +88,7 @@
 - CTest suite: math, headless render tests per GPU backend, and `tools/check.py` for
   module boundaries, file size and ASCII.
 - Log lines name their module: `coldx.core:`.
+- A CPU renderer, `COLDX_RENDERER=cpu`: SpriteBatch, render targets, readback and
+  presentation without a GPU, matching the GPU path pixel for pixel apart from rounding
+  ties (`COLDX_CPU_TIES`). `core.backend_diff` compares the two. Effects are not run on it
+  yet.

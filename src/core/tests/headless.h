@@ -72,7 +72,8 @@ private:
 // Runs scene for two frames with nothing shown and returns its last frame. name keeps
 // captures from different tests and backends apart in the temp folder.
 inline Frame RunAndCapture(Scene& scene, const std::string& name) {
-    const char* driver = SDL_getenv("SDL_GPU_DRIVER");
+    const char* renderer = SDL_getenv("COLDX_RENDERER");
+    const char* driver = renderer && std::string(renderer) == "cpu" ? renderer : SDL_getenv("SDL_GPU_DRIVER");
     const std::string file = "coldx_" + name + "_" + (driver ? driver : "default") + ".png";
     const std::string capture = (std::filesystem::temp_directory_path() / file).string();
     std::filesystem::remove(capture);

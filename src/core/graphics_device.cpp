@@ -15,7 +15,16 @@ struct GraphicsDevice::Impl {
     bool pixelArt = false;
 };
 
+// Read here, not with the other COLDX_ variables at Run: the device exists from the Game's
+// construction, and the backend with it.
 GraphicsDevice::GraphicsDevice() : impl_(std::make_unique<Impl>()) {
+    const char* renderer = SDL_getenv("COLDX_RENDERER");
+    const std::string choice = renderer ? renderer : "";
+    if (choice == "cpu") {
+        impl_->backend = detail::CreateCpuBackend();
+        return;
+    }
+    if (!choice.empty() && choice != "gpu") SDL_Log("coldx.core: COLDX_RENDERER=%s is not gpu or cpu, using gpu", renderer);
     impl_->backend = detail::CreateGpuBackend();
 }
 

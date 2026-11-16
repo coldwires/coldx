@@ -5,6 +5,8 @@ add_library(coldx_core STATIC
     chacha20.cpp
     content_manager.cpp
     content_path.cpp
+    cpu_backend.cpp
+    cpu_sprite_renderer.cpp
     debug_options.cpp
     effect.cpp
     effect_format.cpp
