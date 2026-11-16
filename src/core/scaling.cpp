@@ -1,5 +1,7 @@
 #include "scaling.h"
 
+#include "exact_round.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -11,8 +13,8 @@ Rectangle FitRectangle(int outWidth, int outHeight, int width, int height, Scale
     const double fit = std::min(static_cast<double>(outWidth) / width, static_cast<double>(outHeight) / height);
     // Integer scaling below 1x would be nothing at all. It shrinks as Fit does instead.
     const double scale = mode == ScaleMode::Integer && fit >= 1.0 ? std::floor(fit) : fit;
-    const int w = std::clamp(static_cast<int>(std::lround(width * scale)), 1, outWidth);
-    const int h = std::clamp(static_cast<int>(std::lround(height * scale)), 1, outHeight);
+    const int w = std::clamp(static_cast<int>(RoundAway(width * scale)), 1, outWidth);
+    const int h = std::clamp(static_cast<int>(RoundAway(height * scale)), 1, outHeight);
     return {(outWidth - w) / 2, (outHeight - h) / 2, w, h};
 }
 

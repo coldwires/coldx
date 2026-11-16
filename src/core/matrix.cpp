@@ -1,13 +1,15 @@
 #include <coldx/core/matrix.h>
 
+#include <coldx/core/cpu_math.h>
+
 #include <cmath>
 #include <utility>
 
 namespace coldx {
 
 Matrix Matrix::CreateRotationZ(float radians) {
-    const float c = std::cos(radians);
-    const float s = std::sin(radians);
+    const float c = CpuMath::Cos(radians);
+    const float s = CpuMath::Sin(radians);
     Matrix r;
     r.m[0][0] = c;
     r.m[0][1] = s;

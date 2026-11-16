@@ -1,7 +1,8 @@
 #include "input_script.h"
 
 #include <cstdlib>
-#include <sstream>
+#include <string>
+#include <vector>
 
 #include <SDL3/SDL.h>
 
@@ -19,6 +20,19 @@ bool MouseButtonByName(const std::string& name, MouseButton& out) {
     else if (name == "x2") out = MouseButton::X2;
     else return false;
     return true;
+}
+
+// The words of a line, split at spaces, tabs and carriage returns.
+std::vector<std::string> Words(const std::string& line) {
+    std::vector<std::string> words;
+    size_t i = 0;
+    while (i < line.size()) {
+        while (i < line.size() && (line[i] == ' ' || line[i] == '\t' || line[i] == '\r')) ++i;
+        const size_t begin = i;
+        while (i < line.size() && line[i] != ' ' && line[i] != '\t' && line[i] != '\r') ++i;
+        if (i > begin) words.push_back(line.substr(begin, i - begin));
+    }
+    return words;
 }
 
 // Key names may contain spaces ("Left Shift"), so the name is everything after the verb.
@@ -62,22 +76,26 @@ void InputScript::Load(const std::string& path) {
         SDL_Log("coldx.core: COLDX_INPUT: could not read %s: %s", path.c_str(), SDL_GetError());
         return;
     }
-    std::istringstream lines(std::string(static_cast<const char*>(data), size));
+    const std::string text(static_cast<const char*>(data), size);
     SDL_free(data);
 
-    std::string line;
-    for (int number = 1; std::getline(lines, line); ++number) {
+    size_t start = 0;
+    for (int number = 1; start < text.size(); ++number) {
+        size_t end = text.find('\n', start);
+        if (end == std::string::npos) end = text.size();
+        std::string line = text.substr(start, end - start);
+        start = end + 1;
         const size_t hash = line.find('#');
         if (hash != std::string::npos) line.erase(hash);
-        std::istringstream words(line);
-        int update = 0;
-        if (!(words >> update)) {
-            if (line.find_first_not_of(" \t\r") != std::string::npos)
-                SDL_Log("coldx.core: COLDX_INPUT line %d: expected an update number first", number);
+        const std::vector<std::string> words = Words(line);
+        if (words.empty()) continue;
+        char* after = nullptr;
+        const long update = std::strtol(words[0].c_str(), &after, 10);
+        if (after == words[0].c_str() || *after != '\0') {
+            SDL_Log("coldx.core: COLDX_INPUT line %d: expected an update number first", number);
             continue;
         }
-        Command command{update, {}};
-        for (std::string word; words >> word;) command.words.push_back(word);
+        Command command{static_cast<int>(update), {words.begin() + 1, words.end()}};
         const std::string error = Validate(command.words);
         if (!error.empty()) {
             SDL_Log("coldx.core: COLDX_INPUT line %d: %s", number, error.c_str());

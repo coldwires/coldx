@@ -1,6 +1,6 @@
 add_executable(coldx_core_math_test math_test.cpp)
 target_link_libraries(coldx_core_math_test PRIVATE coldx::core)
-target_include_directories(coldx_core_math_test PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+target_include_directories(coldx_core_math_test PRIVATE ${PROJECT_SOURCE_DIR}/tests ${CMAKE_CURRENT_SOURCE_DIR}/..)
 coldx_set_warnings(coldx_core_math_test)
 add_test(NAME core.math COMMAND coldx_core_math_test)
 

@@ -1,4 +1,5 @@
 #include <coldx/core/graphics_device.h>
+#include <coldx/core/cpu_math.h>
 #include <coldx/core/sprite_batch.h>
 
 #include <algorithm>
@@ -97,8 +98,8 @@ void SpriteBatch::Impl::Add(const Texture2D& texture, float x, float y, float w,
         x += std::round(x - ox) - (x - ox);
         y += std::round(y - oy) - (y - oy);
     }
-    const float c = rotation != 0.0f ? std::cos(rotation) : 1.0f;
-    const float s = rotation != 0.0f ? std::sin(rotation) : 0.0f;
+    const float c = rotation != 0.0f ? CpuMath::Cos(rotation) : 1.0f;
+    const float s = rotation != 0.0f ? CpuMath::Sin(rotation) : 0.0f;
     for (int i = 0; i < 4; ++i) {
         sprite.quad.vertices[i] = {x + lx[i] * c - ly[i] * s, y + lx[i] * s + ly[i] * c, us[i], vs[i], color,
                                    {bounds[0], bounds[1], bounds[2], bounds[3]}};

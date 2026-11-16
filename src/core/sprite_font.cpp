@@ -9,6 +9,7 @@
 #include <stb/stb_truetype.h>
 
 #include "content_path.h"
+#include "exact_round.h"
 #include "font_access.h"
 
 namespace coldx {
@@ -153,7 +154,7 @@ SpriteFont SpriteFont::FromMemory(GraphicsDevice& graphics, const void* data, st
     impl->scale = stbtt_ScaleForPixelHeight(&impl->info, pixelHeight);
     int ascent = 0, descent = 0, lineGap = 0;
     stbtt_GetFontVMetrics(&impl->info, &ascent, &descent, &lineGap);
-    impl->baseline = static_cast<int>(std::lround(ascent * impl->scale));
+    impl->baseline = static_cast<int>(detail::RoundAway(ascent * impl->scale));
     impl->lineSpacing = std::round((ascent - descent + lineGap) * impl->scale);
 
     // Pack into the smallest square atlas that holds every glyph.
@@ -190,8 +191,8 @@ SpriteFont SpriteFont::FromMemory(GraphicsDevice& graphics, const void* data, st
             const stbtt_packedchar& p = packed[r][static_cast<size_t>(k)];
             Glyph g;
             g.source = Rectangle(p.x0, p.y0, p.x1 - p.x0, p.y1 - p.y0);
-            g.xOffset = static_cast<int>(std::lround(p.xoff));
-            g.yOffset = static_cast<int>(std::lround(p.yoff));
+            g.xOffset = static_cast<int>(detail::RoundAway(p.xoff));
+            g.yOffset = static_cast<int>(detail::RoundAway(p.yoff));
             g.advance = p.xadvance;
             impl->glyphs[static_cast<size_t>(cp)] = g;
         }

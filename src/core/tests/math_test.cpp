@@ -2,6 +2,9 @@
 #include <coldx/core/cpu_math.h>
 
 #include <cmath>
+#include <cstring>
+
+#include "exact_round.h"
 
 #include "check.h"
 
@@ -124,8 +127,32 @@ void CpuSinCos() {
     CHECK(CpuMath::Sin(-1.0f) == -CpuMath::Sin(1.0f));
 }
 
+// NearestEven and RoundAway against std::nearbyint and std::lround: every quarter from
+// -2048 to 2048, halves included, and floats spread across the whole range used for pixels.
+void ExactRounding() {
+    int wrong = 0;
+    auto check = [&](float x) {
+        const float a = detail::NearestEven(x), b = std::nearbyint(x);
+        if (std::memcmp(&a, &b, sizeof a) != 0 && !(a == 0.0f && b == 0.0f)) ++wrong;
+        if (detail::RoundAway(x) != std::lround(x)) ++wrong;
+        if (detail::RoundAway(static_cast<double>(x)) != std::lround(static_cast<double>(x))) ++wrong;
+    };
+    for (int i = -8192; i <= 8192; ++i) check(static_cast<float>(i) * 0.25f);
+    for (std::uint32_t bits = 0x30000000u; bits < 0x4B000000u; bits += 977u) {
+        float x;
+        std::memcpy(&x, &bits, sizeof x);
+        check(x);
+        check(-x);
+    }
+    check(0.49999997f);
+    check(-0.49999997f);
+    check(8388607.5f);
+    CHECK(wrong == 0);
+}
+
 int main() {
     CpuSinCos();
+    ExactRounding();
     Vectors();
     Rectangles();
     Colors();

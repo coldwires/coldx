@@ -13,6 +13,7 @@
 
 #include "cpu_backend.h"
 #include "effect_access.h"
+#include "exact_round.h"
 
 namespace coldx::detail {
 
@@ -154,8 +155,8 @@ bool CpuSpriteRenderer::Draw(const SpriteQuad* quads, std::uint32_t count, Blend
             const float cw = s.x * m.m[0][3] + s.y * m.m[1][3] + m.m[3][3];
             const float sx = (cx / cw + 1.0f) * 0.5f * w;
             const float sy = (1.0f - cy / cw) * 0.5f * h;
-            v[i].x = static_cast<std::int64_t>(std::nearbyint(sx * SubpixelScale));
-            v[i].y = static_cast<std::int64_t>(std::nearbyint(sy * SubpixelScale));
+            v[i].x = static_cast<std::int64_t>(NearestEven(sx * SubpixelScale));
+            v[i].y = static_cast<std::int64_t>(NearestEven(sy * SubpixelScale));
             v[i].u = s.u;
             v[i].v = s.v;
             v[i].color[0] = Unorm(s.color.r);
