@@ -107,6 +107,7 @@ void CpuBackend::Close() {
     frame_ = 0;
     scaled_.clear();
     tiesPath_.clear();
+    pool_.reset();
 }
 
 void CpuBackend::ResizeHeadless(int width, int height) {
@@ -187,6 +188,17 @@ void CpuBackend::Pace() {
     if (nextPresent_ == 0 || now > nextPresent_ + period) nextPresent_ = now;
     else if (now < nextPresent_) SDL_DelayPrecise(nextPresent_ - now);
     nextPresent_ += period;
+}
+
+WorkerPool& CpuBackend::Pool() {
+    if (!pool_) {
+        int count = SDL_GetNumLogicalCPUCores();
+        if (const char* wanted = SDL_getenv("COLDX_CPU_THREADS")) count = SDL_atoi(wanted);
+        count = std::clamp(count, 1, 16);
+        pool_ = std::make_unique<WorkerPool>(count);
+        SDL_Log("coldx.core: cpu renderer on %d thread%s", pool_->Count(), pool_->Count() == 1 ? "" : "s");
+    }
+    return *pool_;
 }
 
 void CpuBackend::Clear(Color color) {

@@ -436,6 +436,8 @@ CpuEffects::Register<GrayscaleParams>("grayscale", Grayscale, {{"Amount", offset
 - Use `CpuMath::Sin` and `CpuMath::Cos`, not `std::sin`, so the result is the same on
   every machine. GPUs approximate these functions each their own way, so an effect that
   uses them matches the GPU closely, not exactly. Everything else matches to the byte.
+- A CPU version runs on several threads at once (`COLDX_CPU_THREADS`). Compute the pixel
+  from `in` and the parameters only: no state kept between calls, nothing written.
 - `shaders/examples/cpu_effects.h` has the three examples.
 
 ## Packing content

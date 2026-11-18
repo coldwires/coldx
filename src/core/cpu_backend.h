@@ -10,6 +10,7 @@
 #include <coldx/core/effect_format.h>
 
 #include "render_backend.h"
+#include "worker_pool.h"
 
 struct SDL_Surface;
 
@@ -113,6 +114,9 @@ public:
 
     // Null outside a frame.
     CpuTexture* CurrentTarget() const { return frame_ ? target_ : nullptr; }
+    // The threads drawing shares, made on first use. COLDX_CPU_THREADS sets how many,
+    // the caller included. The default is one per logical core, up to 16.
+    WorkerPool& Pool();
     std::uint64_t Frame() const { return frame_; }
 
 private:
@@ -133,6 +137,7 @@ private:
     std::uint64_t nextPresent_ = 0;
     std::vector<Color> scaled_;    // the window's pixels when the back buffer is scaled into it
     std::string tiesPath_;         // COLDX_CPU_TIES, empty when not tracking
+    std::unique_ptr<WorkerPool> pool_;
 };
 
 std::unique_ptr<SpriteRenderer> CreateCpuSpriteRenderer(CpuBackend& backend);

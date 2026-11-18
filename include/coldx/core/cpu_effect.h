@@ -62,7 +62,9 @@ struct CpuParameter {
 // The CPU renderer (COLDX_RENDERER=cpu) runs an effect by calling a C++ version of its
 // shader, written once by hand and registered here under the effect's name. The name is
 // compared without a folder or extension, so "wave" serves an effect loaded as
-// "effects/wave". Register before the first frame that draws with the effect.
+// "effects/wave". Register before the first frame that draws with the effect. The function
+// is called on several threads at once (COLDX_CPU_THREADS), so it must work from its
+// arguments only, keeping and writing nothing.
 //
 // Parameters arrive as a struct laid out as the uniform block is. HLSL packs it in 16-byte
 // rows that a member may not straddle, so a float3 after a float2 starts a new row and the

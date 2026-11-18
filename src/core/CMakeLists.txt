@@ -38,6 +38,7 @@ add_library(coldx_core STATIC
     stb_truetype_impl.cpp
     storage.cpp
     text_input.cpp
+    worker_pool.cpp
     texture2d.cpp
     ${PROJECT_SOURCE_DIR}/third_party/lz4/lz4/lz4.c
     ${PROJECT_SOURCE_DIR}/third_party/lz4/lz4/lz4hc.c

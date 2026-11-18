@@ -11,7 +11,8 @@
 //
 // The CPU's own captures must also hash to what tests/cpu_reference.txt records, so the CPU
 // renderer gives the same bytes on every compiler and machine. After a change that is meant
-// to alter them, run this test with --write-reference and commit the file.
+// to alter them, run this test with --write-reference and commit the file. Each CPU scene is
+// drawn on one thread and on three (COLDX_CPU_THREADS), and the two must be identical.
 
 #include <cmath>
 #include <cstdio>
@@ -373,8 +374,16 @@ int main(int argc, char** argv) {
     std::map<std::string, std::uint64_t> hashes;
     for (const Case& c : Cases()) {
         if (!only.empty() && only != c.name) continue;
+        // On one thread and on three: the bands must not change a byte, whatever the
+        // machine's core count.
+        SDL_SetEnvironmentVariable(SDL_GetEnvironment(), "COLDX_CPU_THREADS", "3", true);
+        std::vector<Color> threaded;
+        if (!Capture(c, "cpu", threaded)) continue;
+        SDL_SetEnvironmentVariable(SDL_GetEnvironment(), "COLDX_CPU_THREADS", "1", true);
         std::vector<Color> cpu;
         if (!Capture(c, "cpu", cpu)) continue;
+        if (Hash(threaded) != Hash(cpu)) std::printf("%s: three threads drew different bytes from one\n", c.name);
+        CHECK(Hash(threaded) == Hash(cpu));
         const Ties ties = ReadTies(TiesPath());
         hashes[c.name] = Hash(cpu);
         if (!write) {

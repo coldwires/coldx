@@ -360,6 +360,7 @@ Two more are read when the `Game` is constructed, since the graphics device exis
 | Variable | Effect |
 |---|---|
 | `COLDX_RENDERER=cpu` | Draw every pixel on the CPU instead of through SDL_GPU, to the same rules, presented through SDL's window surface. No GPU or driver is needed. An effect runs from a C++ version registered with `CpuEffects::Register` (QUICKSTART, "Custom shaders"). Without one, its sprites use the built-in shader, logged once. There is no vertical blank to wait on, so vsync spaces frames at the display's refresh rate. `gpu` or unset is the default. |
+| `COLDX_CPU_THREADS=<n>` | With the CPU renderer, draw on n threads, the game's own included. The default is one per logical core, up to 16. Batches of more than about 16,000 pixels are split into 8-row bands dealt to the threads. Every count draws the same bytes. 1 draws on the game's thread only. |
 | `COLDX_CPU_TIES=<path>` | With the CPU renderer, write each frame's pixels whose value lands within 0.01 of a step of a rounding tie, one `x y` per line. A GPU blending at less than float precision may round those one step the other way. The backend tests use it. |
 
 Together they run a game unattended and leave a log and a picture of its last frame:

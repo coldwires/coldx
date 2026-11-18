@@ -113,10 +113,27 @@ public:
               const Matrix& transform) override;
 
 private:
-    void Triangle(CpuTexture& target, Color* pixels, const Shading& shading, Vertex a, Vertex b, Vertex c, BlendState blend);
+    // One quad ready to rasterize: its corners in the target's fixed point, and how its
+    // pixels are coloured.
+    struct Prepared {
+        Vertex v[4];
+        Shading shading;
+    };
 
     CpuBackend& backend_;
+    std::vector<Prepared> prepared_;
 };
+
+// Rows go to workers in bands this tall, dealt round-robin, so sprites anywhere on screen
+// spread across every worker.
+constexpr int BandRows = 8;
+
+// Below this many pixels of quad bounds in a batch, waking the workers costs more than it
+// saves, and the caller draws alone. Either way the bytes are the same.
+constexpr std::int64_t ThreadedPixels = 16384;
+
+void Triangle(CpuTexture& target, Color* pixels, const Shading& shading, Vertex a, Vertex b, Vertex c, BlendState blend,
+              int band, int bands);
 
 bool CpuSpriteRenderer::Draw(const SpriteQuad* quads, std::uint32_t count, BlendState blend, SamplerState sampler,
                              const Effect& effect, const Matrix& transform) {
@@ -145,9 +162,18 @@ bool CpuSpriteRenderer::Draw(const SpriteQuad* quads, std::uint32_t count, Blend
     const Matrix m = transform * Matrix::CreateOrthographicOffCenter(0.0f, w, h, 0.0f, 0.0f, 1.0f);
     Color* pixels = target->Write(backend_.Frame());
 
+    // Extra textures, resolved once here: EffectAccess logs an unset one, and the workers
+    // must not.
+    const CpuTexture* extra[effect_format::MaxTextures] = {};
+    if (shading.port)
+        for (std::size_t slot = 1; slot < shading.source.count; ++slot)
+            extra[slot] = static_cast<const CpuTexture*>(EffectAccess::Texture(effect, slot, nullptr));
+
+    prepared_.resize(count);
+    std::int64_t area = 0;
     for (std::uint32_t q = 0; q < count; ++q) {
         const SpriteQuad& quad = quads[q];
-        Vertex v[4];
+        Vertex* v = prepared_[q].v;
         for (int i = 0; i < 4; ++i) {
             const SpriteVertex& s = quad.vertices[i];
             const float cx = s.x * m.m[0][0] + s.y * m.m[1][0] + m.m[3][0];
@@ -164,17 +190,31 @@ bool CpuSpriteRenderer::Draw(const SpriteQuad* quads, std::uint32_t count, Blend
             v[i].color[2] = Unorm(s.color.b);
             v[i].color[3] = Unorm(s.color.a);
         }
-        shading.texture = static_cast<const CpuTexture*>(quad.texture);
-        shading.bounds = quad.vertices[0].bounds;
-        shading.source.bounds = shading.bounds;
-        shading.source.textures[0] = shading.texture;
-        if (shading.port)
-            for (std::size_t slot = 1; slot < shading.source.count; ++slot)
-                shading.source.textures[slot] = static_cast<const CpuTexture*>(EffectAccess::Texture(effect, slot, quad.texture));
-        // The index buffer's two triangles: 0 1 2 and 1 3 2.
-        Triangle(*target, pixels, shading, v[0], v[1], v[2], blend);
-        Triangle(*target, pixels, shading, v[1], v[3], v[2], blend);
+        Shading& sh = prepared_[q].shading;
+        sh = shading;
+        sh.texture = static_cast<const CpuTexture*>(quad.texture);
+        sh.bounds = quad.vertices[0].bounds;
+        sh.source.bounds = sh.bounds;
+        sh.source.textures[0] = sh.texture;
+        if (sh.port)
+            for (std::size_t slot = 1; slot < sh.source.count; ++slot) sh.source.textures[slot] = extra[slot] ? extra[slot] : sh.texture;
+        const std::int64_t wx = (std::max({v[0].x, v[1].x, v[2].x, v[3].x}) - std::min({v[0].x, v[1].x, v[2].x, v[3].x})) >> SubpixelBits;
+        const std::int64_t wy = (std::max({v[0].y, v[1].y, v[2].y, v[3].y}) - std::min({v[0].y, v[1].y, v[2].y, v[3].y})) >> SubpixelBits;
+        area += std::min<std::int64_t>((wx + 1) * (wy + 1), static_cast<std::int64_t>(target->Width()) * target->Height());
     }
+
+    // Each worker draws every quad, in order, into its own bands of rows. A pixel is only
+    // ever touched by one worker, and in the batch's order, so the result is the same as
+    // drawing on one thread.
+    const auto job = [&](int band, int bands) {
+        for (const Prepared& p : prepared_) {
+            // The index buffer's two triangles: 0 1 2 and 1 3 2.
+            Triangle(*target, pixels, p.shading, p.v[0], p.v[1], p.v[2], blend, band, bands);
+            Triangle(*target, pixels, p.shading, p.v[1], p.v[3], p.v[2], blend, band, bands);
+        }
+    };
+    if (area >= ThreadedPixels) backend_.Pool().Run(job);
+    else job(0, 1);
     return true;
 }
 
@@ -197,7 +237,7 @@ void Span(std::int64_t e, std::int64_t step, std::int64_t& first, std::int64_t& 
 
 template <BlendState Blend>
 void Raster(CpuTexture& target, Color* pixels, const Shading& sh, const Vertex& a, const Vertex& b, const Vertex& c,
-            std::int64_t area) {
+            std::int64_t area, int band, int bands) {
     const int tw = target.Width();
     const int th = target.Height();
     const auto lo = [](std::int64_t p) { return static_cast<int>((p - HalfPixel + SubpixelScale - 1) >> SubpixelBits); };
@@ -226,6 +266,7 @@ void Raster(CpuTexture& target, Color* pixels, const Shading& sh, const Vertex& 
     source.Attach(pixel);
 
     for (int y = y0; y <= y1; ++y) {
+        if (bands > 1 && (y / BandRows) % bands != band) continue;
         const std::int64_t py = (static_cast<std::int64_t>(y) << SubpixelBits) + HalfPixel;
         const std::int64_t px0 = (static_cast<std::int64_t>(x0) << SubpixelBits) + HalfPixel;
         std::int64_t ea = Edge(b, c, px0, py);
@@ -296,8 +337,8 @@ void Raster(CpuTexture& target, Color* pixels, const Shading& sh, const Vertex& 
     }
 }
 
-void CpuSpriteRenderer::Triangle(CpuTexture& target, Color* pixels, const Shading& shading, Vertex a, Vertex b, Vertex c,
-                                 BlendState blend) {
+void Triangle(CpuTexture& target, Color* pixels, const Shading& shading, Vertex a, Vertex b, Vertex c, BlendState blend,
+              int band, int bands) {
     std::int64_t area = Edge(a, b, c.x, c.y);
     if (area == 0) return;
     // No culling: either winding draws. Turn it so the inside is positive.
@@ -306,10 +347,12 @@ void CpuSpriteRenderer::Triangle(CpuTexture& target, Color* pixels, const Shadin
         area = -area;
     }
     switch (blend) {
-    case BlendState::AlphaBlend: Raster<BlendState::AlphaBlend>(target, pixels, shading, a, b, c, area); break;
-    case BlendState::Additive: Raster<BlendState::Additive>(target, pixels, shading, a, b, c, area); break;
-    case BlendState::NonPremultiplied: Raster<BlendState::NonPremultiplied>(target, pixels, shading, a, b, c, area); break;
-    case BlendState::Opaque: Raster<BlendState::Opaque>(target, pixels, shading, a, b, c, area); break;
+    case BlendState::AlphaBlend: Raster<BlendState::AlphaBlend>(target, pixels, shading, a, b, c, area, band, bands); break;
+    case BlendState::Additive: Raster<BlendState::Additive>(target, pixels, shading, a, b, c, area, band, bands); break;
+    case BlendState::NonPremultiplied:
+        Raster<BlendState::NonPremultiplied>(target, pixels, shading, a, b, c, area, band, bands);
+        break;
+    case BlendState::Opaque: Raster<BlendState::Opaque>(target, pixels, shading, a, b, c, area, band, bands); break;
     }
 }
 
