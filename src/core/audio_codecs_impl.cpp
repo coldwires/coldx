@@ -3,6 +3,7 @@
 // MSVC reports some of them during code generation, where a #pragma cannot reach.
 
 #define DR_WAV_IMPLEMENTATION
+#define DR_WAV_NO_WCHAR  // coldx never opens a wide-character path, and some C libraries have none
 #include <dr_libs/dr_wav.h>
 
 #include <stb/stb_vorbis.c>

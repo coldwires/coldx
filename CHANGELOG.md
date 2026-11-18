@@ -96,6 +96,7 @@
   the same on every machine. The example effects' versions are in
   `shaders/examples/cpu_effects.h`. `tests/cpu_reference.txt` holds the CPU's own captures
   as hashes.
+- Cross-compiling: `COLDX_SYSTEM_SDL`, `COLDX_BUILD_TOOLS` and `COLDX_DEFAULT_RENDERER`.
 - `SoundEffect::Play` is heard. It had stopped each voice as it started it, so every
   fire-and-forget sound was silent. Sounds played through a `SoundEffectInstance` were
   not affected.

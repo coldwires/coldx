@@ -48,6 +48,19 @@ the build works offline.
 The samples build when coldx is the top-level project. Set `COLDX_BUILD_SAMPLES` to
 override that.
 
+Cross-compiling to a system that ships its own SDL and runs no build tools takes three
+more settings, with that system's toolchain file:
+
+    cmake -S . -B build-target -G Ninja -DCMAKE_TOOLCHAIN_FILE=<toolchain> \
+        -DCOLDX_SYSTEM_SDL=ON -DCOLDX_BUILD_TOOLS=OFF -DCOLDX_DEFAULT_RENDERER=cpu \
+        -DCOLDX_BUILD_TESTS=OFF
+
+| Setting | Effect |
+|---|---|
+| `COLDX_SYSTEM_SDL` | Use an installed SDL 3.4 (`find_package(SDL3)`) instead of `third_party/SDL`. Off by default |
+| `COLDX_BUILD_TOOLS` | Build the `content` module and `coldxc`, and what runs them at build time: the demo and the packed-content tests. On by default. Off for a target where they cannot run. Content is packed on the development machine, and packages work on every platform |
+| `COLDX_DEFAULT_RENDERER` | `gpu` (the default) or `cpu`: the renderer when `COLDX_RENDERER` is not set. `cpu` for a system with no GPU driver, or no environment variables to set |
+
 ## Using it from a game
 
 Add coldx as a subdirectory and link the library:

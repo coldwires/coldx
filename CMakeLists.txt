@@ -3,6 +3,12 @@ project(coldx VERSION 0.1.0 LANGUAGES C CXX)
 
 option(COLDX_BUILD_SAMPLES "Build the sample games" ${PROJECT_IS_TOP_LEVEL})
 option(COLDX_BUILD_TESTS "Build the tests and register them with CTest" ${PROJECT_IS_TOP_LEVEL})
+# For cross-compiling to a target that ships its own SDL and runs no build tools.
+option(COLDX_SYSTEM_SDL "Use an installed SDL 3.4 (find_package) instead of third_party/SDL" OFF)
+option(COLDX_BUILD_TOOLS
+       "Build the content module and coldxc, and what needs them at build time (the demo, packed-content tests)" ON)
+set(COLDX_DEFAULT_RENDERER "gpu" CACHE STRING "Renderer when COLDX_RENDERER is not set: gpu or cpu")
+set_property(CACHE COLDX_DEFAULT_RENDERER PROPERTY STRINGS gpu cpu)
 
 # Render tests run once per backend listed here.
 if(WIN32)
@@ -35,7 +41,11 @@ set(SDL_TEST_LIBRARY OFF CACHE BOOL "")
 set(SDL_TESTS OFF CACHE BOOL "")
 set(SDL_EXAMPLES OFF CACHE BOOL "")
 set(SDL_INSTALL OFF CACHE BOOL "")
-add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL)
+if(COLDX_SYSTEM_SDL)
+    find_package(SDL3 3.4 REQUIRED CONFIG)
+else()
+    add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL)
+endif()
 
 # Warnings apply to coldx's own targets only, never to third_party.
 function(coldx_set_warnings target)
@@ -73,9 +83,11 @@ coldx_compile_shaders(coldx_builtin_shaders
 )
 
 add_subdirectory(src/core)
-add_subdirectory(src/content)
+if(COLDX_BUILD_TOOLS)
+    add_subdirectory(src/content)
+    add_subdirectory(tools/coldxc)
+endif()
 add_subdirectory(src/protect)
-add_subdirectory(tools/coldxc)
 
 # Regenerates the committed headers of the example effects and the effects the tests use:
 #   cmake --build build --target coldx_example_effects coldx_test_effects
@@ -94,10 +106,12 @@ coldx_compile_effects(coldx_test_effects
 if(COLDX_BUILD_TESTS)
     enable_testing()
     add_subdirectory(src/core/tests)
-    add_subdirectory(src/content/tests)
     add_subdirectory(src/protect/tests)
     add_subdirectory(tests/framework)
-    add_subdirectory(tests/protected_game)
+    if(COLDX_BUILD_TOOLS)
+        add_subdirectory(src/content/tests)
+        add_subdirectory(tests/protected_game)
+    endif()
     find_package(Python3 COMPONENTS Interpreter)
     if(Python3_FOUND)
         add_test(NAME check COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/check.py)
@@ -106,7 +120,9 @@ if(COLDX_BUILD_TESTS)
 endif()
 
 if(COLDX_BUILD_SAMPLES)
-    add_subdirectory(samples/demo)
+    if(COLDX_BUILD_TOOLS)
+        add_subdirectory(samples/demo)  # packs its content with coldxc at build time
+    endif()
     add_subdirectory(samples/hello_audio)
     add_subdirectory(samples/hello_sprite)
     add_subdirectory(samples/hello_text)

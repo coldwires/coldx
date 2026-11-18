@@ -16,15 +16,16 @@ struct GraphicsDevice::Impl {
 };
 
 // Read here, not with the other COLDX_ variables at Run: the device exists from the Game's
-// construction, and the backend with it.
+// construction, and the backend with it. Unset, the build's COLDX_DEFAULT_RENDERER decides
+// (a CMake setting, for targets with no GPU driver or no environment variables).
 GraphicsDevice::GraphicsDevice() : impl_(std::make_unique<Impl>()) {
     const char* renderer = SDL_getenv("COLDX_RENDERER");
-    const std::string choice = renderer ? renderer : "";
+    const std::string choice = renderer ? renderer : COLDX_DEFAULT_RENDERER;
     if (choice == "cpu") {
         impl_->backend = detail::CreateCpuBackend();
         return;
     }
-    if (!choice.empty() && choice != "gpu") SDL_Log("coldx.core: COLDX_RENDERER=%s is not gpu or cpu, using gpu", renderer);
+    if (choice != "gpu") SDL_Log("coldx.core: COLDX_RENDERER=%s is not gpu or cpu, using gpu", choice.c_str());
     impl_->backend = detail::CreateGpuBackend();
 }
 

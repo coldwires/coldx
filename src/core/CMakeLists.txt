@@ -52,6 +52,10 @@ target_include_directories(coldx_core
         ${PROJECT_SOURCE_DIR}/third_party/dr_libs ${PROJECT_SOURCE_DIR}/third_party/lz4
 )
 target_link_libraries(coldx_core PRIVATE SDL3::SDL3-static)
+if(NOT COLDX_DEFAULT_RENDERER STREQUAL "gpu" AND NOT COLDX_DEFAULT_RENDERER STREQUAL "cpu")
+    message(FATAL_ERROR "COLDX_DEFAULT_RENDERER is '${COLDX_DEFAULT_RENDERER}': use gpu or cpu")
+endif()
+target_compile_definitions(coldx_core PRIVATE COLDX_DEFAULT_RENDERER="${COLDX_DEFAULT_RENDERER}")
 coldx_set_warnings(coldx_core)
 # The CPU renderer and CpuMath give the same bits on every machine only if a * b + c is never
 # fused into one rounding. MSVC does not fuse by default. GCC and Clang may.
