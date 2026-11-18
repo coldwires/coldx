@@ -115,6 +115,14 @@ void Audio::Release(int slot, std::uint32_t generation) {
     }
 }
 
+void Audio::Detach(int slot, std::uint32_t generation) {
+    if (!mixer_ || slot < 0 || slot >= MixerVoices) return;
+    Slot& s = slots_[static_cast<size_t>(slot)];
+    if (!s.inUse || s.generation != generation) return;
+    // No one holds it now. Pump frees it once the mixer reports the voice ended.
+    s.released = true;
+}
+
 bool Audio::Ended(int slot, std::uint32_t generation) const {
     return !mixer_ || slot < 0 || mixer_->Ended(slot) >= generation;
 }

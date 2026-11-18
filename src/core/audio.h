@@ -35,6 +35,9 @@ public:
     // Lets the slot go, stopping its voice. It is reused once the voice has ended. A slot
     // whose voice ended on its own is reused even if never released.
     void Release(int slot, std::uint32_t generation);
+    // Lets the slot go and leaves its voice playing to the end, for fire-and-forget
+    // sounds. The slot is reused once the voice has ended.
+    void Detach(int slot, std::uint32_t generation);
     // True once that generation's voice has ended, including after the slot is reused.
     bool Ended(int slot, std::uint32_t generation) const;
     // Sends a command. On failure (queue full, audio off) logs once and returns false.

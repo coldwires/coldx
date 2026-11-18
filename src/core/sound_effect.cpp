@@ -108,8 +108,9 @@ bool SoundEffect::Play(float volume, float pitch, float pan) const {
     std::uint32_t generation = 0;
     const int slot = Start(data_, volume, pitch, pan, false, generation);
     if (slot < 0) return false;
-    // Fire and forget: the slot frees itself once the voice ends.
-    detail::Audio::Get().Release(slot, generation);
+    // Fire and forget: the voice plays to its end, then its slot frees itself. Release would
+    // stop it, and the mixer would apply the stop with the play, before a sample is heard.
+    detail::Audio::Get().Detach(slot, generation);
     return true;
 }
 

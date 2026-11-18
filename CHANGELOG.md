@@ -96,5 +96,8 @@
   the same on every machine. The example effects' versions are in
   `shaders/examples/cpu_effects.h`. `tests/cpu_reference.txt` holds the CPU's own captures
   as hashes.
+- `SoundEffect::Play` is heard. It had stopped each voice as it started it, so every
+  fire-and-forget sound was silent. Sounds played through a `SoundEffectInstance` were
+  not affected.
 - The CPU renderer draws on one thread per logical core (`COLDX_CPU_THREADS`), in bands of
   rows, with the same bytes at any thread count. The threads are SDL's.

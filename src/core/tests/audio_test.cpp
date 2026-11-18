@@ -509,7 +509,45 @@ void EndToEnd() {
 
 } // namespace
 
+// SoundEffect::Play keeps its voice until the sound ends, and only then frees it. Until
+// 2026-11-18 Play stopped the voice in the same breath as starting it, so fire-and-forget
+// sounds were never heard. Seen here as a free slot: after one Play of a 3 s sound, 0.3 s
+// later, MaxVoices - 1 more can start, and after a 0.1 s sound has ended, MaxVoices.
+void FireAndForget() {
+    SDL_SetEnvironmentVariable(SDL_GetEnvironment(), "COLDX_HEADLESS", "1", true);
+    std::vector<float> longSamples(Rate * 3, 0.1f);
+    std::vector<float> shortSamples(Rate / 10, 0.1f);
+    const SoundEffect longSound = SoundEffect::FromSamples(longSamples.data(), static_cast<int>(longSamples.size()), 1, Rate);
+    const SoundEffect shortSound =
+        SoundEffect::FromSamples(shortSamples.data(), static_cast<int>(shortSamples.size()), 1, Rate);
+    auto countStarts = [](const SoundEffect& sound) {
+        int started = 0;
+        for (int i = 0; i < SoundEffect::MaxVoices + 1; ++i) started += sound.Play() ? 1 : 0;
+        return started;
+    };
+    for (bool longOne : {true, false}) {
+        Uint64 start = 0;
+        Driver game;
+        game.load = [&] {
+            CHECK((longOne ? longSound : shortSound).Play());
+            start = SDL_GetTicksNS();
+        };
+        game.step = [&](double) {
+            // Real time: the audio thread runs in it, and game time can lag it.
+            const Uint64 wait = longOne ? 300'000'000 : 600'000'000;
+            if (SDL_GetTicksNS() - start < wait) return true;
+            const int started = countStarts(shortSound);
+            const int expected = longOne ? SoundEffect::MaxVoices - 1 : SoundEffect::MaxVoices;
+            if (started != expected) std::printf("fire and forget: %d started, expected %d\n", started, expected);
+            CHECK(started == expected);
+            return false;
+        };
+        CHECK(game.Run() == 0);
+    }
+}
+
 int main() {
+    FireAndForget();
     Basics();
     Lifetimes();
     Ramping();
