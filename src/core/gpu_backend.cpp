@@ -221,7 +221,9 @@ bool GpuBackend::Open(SDL_Window* window, bool vsync, int width, int height) {
             return false;
         }
         token_ = std::make_shared<DeviceToken>(DeviceToken{device_});
-        SDL_Log("coldx.core: GPU driver %s", SDL_GetGPUDeviceDriver(device_));
+        const char* deviceName =
+            SDL_GetStringProperty(SDL_GetGPUDeviceProperties(device_), SDL_PROP_GPU_DEVICE_NAME_STRING, "unnamed");
+        SDL_Log("coldx.core: GPU driver %s, device %s", SDL_GetGPUDeviceDriver(device_), deviceName);
     }
 
     if (!window) {

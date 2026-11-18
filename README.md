@@ -395,7 +395,12 @@ They run once per GPU backend
 renderer. `core.backend_diff` draws the same scenes on every GPU backend and on the CPU and
 compares them byte for byte. The only difference it allows is one step at a pixel the CPU
 reports as a rounding tie (`COLDX_CPU_TIES`), except in effects that call `sin` or `cos`,
-which GPUs approximate each their own way: there up to 1 pixel in 200 may differ. It also
+which GPUs approximate each their own way: there up to 1 pixel in 200 may differ. That
+rule holds on the devices it has been checked on (an Intel UHD 620, through both drivers).
+On any other device, named as SDL reports it, the comparison is printed but does not fail:
+drivers may sample and round differently (Vulkan requires only 4 bits of sub-texel
+precision), and Mesa's software Vulkan does, by more than one step where textures scale or
+rotate. It also
 checks the CPU's captures against the hashes in `tests/cpu_reference.txt`, so the CPU
 renderer draws the same bytes on every compiler and machine. After a change meant to alter
 them, run `coldx_core_backend_diff_test --write-reference` and commit the file.
